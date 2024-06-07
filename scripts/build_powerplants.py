@@ -108,15 +108,16 @@ import pandas as pd
 import powerplantmatching as pm
 import pypsa
 import yaml
-from _helpers import (
+from scipy.spatial import cKDTree as KDTree
+from shapely.geometry import Point
+
+from scripts._helpers import (
     configure_logging,
     create_logger,
     read_csv_nafix,
     to_csv_nafix,
     two_digits_2_name_country,
 )
-from scipy.spatial import cKDTree as KDTree
-from shapely.geometry import Point
 
 logger = create_logger(__name__)
 

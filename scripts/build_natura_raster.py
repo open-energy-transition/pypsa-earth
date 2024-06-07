@@ -50,9 +50,10 @@ import atlite
 import geopandas as gpd
 import numpy as np
 import rasterio as rio
-from _helpers import configure_logging, create_logger
 from rasterio.features import geometry_mask
 from rasterio.warp import transform_bounds
+
+from scripts._helpers import configure_logging, create_logger
 
 logger = create_logger(__name__)
 

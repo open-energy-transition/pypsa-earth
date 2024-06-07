@@ -47,7 +47,8 @@ import os
 import geopandas as gpd
 import pandas as pd
 import pypsa
-from _helpers import REGION_COLS, configure_logging, create_logger
+
+from scripts._helpers import REGION_COLS, configure_logging, create_logger
 
 logger = create_logger(__name__)
 

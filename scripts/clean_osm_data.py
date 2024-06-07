@@ -11,7 +11,8 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import reverse_geocode as rg
-from _helpers import (
+
+from scripts._helpers import (
     REGION_COLS,
     configure_logging,
     create_logger,

@@ -10,7 +10,11 @@ import os
 import geopandas as gpd
 import numpy as np
 import pandas as pd
-from _helpers import (
+from shapely.geometry import LineString, Point
+from shapely.ops import linemerge, split
+from tqdm import tqdm
+
+from scripts._helpers import (
     configure_logging,
     create_logger,
     read_geojson,
@@ -18,9 +22,6 @@ from _helpers import (
     sets_path_to_root,
     to_csv_nafix,
 )
-from shapely.geometry import LineString, Point
-from shapely.ops import linemerge, split
-from tqdm import tqdm
 
 logger = create_logger(__name__)
 

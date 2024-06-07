@@ -30,8 +30,9 @@ import os
 import shutil
 from pathlib import Path
 
-from _helpers import configure_logging, create_logger, read_osm_config
 from earth_osm import eo
+
+from scripts._helpers import configure_logging, create_logger, read_osm_config
 
 logger = create_logger(__name__)
 

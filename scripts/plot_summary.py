@@ -20,7 +20,8 @@ import os
 
 import matplotlib.pyplot as plt
 import pandas as pd
-from _helpers import configure_logging, create_logger
+
+from scripts._helpers import configure_logging, create_logger
 
 logger = create_logger(__name__)
 

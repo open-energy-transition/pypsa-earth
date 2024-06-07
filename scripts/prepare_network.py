@@ -65,8 +65,9 @@ import numpy as np
 import pandas as pd
 import pypsa
 import requests
-from _helpers import configure_logging, create_logger
-from add_electricity import load_costs, update_transmission_costs
+
+from scripts._helpers import configure_logging, create_logger
+from scripts.add_electricity import load_costs, update_transmission_costs
 
 idx = pd.IndexSlice
 
