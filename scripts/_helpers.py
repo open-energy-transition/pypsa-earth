@@ -911,23 +911,27 @@ def cycling_shift(df, steps=1):
     return df
 
 
-def download_gadm(country_code, update=False, out_logging=False):
+def download_gadm(country_code, file_prefix, update=False, out_logging=False):
     """
     Download gpkg file from GADM for a given country code.
 
     Parameters
     ----------
     country_code : str
-        Two letter country codes of the downloaded files
+        2-digit country name of the downloaded files
+    file_prefix : str
+        file prefix string
     update : bool
         Update = true, forces re-download of files
+    out_logging : bool
+        out_logging = true, enables output logging
 
     Returns
     -------
     gpkg file per country
     """
 
-    gadm_filename = f"gadm36_{two_2_three_digits_country(country_code)}"
+    gadm_filename = get_gadm_filename(country_code, file_prefix)
     gadm_url = f"https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/{gadm_filename}_gpkg.zip"
     _logger = logging.getLogger(__name__)
     gadm_input_file_zip = get_path(
@@ -985,7 +989,9 @@ def get_gadm_layer(country_list, layer_id, update=False, outlogging=False):
 
     for country_code in country_list:
         # download file gpkg
-        file_gpkg, name_file = download_gadm(country_code, update, outlogging)
+        file_gpkg, name_file = download_gadm(
+            country_code, file_prefix, update, outlogging
+        )
 
         # get layers of a geopackage
         list_layers = fiona.listlayers(file_gpkg)
@@ -1257,3 +1263,31 @@ def safe_divide(numerator, denominator):
             f"Division by zero: {numerator} / {denominator}, returning NaN."
         )
         return np.nan
+
+
+def get_gadm_filename(country_code, file_prefix="gadm41_"):
+    """
+    Function to get the gadm filename given the country code.
+    """
+    special_codes_gadm = {
+        "XK": "XKO",  # kosovo
+        "CP": "XCL",  # clipperton island
+        "SX": "MAF",  # saint-martin
+        "TF": "ATF",  # french southern territories
+        "AX": "ALA",  # aland
+        "IO": "IOT",  # british indian ocean territory
+        "CC": "CCK",  # cocos island
+        "NF": "NFK",  # norfolk
+        "PN": "PCN",  # pitcairn islands
+        "JE": "JEY",  # jersey
+        "XS": "XSP",  # spratly islands
+        "GG": "GGY",  # guernsey
+        "UM": "UMI",  # United States minor outlying islands
+        "SJ": "SJM",  # svalbard
+        "CX": "CXR",  # Christmas island
+    }
+
+    if country_code in special_codes_gadm:
+        return file_prefix + special_codes_gadm[country_code]
+    else:
+        return file_prefix + two_2_three_digits_country(country_code)

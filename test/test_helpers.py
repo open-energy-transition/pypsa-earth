@@ -29,6 +29,7 @@ from _helpers import (
     country_name_2_two_digits,
     get_conv_factors,
     get_current_directory_path,
+    get_gadm_filename,
     get_path,
     get_path_size,
     get_relative_path,
@@ -467,3 +468,46 @@ def test_aggregate_fuels():
     Verify what is returned by aggregate_fuels.
     """
     assert np.isnan(aggregate_fuels("non-industry"))
+
+
+def test_get_gadm_filename():
+    # Kosovo
+    assert get_gadm_filename("XK") == "gadm41_XKO"
+    # Clipperton island
+    assert get_gadm_filename("CP") == "gadm41_XCL"
+    # Saint-Martin
+    assert get_gadm_filename("SX") == "gadm41_MAF"
+    # French Southern Territories
+    assert get_gadm_filename("TF") == "gadm41_ATF"
+    # Aland
+    assert get_gadm_filename("AX") == "gadm41_ALA"
+    # British Indian Ocean Territory
+    assert get_gadm_filename("IO") == "gadm41_IOT"
+    # Cocos Islands
+    assert get_gadm_filename("CC") == "gadm41_CCK"
+    # Norfolk
+    assert get_gadm_filename("NF") == "gadm41_NFK"
+    # Pitcairn Islands
+    assert get_gadm_filename("PN") == "gadm41_PCN"
+    # Jersey
+    assert get_gadm_filename("JE") == "gadm41_JEY"
+    # Spratly Islands
+    assert get_gadm_filename("XS") == "gadm41_XSP"
+    # Guernsey
+    assert get_gadm_filename("GG") == "gadm41_GGY"
+    # United States Minor Outlying Islands
+    assert get_gadm_filename("UM") == "gadm41_UMI"
+    # Svalbard islands
+    assert get_gadm_filename("SJ") == "gadm41_SJM"
+    # Christmas island
+    assert get_gadm_filename("CX") == "gadm41_CXR"
+    # Afghanistan
+    assert get_gadm_filename("AF") == "gadm41_AFG"
+    # American Samoa
+    assert get_gadm_filename("AS") == "gadm41_ASM"
+    # Aruba
+    assert get_gadm_filename("AW") == "gadm41_ABW"
+    # Germany
+    assert get_gadm_filename("DE") == "gadm41_DEU"
+    # Micronesia (Federated States of)
+    assert get_gadm_filename("FM") == "gadm41_FSM"

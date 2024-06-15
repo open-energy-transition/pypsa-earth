@@ -24,6 +24,7 @@ from _helpers import (
     configure_logging,
     create_logger,
     get_current_directory_path,
+    get_gadm_filename,
     get_path,
     mock_snakemake,
     sets_path_to_root,
@@ -47,34 +48,6 @@ sets_path_to_root("pypsa-earth")
 logger = create_logger(__name__)
 
 
-def get_GADM_filename(country_code):
-    """
-    Function to get the GADM filename given the country code.
-    """
-    special_codes_GADM = {
-        "XK": "XKO",  # kosovo
-        "CP": "XCL",  # clipperton island
-        "SX": "MAF",  # sint maartin
-        "TF": "ATF",  # french southern territories
-        "AX": "ALA",  # aland
-        "IO": "IOT",  # british indian ocean territory
-        "CC": "CCK",  # cocos island
-        "NF": "NFK",  # norfolk
-        "PN": "PCN",  # pitcairn islands
-        "JE": "JEY",  # jersey
-        "XS": "XSP",  # spratly
-        "GG": "GGY",  # guernsey
-        "UM": "UMI",  # united states minor outlying islands
-        "SJ": "SJM",  # svalbard
-        "CX": "CXR",  # Christmas island
-    }
-
-    if country_code in special_codes_GADM:
-        return f"gadm41_{special_codes_GADM[country_code]}"
-    else:
-        return f"gadm41_{two_2_three_digits_country(country_code)}"
-
-
 def download_GADM(country_code, update=False, out_logging=False):
     """
     Download gpkg file from GADM for a given country code.
@@ -90,7 +63,7 @@ def download_GADM(country_code, update=False, out_logging=False):
     -------
     gpkg file per country
     """
-    GADM_filename = get_GADM_filename(country_code)
+    GADM_filename = get_gadm_filename(country_code)
     GADM_url = f"https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/{GADM_filename}.gpkg"
 
     GADM_inputfile_gpkg = get_path(
