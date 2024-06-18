@@ -911,7 +911,53 @@ def cycling_shift(df, steps=1):
     return df
 
 
-def download_gadm(country_code, file_prefix, update=False, out_logging=False):
+def get_gadm_filename(country_code, file_prefix="gadm41_"):
+    """
+    Function to get the gadm filename given the country code.
+    """
+    special_codes_gadm = {
+        "XK": "XKO",  # kosovo
+        "CP": "XCL",  # clipperton island
+        "SX": "MAF",  # saint-martin
+        "TF": "ATF",  # french southern territories
+        "AX": "ALA",  # aland
+        "IO": "IOT",  # british indian ocean territory
+        "CC": "CCK",  # cocos island
+        "NF": "NFK",  # norfolk
+        "PN": "PCN",  # pitcairn islands
+        "JE": "JEY",  # jersey
+        "XS": "XSP",  # spratly islands
+        "GG": "GGY",  # guernsey
+        "UM": "UMI",  # United States minor outlying islands
+        "SJ": "SJM",  # svalbard
+        "CX": "CXR",  # Christmas island
+    }
+
+    if country_code in special_codes_gadm:
+        return file_prefix + special_codes_gadm[country_code]
+    else:
+        return file_prefix + two_2_three_digits_country(country_code)
+
+
+def get_gadm_url(gadm_url_prefix, gadm_filename, use_zip_file=False):
+    """
+    Function to get the gadm url given a gadm filename.
+    """
+    if use_zip_file:
+        return gadm_url_prefix + gadm_filename + "_gpkg.zip"
+    else:
+        return gadm_url_prefix + gadm_filename + ".gpkg"
+
+
+def download_gadm(
+    country_code,
+    file_prefix,
+    gadm_url_prefix,
+    gadm_input_file_args,
+    update=False,
+    out_logging=False,
+    use_zip_file=True,
+):
     """
     Download gpkg file from GADM for a given country code.
 
@@ -921,51 +967,77 @@ def download_gadm(country_code, file_prefix, update=False, out_logging=False):
         2-digit country name of the downloaded files
     file_prefix : str
         file prefix string
+    gadm_url_prefix: str
+        gadm url prefix
+    gadm_input_file_args: str
+        gadm input file arguments
     update : bool
         Update = true, forces re-download of files
     out_logging : bool
         out_logging = true, enables output logging
+    use_zip_file : bool
+        use_zip_file = true, enables output logging
 
     Returns
     -------
     gpkg file per country
     """
 
-    gadm_filename = get_gadm_filename(country_code, file_prefix)
-    gadm_url = f"https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/{gadm_filename}_gpkg.zip"
     _logger = logging.getLogger(__name__)
-    gadm_input_file_zip = get_path(
-        get_current_directory_path(),
-        "data",
-        "raw",
-        "gadm",
-        gadm_filename,
-        gadm_filename + ".zip",
-    )  # Input filepath zip
 
-    gadm_input_file_gpkg = get_path(
-        get_current_directory_path(),
-        "data",
-        "raw",
-        "gadm",
-        gadm_filename,
-        gadm_filename + ".gpkg",
-    )  # Input filepath gpkg
+    gadm_filename = get_gadm_filename(country_code, file_prefix)
+    gadm_url = get_gadm_url(gadm_url_prefix, gadm_filename, use_zip_file)
+    gadm_input_file = str(
+        get_path(
+            get_current_directory_path(),
+            gadm_input_file_args,
+            gadm_filename,
+            gadm_filename,
+        )
+    )
+
+    gadm_input_file_gpkg = gadm_input_file + ".gpkg"  # Input filepath gpkg
+    gadm_input_file_zip = gadm_input_file + ".zip"  # Input filepath zip"
 
     if not pathlib.Path(gadm_input_file_gpkg).exists() or update is True:
         if out_logging:
-            _logger.warning(
-                f"Stage 4/4: {gadm_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {gadm_input_file_zip}"
-            )
+            if use_zip_file:
+                _logger.warning(
+                    f"{gadm_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {gadm_input_file_zip}"
+                )
+            else:
+                _logger.warning(
+                    f"{gadm_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {gadm_input_file_gpkg}"
+                )
+
         #  create data/osm directory
-        build_directory(gadm_input_file_zip)
+        if use_zip_file:
+            build_directory(str(gadm_input_file_zip))
+        else:
+            build_directory(str(gadm_input_file_gpkg))
 
-        with requests.get(gadm_url, stream=True) as r:
-            with open(gadm_input_file_zip, "wb") as f:
-                shutil.copyfileobj(r.raw, f)
+        try:
+            r = requests.get(gadm_url, stream=True, timeout=300)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            raise Exception(
+                f"GADM server is down at {gadm_url}. Data needed for building shapes can't be extracted.\n\r"
+            )
+        except Exception as exception:
+            raise Exception(
+                f"An error happened when trying to load GADM data by {gadm_url}.\n\r"
+                + str(exception)
+                + "\n\r"
+            )
+        else:
+            if use_zip_file:
+                with open(gadm_input_file_zip, "wb") as f:
+                    shutil.copyfileobj(r.raw, f)
 
-        with zipfile.ZipFile(gadm_input_file_zip, "r") as zip_ref:
-            zip_ref.extractall(pathlib.Path(gadm_input_file_zip).parent)
+                with zipfile.ZipFile(gadm_input_file_zip, "r") as zip_ref:
+                    zip_ref.extractall(pathlib.Path(gadm_input_file_zip).parent)
+            else:
+                with open(gadm_input_file_gpkg, "wb") as f:
+                    shutil.copyfileobj(r.raw, f)
 
     return gadm_input_file_gpkg, gadm_filename
 
@@ -989,9 +1061,7 @@ def get_gadm_layer(country_list, layer_id, update=False, outlogging=False):
 
     for country_code in country_list:
         # download file gpkg
-        file_gpkg, name_file = download_gadm(
-            country_code, file_prefix, update, outlogging
-        )
+        file_gpkg, name_file = download_gadm(country_code, update, outlogging)
 
         # get layers of a geopackage
         list_layers = fiona.listlayers(file_gpkg)
@@ -1263,31 +1333,3 @@ def safe_divide(numerator, denominator):
             f"Division by zero: {numerator} / {denominator}, returning NaN."
         )
         return np.nan
-
-
-def get_gadm_filename(country_code, file_prefix="gadm41_"):
-    """
-    Function to get the gadm filename given the country code.
-    """
-    special_codes_gadm = {
-        "XK": "XKO",  # kosovo
-        "CP": "XCL",  # clipperton island
-        "SX": "MAF",  # saint-martin
-        "TF": "ATF",  # french southern territories
-        "AX": "ALA",  # aland
-        "IO": "IOT",  # british indian ocean territory
-        "CC": "CCK",  # cocos island
-        "NF": "NFK",  # norfolk
-        "PN": "PCN",  # pitcairn islands
-        "JE": "JEY",  # jersey
-        "XS": "XSP",  # spratly islands
-        "GG": "GGY",  # guernsey
-        "UM": "UMI",  # United States minor outlying islands
-        "SJ": "SJM",  # svalbard
-        "CX": "CXR",  # Christmas island
-    }
-
-    if country_code in special_codes_gadm:
-        return file_prefix + special_codes_gadm[country_code]
-    else:
-        return file_prefix + two_2_three_digits_country(country_code)
