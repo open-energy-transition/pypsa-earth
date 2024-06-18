@@ -30,6 +30,7 @@ from _helpers import (
     get_conv_factors,
     get_current_directory_path,
     get_gadm_filename,
+    get_gadm_url,
     get_path,
     get_path_size,
     get_relative_path,
@@ -471,6 +472,9 @@ def test_aggregate_fuels():
 
 
 def test_get_gadm_filename():
+    """
+    Verify what is returned by get_gadm_filename.
+    """
     # Kosovo
     assert get_gadm_filename("XK") == "gadm41_XKO"
     # Clipperton island
@@ -511,3 +515,49 @@ def test_get_gadm_filename():
     assert get_gadm_filename("DE") == "gadm41_DEU"
     # Micronesia (Federated States of)
     assert get_gadm_filename("FM") == "gadm41_FSM"
+    # Micronesia (Federated States of) with different file_prefix
+    assert get_gadm_filename("FM", file_prefix="gadm456_") == "gadm456_FSM"
+
+
+def test_get_gadm_url():
+    """
+    Verify what is returned by get_gadm_url.
+    """
+    gadm_filename = get_gadm_filename("XK")
+    url_with_zip_gadm36 = get_gadm_url(
+        "https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/",
+        gadm_filename,
+        use_zip_file=True,
+    )
+    url_no_zip_gadm36 = get_gadm_url(
+        "https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/",
+        gadm_filename,
+        use_zip_file=False,
+    )
+    assert (
+        url_with_zip_gadm36
+        == f"https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/{gadm_filename}_gpkg.zip"
+    )
+    assert (
+        url_no_zip_gadm36
+        == f"https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/{gadm_filename}.gpkg"
+    )
+
+    url_with_zip_gadm41 = get_gadm_url(
+        "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/",
+        gadm_filename,
+        use_zip_file=True,
+    )
+    url_no_zip_gadm41 = get_gadm_url(
+        "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/",
+        gadm_filename,
+        use_zip_file=False,
+    )
+    assert (
+        url_with_zip_gadm41
+        == f"https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/{gadm_filename}_gpkg.zip"
+    )
+    assert (
+        url_no_zip_gadm41
+        == f"https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/{gadm_filename}.gpkg"
+    )
