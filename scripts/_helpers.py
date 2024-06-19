@@ -987,17 +987,17 @@ def download_gadm(
 
     gadm_filename = get_gadm_filename(country_code, file_prefix)
     gadm_url = get_gadm_url(gadm_url_prefix, gadm_filename, use_zip_file)
-    gadm_input_file = str(
-        get_path(
-            get_current_directory_path(),
-            *gadm_input_file_args,
-            gadm_filename,
-            gadm_filename,
-        )
+    gadm_input_file = get_path(
+        get_current_directory_path(),
+        *gadm_input_file_args,
+        gadm_filename,
+        gadm_filename,
     )
 
-    gadm_input_file_gpkg = gadm_input_file + ".gpkg"  # Input filepath gpkg
-    gadm_input_file_zip = gadm_input_file + ".zip"  # Input filepath zip"
+    gadm_input_file_gpkg = get_path(
+        str(gadm_input_file) + ".gpkg"
+    )  # Input filepath gpkg
+    gadm_input_file_zip = get_path(str(gadm_input_file) + ".zip")  # Input filepath zip"
 
     if not pathlib.Path(gadm_input_file_gpkg).exists() or update is True:
         if out_logging:
@@ -1333,59 +1333,6 @@ def safe_divide(numerator, denominator):
             f"Division by zero: {numerator} / {denominator}, returning NaN."
         )
         return np.nan
-
-
-def download_gadm_build_shapes(country_code, update=False, out_logging=False):
-    """
-    Download gpkg file from GADM for a given country code.
-
-    Parameters
-    ----------
-    country_code : str
-        Two letter country codes of the downloaded files
-    update : bool
-        Update = true, forces re-download of files
-
-    Returns
-    -------
-    gpkg file per country
-    """
-    GADM_filename = get_gadm_filename(country_code)
-    GADM_url = f"https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/{GADM_filename}.gpkg"
-
-    GADM_inputfile_gpkg = get_path(
-        get_current_directory_path(),
-        "data",
-        "gadm",
-        GADM_filename,
-        GADM_filename + ".gpkg",
-    )  # Input filepath gpkg
-
-    if not pathlib.Path(GADM_inputfile_gpkg).exists() or update is True:
-        if out_logging:
-            logger.warning(
-                f"Stage 5 of 5: {GADM_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {GADM_inputfile_gpkg}"
-            )
-        #  create data/osm directory
-        build_directory(GADM_inputfile_gpkg)
-
-        try:
-            r = requests.get(GADM_url, stream=True, timeout=300)
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-            raise Exception(
-                f"GADM server is down at {GADM_url}. Data needed for building shapes can't be extracted.\n\r"
-            )
-        except Exception as exception:
-            raise Exception(
-                f"An error happened when trying to load GADM data by {GADM_url}.\n\r"
-                + str(exception)
-                + "\n\r"
-            )
-        else:
-            with open(GADM_inputfile_gpkg, "wb") as f:
-                shutil.copyfileobj(r.raw, f)
-
-    return GADM_inputfile_gpkg, GADM_filename
 
 
 def download_GADM_helpers_pes(country_code, update=False, out_logging=False):

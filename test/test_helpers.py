@@ -29,6 +29,7 @@ from _helpers import (
     country_name_2_two_digits,
     download_gadm,
     download_gadm_build_shapes,
+    download_GADM_helpers_pes,
     get_conv_factors,
     get_current_directory_path,
     get_gadm_filename,
@@ -589,14 +590,18 @@ def test_download_gadm():
     """
     Verify what is returned by download_gadm.
     """
-    file_prefix = "gadm41_"
-    gadm_url_prefix = "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/"
-    gadm_input_file_args = ["data", "gadm"]
-    gadm_input_file_gpkg_old, gadm_filename_old = download_gadm_build_shapes("XK")
-    gadm_input_file_gpkg_new, gadm_filename_new = download_gadm(
+    file_prefix_geodata = "gadm41_"
+    gadm_url_prefix_geodata = "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/"
+    gadm_input_file_args_geodata = ["data", "gadm"]
+    # gadm_input_file_gpkg_old, gadm_filename_old = download_GADM_helpers_pes("XK")
+    gadm_input_file_gpkg_geodata, gadm_filename_geodata = download_gadm(
         "XK",
-        file_prefix,
-        gadm_url_prefix,
-        gadm_input_file_args,
+        file_prefix_geodata,
+        gadm_url_prefix_geodata,
+        gadm_input_file_args_geodata,
         use_zip_file=False,
     )
+    assert gadm_input_file_gpkg_geodata == get_path(
+        path_cwd, "data/gadm/gadm41_XKO/gadm41_XKO.gpkg"
+    )
+    assert gadm_filename_geodata == "gadm41_XKO"
