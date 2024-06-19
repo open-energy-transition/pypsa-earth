@@ -997,7 +997,7 @@ def download_gadm(
     gadm_input_file_gpkg = get_path(
         str(gadm_input_file) + ".gpkg"
     )  # Input filepath gpkg
-    gadm_input_file_zip = get_path(str(gadm_input_file) + ".zip")  # Input filepath zip"
+    gadm_input_file_zip = get_path(str(gadm_input_file) + ".zip")  # Input filepath zip
 
     if not pathlib.Path(gadm_input_file_gpkg).exists() or update is True:
         if out_logging:
@@ -1333,58 +1333,3 @@ def safe_divide(numerator, denominator):
             f"Division by zero: {numerator} / {denominator}, returning NaN."
         )
         return np.nan
-
-
-def download_GADM_helpers_pes(country_code, update=False, out_logging=False):
-    """
-    Download gpkg file from GADM for a given country code.
-
-    Parameters
-    ----------
-    country_code : str
-        Two letter country codes of the downloaded files
-    update : bool
-        Update = true, forces re-download of files
-
-    Returns
-    -------
-    gpkg file per country
-    """
-
-    GADM_filename = f"gadm36_{two_2_three_digits_country(country_code)}"
-    GADM_url = f"https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/{GADM_filename}_gpkg.zip"
-    _logger = logging.getLogger(__name__)
-    GADM_inputfile_zip = os.path.join(
-        os.getcwd(),
-        "data",
-        "raw",
-        "gadm",
-        GADM_filename,
-        GADM_filename + ".zip",
-    )  # Input filepath zip
-
-    GADM_inputfile_gpkg = os.path.join(
-        os.getcwd(),
-        "data",
-        "raw",
-        "gadm",
-        GADM_filename,
-        GADM_filename + ".gpkg",
-    )  # Input filepath gpkg
-
-    if not os.path.exists(GADM_inputfile_gpkg) or update is True:
-        if out_logging:
-            _logger.warning(
-                f"Stage 4/4: {GADM_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {GADM_inputfile_zip}"
-            )
-        #  create data/osm directory
-        os.makedirs(os.path.dirname(GADM_inputfile_zip), exist_ok=True)
-
-        with requests.get(GADM_url, stream=True) as r:
-            with open(GADM_inputfile_zip, "wb") as f:
-                shutil.copyfileobj(r.raw, f)
-
-        with zipfile.ZipFile(GADM_inputfile_zip, "r") as zip_ref:
-            zip_ref.extractall(os.path.dirname(GADM_inputfile_zip))
-
-    return GADM_inputfile_gpkg, GADM_filename

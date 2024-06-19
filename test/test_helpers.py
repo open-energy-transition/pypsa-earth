@@ -28,7 +28,6 @@ from _helpers import (
     change_to_script_dir,
     country_name_2_two_digits,
     download_gadm,
-    download_GADM_helpers_pes,
     get_conv_factors,
     get_current_directory_path,
     get_gadm_filename,
@@ -589,7 +588,7 @@ def test_download_gadm():
     """
     Verify what is returned by download_gadm.
     """
-    # test for geodata
+    # test data version 4.1
     file_prefix_geodata = "gadm41_"
     gadm_url_prefix_geodata = "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/"
     gadm_input_file_args_geodata = ["data", "gadm"]
@@ -598,6 +597,7 @@ def test_download_gadm():
         file_prefix_geodata,
         gadm_url_prefix_geodata,
         gadm_input_file_args_geodata,
+        update=True,
         use_zip_file=False,
     )
     assert gadm_input_file_gpkg_geodata == get_path(
@@ -605,18 +605,19 @@ def test_download_gadm():
     )
     assert gadm_filename_geodata == "gadm41_XKO"
 
-    ## test for biogeo
-    # file_prefix_biogeo = "gadm36_"
-    # gadm_url_prefix_biogeo = "https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/"
-    # gadm_input_file_args_biogeo = ["data", "raw", "gadm"]
-    # gadm_input_file_gpkg_biogeo, gadm_filename_biogeo = download_gadm(
-    #    "XK",
-    #    file_prefix_biogeo,
-    #    gadm_url_prefix_biogeo,
-    #    gadm_input_file_args_biogeo,
-    #    use_zip_file=True,
-    # )
-    # assert gadm_input_file_gpkg_biogeo == get_path(
-    #    path_cwd, "data/raw/gadm/gadm41_XKO/gadm41_XKO.gpkg"
-    # )
-    # assert gadm_filename_biogeo == "gadm41_XKO"
+    # test data version 3.6
+    file_prefix_biogeo = "gadm36_"
+    gadm_url_prefix_biogeo = "https://geodata.ucdavis.edu/gadm/gadm3.6/gpkg/"
+    gadm_input_file_args_biogeo = ["data", "raw", "gadm"]
+    gadm_input_file_gpkg_biogeo, gadm_filename_biogeo = download_gadm(
+        "XK",
+        file_prefix_biogeo,
+        gadm_url_prefix_biogeo,
+        gadm_input_file_args_biogeo,
+        update=True,
+        use_zip_file=True,
+    )
+    assert gadm_input_file_gpkg_biogeo == get_path(
+        path_cwd, "data/raw/gadm/gadm36_XKO/gadm36_XKO.gpkg"
+    )
+    assert gadm_filename_biogeo == "gadm36_XKO"
