@@ -27,6 +27,8 @@ from _helpers import (
     build_directory,
     change_to_script_dir,
     country_name_2_two_digits,
+    download_gadm,
+    download_gadm_build_shapes,
     get_conv_factors,
     get_current_directory_path,
     get_gadm_filename,
@@ -276,10 +278,30 @@ def test_get_path():
         "sub_path_5",
         "file.nc",
     )
+    file_name_path_one_list_unpacked = get_path(
+        path_cwd,
+        *[
+            "sub_path_1",
+            "sub_path_2",
+            "sub_path_3",
+            "sub_path_4",
+            "sub_path_5",
+            "file.nc",
+        ],
+    )
     path_name_path_two = get_path(
         pathlib.Path(__file__).parent, "..", "logs", "rule.log"
     )
     assert str(file_name_path_one) == os.path.join(
+        path_cwd,
+        "sub_path_1",
+        "sub_path_2",
+        "sub_path_3",
+        "sub_path_4",
+        "sub_path_5",
+        "file.nc",
+    )
+    assert str(file_name_path_one_list_unpacked) == os.path.join(
         path_cwd,
         "sub_path_1",
         "sub_path_2",
@@ -560,4 +582,21 @@ def test_get_gadm_url():
     assert (
         url_no_zip_gadm41
         == f"https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/{gadm_filename}.gpkg"
+    )
+
+
+def test_download_gadm():
+    """
+    Verify what is returned by download_gadm.
+    """
+    file_prefix = "gadm41_"
+    gadm_url_prefix = "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/"
+    gadm_input_file_args = ["data", "gadm"]
+    gadm_input_file_gpkg_old, gadm_filename_old = download_gadm_build_shapes("XK")
+    gadm_input_file_gpkg_new, gadm_filename_new = download_gadm(
+        "XK",
+        file_prefix,
+        gadm_url_prefix,
+        gadm_input_file_args,
+        use_zip_file=False,
     )

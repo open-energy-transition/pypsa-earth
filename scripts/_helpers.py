@@ -969,8 +969,8 @@ def download_gadm(
         file prefix string
     gadm_url_prefix: str
         gadm url prefix
-    gadm_input_file_args: str
-        gadm input file arguments
+    gadm_input_file_args: list[str]
+        gadm input file arguments list
     update : bool
         Update = true, forces re-download of files
     out_logging : bool
@@ -990,7 +990,7 @@ def download_gadm(
     gadm_input_file = str(
         get_path(
             get_current_directory_path(),
-            gadm_input_file_args,
+            *gadm_input_file_args,
             gadm_filename,
             gadm_filename,
         )
@@ -1333,3 +1333,111 @@ def safe_divide(numerator, denominator):
             f"Division by zero: {numerator} / {denominator}, returning NaN."
         )
         return np.nan
+
+
+def download_gadm_build_shapes(country_code, update=False, out_logging=False):
+    """
+    Download gpkg file from GADM for a given country code.
+
+    Parameters
+    ----------
+    country_code : str
+        Two letter country codes of the downloaded files
+    update : bool
+        Update = true, forces re-download of files
+
+    Returns
+    -------
+    gpkg file per country
+    """
+    GADM_filename = get_gadm_filename(country_code)
+    GADM_url = f"https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/{GADM_filename}.gpkg"
+
+    GADM_inputfile_gpkg = get_path(
+        get_current_directory_path(),
+        "data",
+        "gadm",
+        GADM_filename,
+        GADM_filename + ".gpkg",
+    )  # Input filepath gpkg
+
+    if not pathlib.Path(GADM_inputfile_gpkg).exists() or update is True:
+        if out_logging:
+            logger.warning(
+                f"Stage 5 of 5: {GADM_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {GADM_inputfile_gpkg}"
+            )
+        #  create data/osm directory
+        build_directory(GADM_inputfile_gpkg)
+
+        try:
+            r = requests.get(GADM_url, stream=True, timeout=300)
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+            raise Exception(
+                f"GADM server is down at {GADM_url}. Data needed for building shapes can't be extracted.\n\r"
+            )
+        except Exception as exception:
+            raise Exception(
+                f"An error happened when trying to load GADM data by {GADM_url}.\n\r"
+                + str(exception)
+                + "\n\r"
+            )
+        else:
+            with open(GADM_inputfile_gpkg, "wb") as f:
+                shutil.copyfileobj(r.raw, f)
+
+    return GADM_inputfile_gpkg, GADM_filename
+
+
+def download_GADM_helpers_pes(country_code, update=False, out_logging=False):
+    """
+    Download gpkg file from GADM for a given country code.
+
+    Parameters
+    ----------
+    country_code : str
+        Two letter country codes of the downloaded files
+    update : bool
+        Update = true, forces re-download of files
+
+    Returns
+    -------
+    gpkg file per country
+    """
+
+    GADM_filename = f"gadm36_{two_2_three_digits_country(country_code)}"
+    GADM_url = f"https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/{GADM_filename}_gpkg.zip"
+    _logger = logging.getLogger(__name__)
+    GADM_inputfile_zip = os.path.join(
+        os.getcwd(),
+        "data",
+        "raw",
+        "gadm",
+        GADM_filename,
+        GADM_filename + ".zip",
+    )  # Input filepath zip
+
+    GADM_inputfile_gpkg = os.path.join(
+        os.getcwd(),
+        "data",
+        "raw",
+        "gadm",
+        GADM_filename,
+        GADM_filename + ".gpkg",
+    )  # Input filepath gpkg
+
+    if not os.path.exists(GADM_inputfile_gpkg) or update is True:
+        if out_logging:
+            _logger.warning(
+                f"Stage 4/4: {GADM_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {GADM_inputfile_zip}"
+            )
+        #  create data/osm directory
+        os.makedirs(os.path.dirname(GADM_inputfile_zip), exist_ok=True)
+
+        with requests.get(GADM_url, stream=True) as r:
+            with open(GADM_inputfile_zip, "wb") as f:
+                shutil.copyfileobj(r.raw, f)
+
+        with zipfile.ZipFile(GADM_inputfile_zip, "r") as zip_ref:
+            zip_ref.extractall(os.path.dirname(GADM_inputfile_zip))
+
+    return GADM_inputfile_gpkg, GADM_filename
