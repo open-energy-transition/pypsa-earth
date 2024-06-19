@@ -28,7 +28,6 @@ from _helpers import (
     change_to_script_dir,
     country_name_2_two_digits,
     download_gadm,
-    download_gadm_build_shapes,
     download_GADM_helpers_pes,
     get_conv_factors,
     get_current_directory_path,
@@ -590,10 +589,10 @@ def test_download_gadm():
     """
     Verify what is returned by download_gadm.
     """
+    # test for geodata
     file_prefix_geodata = "gadm41_"
     gadm_url_prefix_geodata = "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/"
     gadm_input_file_args_geodata = ["data", "gadm"]
-    # gadm_input_file_gpkg_old, gadm_filename_old = download_GADM_helpers_pes("XK")
     gadm_input_file_gpkg_geodata, gadm_filename_geodata = download_gadm(
         "XK",
         file_prefix_geodata,
@@ -605,3 +604,19 @@ def test_download_gadm():
         path_cwd, "data/gadm/gadm41_XKO/gadm41_XKO.gpkg"
     )
     assert gadm_filename_geodata == "gadm41_XKO"
+
+    ## test for biogeo
+    # file_prefix_biogeo = "gadm36_"
+    # gadm_url_prefix_biogeo = "https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/"
+    # gadm_input_file_args_biogeo = ["data", "raw", "gadm"]
+    # gadm_input_file_gpkg_biogeo, gadm_filename_biogeo = download_gadm(
+    #    "XK",
+    #    file_prefix_biogeo,
+    #    gadm_url_prefix_biogeo,
+    #    gadm_input_file_args_biogeo,
+    #    use_zip_file=True,
+    # )
+    # assert gadm_input_file_gpkg_biogeo == get_path(
+    #    path_cwd, "data/raw/gadm/gadm41_XKO/gadm41_XKO.gpkg"
+    # )
+    # assert gadm_filename_biogeo == "gadm41_XKO"
