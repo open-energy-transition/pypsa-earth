@@ -911,9 +911,9 @@ def cycling_shift(df, steps=1):
     return df
 
 
-def get_gadm_filename(country_code, file_prefix="gadm41_"):
+def get_gadm_country_code(country_code):
     """
-    Function to get the gadm filename given the country code.
+    Function to get three digits country code for GADM.
     """
     special_codes_gadm = {
         "XK": "XKO",  # kosovo
@@ -934,9 +934,16 @@ def get_gadm_filename(country_code, file_prefix="gadm41_"):
     }
 
     if country_code in special_codes_gadm:
-        return file_prefix + special_codes_gadm[country_code]
+        return special_codes_gadm[country_code]
     else:
-        return file_prefix + two_2_three_digits_country(country_code)
+        return two_2_three_digits_country(country_code)
+
+
+def get_gadm_filename(gadm_country_code, file_prefix="gadm41_"):
+    """
+    Function to get the gadm filename given the country code.
+    """
+    return file_prefix + gadm_country_code
 
 
 def get_gadm_url(gadm_url_prefix, gadm_filename, use_zip_file=False):
@@ -985,7 +992,8 @@ def download_gadm(
 
     _logger = logging.getLogger(__name__)
 
-    gadm_filename = get_gadm_filename(country_code, file_prefix)
+    gadm_country_code = get_gadm_country_code(country_code)
+    gadm_filename = get_gadm_filename(gadm_country_code, file_prefix)
     gadm_url = get_gadm_url(gadm_url_prefix, gadm_filename, use_zip_file)
     gadm_input_file = get_path(
         get_current_directory_path(),
@@ -1042,12 +1050,72 @@ def download_gadm(
     return gadm_input_file_gpkg, gadm_filename
 
 
+def get_gadm_layer_name(country_code, file_prefix, layer_id, code_layer):
+
+    if file_prefix == "gadm41_":
+        return "ADM_ADM_" + str(layer_id)
+    elif file_prefix == "gadm36_":
+        gadm_country_code = get_gadm_country_code(country_code)
+        return file_prefix + gadm_country_code + "_" + code_layer
+    else:
+        raise Exception(
+            f"The requested GADM data version {file_prefix} does not exist."
+        )
+
+
+def filter_gadm(
+    geo_df,
+    layer,
+    cc,
+    contended_flag,
+    output_nonstd_to_csv=False,
+):
+    # identify non-standard geo_df rows
+    geo_df_non_std = geo_df[geo_df["GID_0"] != two_2_three_digits_country(cc)].copy()
+
+    if not geo_df_non_std.empty:
+        logger.info(
+            f"Contended areas have been found for gadm layer {layer}. They will be treated according to {contended_flag} option"
+        )
+
+        # NOTE: in these options GID_0 is not changed because it is modified below
+        if contended_flag == "drop":
+            geo_df.drop(geo_df_non_std.index, inplace=True)
+        elif contended_flag != "set_by_country":
+            # "set_by_country" option is the default; if this elif applies, the desired option falls back to the default
+            logger.warning(
+                f"Value '{contended_flag}' for option contented_flag is not recognized.\n"
+                + "Fallback to 'set_by_country'"
+            )
+
+    # force GID_0 to be the country code for the relevant countries
+    geo_df["GID_0"] = cc
+
+    # country shape should have a single geometry
+    if (layer == 0) and (geo_df.shape[0] > 1):
+        logger.warning(
+            f"Country shape is composed by multiple shapes that are being merged in agreement to contented_flag option '{contended_flag}'"
+        )
+        # take the first row only to re-define geometry keeping other columns
+        geo_df = geo_df.iloc[[0]].set_geometry([geo_df.unary_union])
+
+    # debug output to file
+    if output_nonstd_to_csv and not geo_df_non_std.empty:
+        geo_df_non_std.to_csv(
+            f"resources/non_standard_gadm{layer}_{cc}_raw.csv", index=False
+        )
+
+    return geo_df
+
+
 def get_gadm_layer(
     country_list,
     layer_id,
+    geo_crs,
     file_prefix,
     gadm_url_prefix,
     gadm_input_file_args,
+    contended_flag,
     update=False,
     out_logging=False,
     use_zip_file=True,
@@ -1065,7 +1133,7 @@ def get_gadm_layer(
         When the requested layer_id is greater than the last available layer, then the last layer is selected.
         When a negative value is requested, then, the last layer is requested
     """
-    # initialization of the list of geodataframes
+    # initialization of the list of geo dataframes
     geo_df_list = []
 
     for country_code in country_list:
@@ -1088,27 +1156,42 @@ def get_gadm_layer(
             # when layer id is negative or larger than the number of layers, select the last layer
             layer_id = len(list_layers) - 1
         code_layer = np.mod(layer_id, len(list_layers))
-        layer_name = (
-            f"gadm36_{two_2_three_digits_country(country_code).upper()}_{code_layer}"
+        layer_name = get_gadm_layer_name(
+            country_code, file_prefix, layer_id, code_layer
         )
 
         # read gpkg file
-        geo_df_temp = gpd.read_file(file_gpkg, layer=layer_name)
+        geo_df_temp = gpd.read_file(
+            file_gpkg, layer=layer_name, engine="pyogrio"
+        ).to_crs(geo_crs)
 
-        # convert country name representation of the main country (GID_0 column)
-        geo_df_temp["GID_0"] = [
-            three_2_two_digits_country(twoD_c) for twoD_c in geo_df_temp["GID_0"]
-        ]
+        country_sub_index = ""
+        if file_prefix == "gadm41_":
+            country_sub_index = f"GID_{layer_id}"
+            geo_df_temp = filter_gadm(
+                geo_df=geo_df_temp,
+                layer=layer_id,
+                cc=country_code,
+                contended_flag=contended_flag,
+                output_nonstd_to_csv=False,
+            )
+        elif file_prefix == "gadm36_":
+            country_sub_index = f"GID_{code_layer}"
+            geo_df_temp["GID_0"] = [
+                three_2_two_digits_country(twoD_c) for twoD_c in geo_df_temp["GID_0"]
+            ]
+        else:
+            raise Exception(
+                f"The requested GADM data version {file_prefix} does not exist."
+            )
 
-        # create a subindex column that is useful
-        # in the GADM processing of sub-national zones
-        geo_df_temp["GADM_ID"] = geo_df_temp[f"GID_{code_layer}"]
+        geo_df_temp["GADM_ID"] = geo_df_temp[country_sub_index]
 
-        # concatenate geodataframes
-        geo_df_list = pd.concat([geo_df_list, geo_df_temp])
+        # append geo data frames
+        geo_df_list.append(geo_df_temp)
 
     geo_df_gadm = gpd.GeoDataFrame(pd.concat(geo_df_list, ignore_index=True))
-    geo_df_gadm.set_crs(geo_df_list[0].crs, inplace=True)
+    geo_df_gadm.set_crs(geo_crs, inplace=True)
 
     return geo_df_gadm
 
