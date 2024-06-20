@@ -1042,7 +1042,16 @@ def download_gadm(
     return gadm_input_file_gpkg, gadm_filename
 
 
-def get_gadm_layer(country_list, layer_id, update=False, outlogging=False):
+def get_gadm_layer(
+    country_list,
+    layer_id,
+    file_prefix,
+    gadm_url_prefix,
+    gadm_input_file_args,
+    update=False,
+    out_logging=False,
+    use_zip_file=True,
+):
     """
     Function to retrieve a specific layer id of a geopackage for a selection of
     countries.
@@ -1057,17 +1066,25 @@ def get_gadm_layer(country_list, layer_id, update=False, outlogging=False):
         When a negative value is requested, then, the last layer is requested
     """
     # initialization of the list of geodataframes
-    geodf_list = []
+    geo_df_list = []
 
     for country_code in country_list:
         # download file gpkg
-        file_gpkg, name_file = download_gadm(country_code, update, outlogging)
+        file_gpkg, name_file = download_gadm(
+            country_code,
+            file_prefix,
+            gadm_url_prefix,
+            gadm_input_file_args,
+            update,
+            out_logging,
+            use_zip_file,
+        )
 
         # get layers of a geopackage
         list_layers = fiona.listlayers(file_gpkg)
 
         # get layer name
-        if layer_id < 0 | layer_id >= len(list_layers):
+        if layer_id < 0 or layer_id >= len(list_layers):
             # when layer id is negative or larger than the number of layers, select the last layer
             layer_id = len(list_layers) - 1
         code_layer = np.mod(layer_id, len(list_layers))
@@ -1076,24 +1093,24 @@ def get_gadm_layer(country_list, layer_id, update=False, outlogging=False):
         )
 
         # read gpkg file
-        geodf_temp = gpd.read_file(file_gpkg, layer=layer_name)
+        geo_df_temp = gpd.read_file(file_gpkg, layer=layer_name)
 
         # convert country name representation of the main country (GID_0 column)
-        geodf_temp["GID_0"] = [
-            three_2_two_digits_country(twoD_c) for twoD_c in geodf_temp["GID_0"]
+        geo_df_temp["GID_0"] = [
+            three_2_two_digits_country(twoD_c) for twoD_c in geo_df_temp["GID_0"]
         ]
 
         # create a subindex column that is useful
         # in the GADM processing of sub-national zones
-        geodf_temp["GADM_ID"] = geodf_temp[f"GID_{code_layer}"]
+        geo_df_temp["GADM_ID"] = geo_df_temp[f"GID_{code_layer}"]
 
         # concatenate geodataframes
-        geodf_list = pd.concat([geodf_list, geodf_temp])
+        geo_df_list = pd.concat([geo_df_list, geo_df_temp])
 
-    geodf_gadm = gpd.GeoDataFrame(pd.concat(geodf_list, ignore_index=True))
-    geodf_gadm.set_crs(geodf_list[0].crs, inplace=True)
+    geo_df_gadm = gpd.GeoDataFrame(pd.concat(geo_df_list, ignore_index=True))
+    geo_df_gadm.set_crs(geo_df_list[0].crs, inplace=True)
 
-    return geodf_gadm
+    return geo_df_gadm
 
 
 def locate_bus(
