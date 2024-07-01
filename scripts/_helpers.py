@@ -1132,6 +1132,22 @@ def get_gadm_layer(
         Layer to consider in the format GID_{layer_id}.
         When the requested layer_id is greater than the last available layer, then the last layer is selected.
         When a negative value is requested, then, the last layer is requested
+    geo_crs: str
+        General geographic projection
+    file_prefix : str
+        file prefix string
+    gadm_url_prefix : str
+        gadm url prefix
+    gadm_input_file_args: list[str]
+        gadm input file arguments list
+    contended_flag : str
+        contended areas
+    update : bool
+        Update = true, forces re-download of files
+    out_logging : bool
+        out_logging = true, enables output logging
+    use_zip_file : bool
+        use_zip_file = true, enables output logging
     """
     # initialization of the list of geo dataframes
     geo_df_list = []
@@ -1200,7 +1216,15 @@ def locate_bus(
     coords,
     co,
     gadm_level,
+    geo_crs,
+    file_prefix,
+    gadm_url_prefix,
+    gadm_input_file_args,
+    contended_flag,
     path_to_gadm=None,
+    update=False,
+    out_logging=False,
+    use_zip_file=True,
     gadm_clustering=False,
 ):
     """
@@ -1213,6 +1237,30 @@ def locate_bus(
         dataseries with 2 rows x & y representing the longitude and latitude
     co: string (code for country where coords are MA Morocco)
         code of the countries where the coordinates are
+    gadm_level : int
+        Layer to consider in the format GID_{layer_id}.
+        When the requested layer_id is greater than the last available layer, then the last layer is selected.
+        When a negative value is requested, then, the last layer is requested
+    geo_crs : str
+        General geographic projection
+    file_prefix : str
+        file prefix string
+    gadm_url_prefix: str
+        gadm url prefix
+    gadm_input_file_args: list[str]
+        gadm input file arguments list
+    contended_flag : str
+        contended areas
+    path_to_gadm : str
+        path to gadm
+    update : bool
+        Update = true, forces re-download of files
+    out_logging : bool
+        out_logging = true, enables output logging
+    use_zip_file : bool
+        use_zip_file = true, enables output logging
+    gadm_clustering : bool
+        gadm_cluster = true, to enable clustering
     """
     col = "name"
     if not gadm_clustering:
@@ -1230,7 +1278,18 @@ def locate_bus(
                         lambda name: three_2_two_digits_country(name[:3]) + name[3:]
                     )
         else:
-            gdf = get_gadm_layer(co, gadm_level)
+            gdf = get_gadm_layer(
+                co,
+                gadm_level,
+                geo_crs,
+                file_prefix,
+                gadm_url_prefix,
+                gadm_input_file_args,
+                contended_flag,
+                update,
+                out_logging,
+                use_zip_file,
+            )
             col = "GID_{}".format(gadm_level)
 
         # gdf.set_index("GADM_ID", inplace=True)
