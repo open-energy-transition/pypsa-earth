@@ -1177,9 +1177,8 @@ if __name__ == "__main__":
     contended_flag = snakemake.params.build_shape_options["contended_flag"]
     worldpop_method = snakemake.params.build_shape_options["worldpop_method"]
     gdp_method = snakemake.params.build_shape_options["gdp_method"]
-
-    file_prefix = "gadm41_"
-    gadm_url_prefix = "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/"
+    file_prefix = snakemake.params.build_shape_options["gadm_file_prefix_v41"]
+    gadm_url_prefix = snakemake.params.build_shape_options["gadm_url_prefix_v41"]
     gadm_input_file_args = ["data", "gadm"]
 
     country_shapes = countries(
