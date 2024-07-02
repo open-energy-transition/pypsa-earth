@@ -25,6 +25,7 @@ from _helpers import (
     create_logger,
     get_current_directory_path,
     get_gadm_filename,
+    get_gadm_layer,
     get_path,
     mock_snakemake,
     sets_path_to_root,
@@ -48,169 +49,6 @@ sets_path_to_root("pypsa-earth")
 logger = create_logger(__name__)
 
 
-def download_GADM(country_code, update=False, out_logging=False):
-    """
-    Download gpkg file from GADM for a given country code.
-
-    Parameters
-    ----------
-    country_code : str
-        Two letter country codes of the downloaded files
-    update : bool
-        Update = true, forces re-download of files
-
-    Returns
-    -------
-    gpkg file per country
-    """
-    GADM_filename = get_gadm_filename(country_code)
-    GADM_url = f"https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/{GADM_filename}.gpkg"
-
-    GADM_inputfile_gpkg = get_path(
-        get_current_directory_path(),
-        "data",
-        "gadm",
-        GADM_filename,
-        GADM_filename + ".gpkg",
-    )  # Input filepath gpkg
-
-    if not pathlib.Path(GADM_inputfile_gpkg).exists() or update is True:
-        if out_logging:
-            logger.warning(
-                f"Stage 5 of 5: {GADM_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {GADM_inputfile_gpkg}"
-            )
-        #  create data/osm directory
-        build_directory(GADM_inputfile_gpkg)
-
-        try:
-            r = requests.get(GADM_url, stream=True, timeout=300)
-        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
-            raise Exception(
-                f"GADM server is down at {GADM_url}. Data needed for building shapes can't be extracted.\n\r"
-            )
-        except Exception as exception:
-            raise Exception(
-                f"An error happened when trying to load GADM data by {GADM_url}.\n\r"
-                + str(exception)
-                + "\n\r"
-            )
-        else:
-            with open(GADM_inputfile_gpkg, "wb") as f:
-                shutil.copyfileobj(r.raw, f)
-
-    return GADM_inputfile_gpkg, GADM_filename
-
-
-def filter_gadm(
-    geodf,
-    layer,
-    cc,
-    contended_flag,
-    output_nonstd_to_csv=False,
-):
-    # identify non standard geodf rows
-    geodf_non_std = geodf[geodf["GID_0"] != two_2_three_digits_country(cc)].copy()
-
-    if not geodf_non_std.empty:
-        logger.info(
-            f"Contended areas have been found for gadm layer {layer}. They will be treated according to {contended_flag} option"
-        )
-
-        # NOTE: in these options GID_0 is not changed because it is modified below
-        if contended_flag == "drop":
-            geodf.drop(geodf_non_std.index, inplace=True)
-        elif contended_flag != "set_by_country":
-            # "set_by_country" option is the default; if this elif applies, the desired option falls back to the default
-            logger.warning(
-                f"Value '{contended_flag}' for option contented_flag is not recognized.\n"
-                + "Fallback to 'set_by_country'"
-            )
-
-    # force GID_0 to be the country code for the relevant countries
-    geodf["GID_0"] = cc
-
-    # country shape should have a single geometry
-    if (layer == 0) and (geodf.shape[0] > 1):
-        logger.warning(
-            f"Country shape is composed by multiple shapes that are being merged in agreement to contented_flag option '{contended_flag}'"
-        )
-        # take the first row only to re-define geometry keeping other columns
-        geodf = geodf.iloc[[0]].set_geometry([geodf.unary_union])
-
-    # debug output to file
-    if output_nonstd_to_csv and not geodf_non_std.empty:
-        geodf_non_std.to_csv(
-            f"resources/non_standard_gadm{layer}_{cc}_raw.csv", index=False
-        )
-
-    return geodf
-
-
-def get_GADM_layer(
-    country_list,
-    layer_id,
-    geo_crs,
-    contended_flag,
-    update=False,
-    outlogging=False,
-):
-    """
-    Function to retrieve a specific layer id of a geopackage for a selection of
-    countries.
-
-    Parameters
-    ----------
-    country_list : str
-        List of the countries
-    layer_id : int
-        Layer to consider in the format GID_{layer_id}.
-        When the requested layer_id is greater than the last available layer, then the last layer is selected.
-        When a negative value is requested, then, the last layer is requested
-    """
-    # initialization of the geoDataFrame
-    geodf_list = []
-
-    for country_code in country_list:
-        # Set the current layer id (cur_layer_id) to global layer_id
-        cur_layer_id = layer_id
-
-        # download file gpkg
-        file_gpkg, name_file = download_GADM(country_code, update, outlogging)
-
-        # get layers of a geopackage
-        list_layers = fiona.listlayers(file_gpkg)
-
-        # get layer name
-        if (cur_layer_id < 0) or (cur_layer_id >= len(list_layers)):
-            # when layer id is negative or larger than the number of layers, select the last layer
-            cur_layer_id = len(list_layers) - 1
-
-        # read gpkg file
-        geodf_temp = gpd.read_file(
-            file_gpkg, layer="ADM_ADM_" + str(cur_layer_id), engine="pyogrio"
-        ).to_crs(geo_crs)
-
-        geodf_temp = filter_gadm(
-            geodf=geodf_temp,
-            layer=cur_layer_id,
-            cc=country_code,
-            contended_flag=contended_flag,
-            output_nonstd_to_csv=False,
-        )
-
-        # create a subindex column that is useful
-        # in the GADM processing of sub-national zones
-        geodf_temp["GADM_ID"] = geodf_temp[f"GID_{cur_layer_id}"]
-
-        # append geodataframes
-        geodf_list.append(geodf_temp)
-
-    geodf_GADM = gpd.GeoDataFrame(pd.concat(geodf_list, ignore_index=True))
-    geodf_GADM.set_crs(geo_crs)
-
-    return geodf_GADM
-
-
 def _simplify_polys(polys, minarea=0.01, tolerance=0.01, filterremote=False):
     "Function to simplify the shape polygons"
     if isinstance(polys, MultiPolygon):
@@ -230,20 +68,35 @@ def _simplify_polys(polys, minarea=0.01, tolerance=0.01, filterremote=False):
     return polys.simplify(tolerance=tolerance)
 
 
-def countries(countries, geo_crs, contended_flag, update=False, out_logging=False):
+def countries(
+    countries,
+    layer_id,
+    geo_crs,
+    file_prefix,
+    gadm_url_prefix,
+    gadm_input_file_args,
+    contended_flag,
+    update,
+    out_logging,
+    use_zip_file=False,
+):
     "Create country shapes"
 
     if out_logging:
         logger.info("Stage 1 of 5: Create country shapes")
 
     # download data if needed and get the layer id 0, corresponding to the countries
-    df_countries = get_GADM_layer(
+    df_countries = get_gadm_layer(
         countries,
         0,
         geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        gadm_input_file_args,
         contended_flag,
         update,
         out_logging,
+        use_zip_file,
     )
 
     # select and rename columns
@@ -1220,6 +1073,9 @@ def gadm(
     gdp_method,
     countries,
     geo_crs,
+    file_prefix,
+    gadm_url_prefix,
+    gadm_input_file_args,
     contended_flag,
     mem_mb,
     layer_id=2,
@@ -1227,12 +1083,24 @@ def gadm(
     out_logging=False,
     year=2020,
     nprocesses=None,
+    use_zip_file=False,
 ):
     if out_logging:
         logger.info("Stage 3 of 5: Creation GADM GeoDataFrame")
 
     # download data if needed and get the desired layer_id
-    df_gadm = get_GADM_layer(countries, layer_id, geo_crs, contended_flag, update)
+    df_gadm = get_gadm_layer(
+        countries,
+        layer_id,
+        geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        gadm_input_file_args,
+        contended_flag,
+        update,
+        out_logging,
+        use_zip_file,
+    )
 
     # select and rename columns
     df_gadm.rename(columns={"GID_0": "country"}, inplace=True)
@@ -1290,7 +1158,6 @@ if __name__ == "__main__":
         change_to_script_dir(__file__)
         snakemake = mock_snakemake("build_shapes")
         sets_path_to_root("pypsa-earth")
-
     configure_logging(snakemake)
 
     out = snakemake.output
@@ -1311,12 +1178,21 @@ if __name__ == "__main__":
     worldpop_method = snakemake.params.build_shape_options["worldpop_method"]
     gdp_method = snakemake.params.build_shape_options["gdp_method"]
 
+    file_prefix = "gadm41_"
+    gadm_url_prefix = "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/"
+    gadm_input_file_args = ["data", "gadm"]
+
     country_shapes = countries(
         countries_list,
+        layer_id,
         geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        gadm_input_file_args,
         contended_flag,
         update,
         out_logging,
+        use_zip_file=False,
     )
     country_shapes.to_file(snakemake.output.country_shapes)
 
@@ -1336,6 +1212,9 @@ if __name__ == "__main__":
         gdp_method,
         countries_list,
         geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        gadm_input_file_args,
         contended_flag,
         mem_mb,
         layer_id,
@@ -1343,5 +1222,6 @@ if __name__ == "__main__":
         out_logging,
         year,
         nprocesses=nprocesses,
+        use_zip_file=False,
     )
     save_to_geojson(gadm_shapes, out.gadm_shapes)
