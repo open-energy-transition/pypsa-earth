@@ -549,42 +549,13 @@ def test_get_gadm_url():
     """
     Verify what is returned by get_gadm_url.
     """
-    gadm_filename = get_gadm_filename("XK")
-    url_with_zip_gadm36 = get_gadm_url(
-        "https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/",
-        gadm_filename,
-        use_zip_file=True,
-    )
-    url_no_zip_gadm36 = get_gadm_url(
-        "https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/",
-        gadm_filename,
-        use_zip_file=False,
-    )
-    assert (
-        url_with_zip_gadm36
-        == f"https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/{gadm_filename}_gpkg.zip"
-    )
-    assert (
-        url_no_zip_gadm36
-        == f"https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/{gadm_filename}.gpkg"
-    )
-
-    url_with_zip_gadm41 = get_gadm_url(
+    gadm_filename = get_gadm_filename(get_gadm_country_code("XK"))
+    url_gadm41 = get_gadm_url(
         "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/",
         gadm_filename,
-        use_zip_file=True,
-    )
-    url_no_zip_gadm41 = get_gadm_url(
-        "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/",
-        gadm_filename,
-        use_zip_file=False,
     )
     assert (
-        url_with_zip_gadm41
-        == f"https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/{gadm_filename}_gpkg.zip"
-    )
-    assert (
-        url_no_zip_gadm41
+        url_gadm41
         == f"https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/{gadm_filename}.gpkg"
     )
 
@@ -593,28 +564,6 @@ def test_download_gadm():
     """
     Verify what is returned by download_gadm.
     """
-    # test data version 3.6
-    file_prefix_36 = "gadm36_"
-    gadm_url_prefix_36 = "https://geodata.ucdavis.edu/gadm/gadm3.6/gpkg/"
-    gadm_input_file_args_36 = ["data", "raw", "gadm"]
-    gadm_input_file_gpkg_36, gadm_filename_36 = download_gadm(
-        "XK",
-        file_prefix_36,
-        gadm_url_prefix_36,
-        gadm_input_file_args_36,
-        update=True,
-        use_zip_file=True,
-    )
-    assert gadm_input_file_gpkg_36 == get_path(
-        path_cwd, "data/raw/gadm/gadm36_XKO/gadm36_XKO.gpkg"
-    )
-    assert gadm_filename_36 == "gadm36_XKO"
-    list_layers_36 = fiona.listlayers(gadm_input_file_gpkg_36)
-    assert list_layers_36[0] == "gadm36_XKO_2"
-    assert list_layers_36[1] == "gadm36_XKO_1"
-    assert list_layers_36[2] == "gadm36_XKO_0"
-
-    # test data version 4.1
     file_prefix_41 = "gadm41_"
     gadm_url_prefix_41 = "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/"
     gadm_input_file_args_41 = ["data", "gadm"]
@@ -624,7 +573,6 @@ def test_download_gadm():
         gadm_url_prefix_41,
         gadm_input_file_args_41,
         update=True,
-        use_zip_file=False,
     )
     assert gadm_input_file_gpkg_41 == get_path(
         path_cwd, "data/gadm/gadm41_XKO/gadm41_XKO.gpkg"

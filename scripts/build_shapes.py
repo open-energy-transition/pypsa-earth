@@ -11,7 +11,6 @@ import shutil
 from itertools import takewhile
 from operator import attrgetter
 
-import fiona
 import geopandas as gpd
 import numpy as np
 import pandas as pd
@@ -24,14 +23,12 @@ from _helpers import (
     configure_logging,
     create_logger,
     get_current_directory_path,
-    get_gadm_filename,
     get_gadm_layer,
     get_path,
     mock_snakemake,
     sets_path_to_root,
     three_2_two_digits_country,
     two_2_three_digits_country,
-    two_digits_2_name_country,
 )
 from numba import njit
 from numba.core import types
@@ -78,7 +75,6 @@ def countries(
     contended_flag,
     update,
     out_logging,
-    use_zip_file=False,
 ):
     "Create country shapes"
 
@@ -96,7 +92,6 @@ def countries(
         contended_flag,
         update,
         out_logging,
-        use_zip_file,
     )
 
     # select and rename columns
@@ -1137,7 +1132,7 @@ def gadm(
             name_file_nc="GDP_PPP_1990_2015_5arcmin_v2.nc",
         )
 
-    # renaming 3 letter to 2 letter ISO code before saving GADM file
+    # renaming three-letter to two-letter ISO code before saving GADM file
     # In the case of a contested territory in the form 'Z00.00_0', save 'AA.00_0'
     # Include bugfix for the case of 'XXX00_0' where the "." is missing, such as for Ghana
     df_gadm["GADM_ID"] = df_gadm["country"] + df_gadm["GADM_ID"].str[3:].apply(
@@ -1191,7 +1186,6 @@ if __name__ == "__main__":
         contended_flag,
         update,
         out_logging,
-        use_zip_file=False,
     )
     country_shapes.to_file(snakemake.output.country_shapes)
 
@@ -1221,6 +1215,5 @@ if __name__ == "__main__":
         out_logging,
         year,
         nprocesses=nprocesses,
-        use_zip_file=False,
     )
     save_to_geojson(gadm_shapes, out.gadm_shapes)

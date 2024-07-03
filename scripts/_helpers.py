@@ -12,7 +12,6 @@ import shutil
 import subprocess
 import sys
 import urllib
-import zipfile
 
 import country_converter as coco
 import fiona
@@ -963,7 +962,6 @@ def download_gadm(
     gadm_input_file_args,
     update=False,
     out_logging=False,
-    use_zip_file=True,
 ):
     """
     Download gpkg file from GADM for a given country code.
@@ -982,8 +980,6 @@ def download_gadm(
         Update = true, forces re-download of files
     out_logging : bool
         out_logging = true, enables output logging
-    use_zip_file : bool
-        use_zip_file = true, enables output logging
 
     Returns
     -------
@@ -994,7 +990,7 @@ def download_gadm(
 
     gadm_country_code = get_gadm_country_code(country_code)
     gadm_filename = get_gadm_filename(gadm_country_code, file_prefix)
-    gadm_url = get_gadm_url(gadm_url_prefix, gadm_filename, use_zip_file)
+    gadm_url = get_gadm_url(gadm_url_prefix, gadm_filename)
     gadm_input_file = get_path(
         get_current_directory_path(),
         *gadm_input_file_args,
@@ -1005,24 +1001,15 @@ def download_gadm(
     gadm_input_file_gpkg = get_path(
         str(gadm_input_file) + ".gpkg"
     )  # Input filepath gpkg
-    gadm_input_file_zip = get_path(str(gadm_input_file) + ".zip")  # Input filepath zip
 
     if not pathlib.Path(gadm_input_file_gpkg).exists() or update is True:
         if out_logging:
-            if use_zip_file:
-                _logger.warning(
-                    f"{gadm_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {gadm_input_file_zip}"
-                )
-            else:
-                _logger.warning(
-                    f"{gadm_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {gadm_input_file_gpkg}"
-                )
+            _logger.warning(
+                f"{gadm_filename} of country {two_digits_2_name_country(country_code)} does not exist, downloading to {gadm_input_file_gpkg}"
+            )
 
         #  create data/osm directory
-        if use_zip_file:
-            build_directory(str(gadm_input_file_zip))
-        else:
-            build_directory(str(gadm_input_file_gpkg))
+        build_directory(str(gadm_input_file_gpkg))
 
         try:
             r = requests.get(gadm_url, stream=True, timeout=300)
@@ -1037,15 +1024,8 @@ def download_gadm(
                 + "\n\r"
             )
         else:
-            if use_zip_file:
-                with open(gadm_input_file_zip, "wb") as f:
-                    shutil.copyfileobj(r.raw, f)
-
-                with zipfile.ZipFile(gadm_input_file_zip, "r") as zip_ref:
-                    zip_ref.extractall(pathlib.Path(gadm_input_file_zip).parent)
-            else:
-                with open(gadm_input_file_gpkg, "wb") as f:
-                    shutil.copyfileobj(r.raw, f)
+            with open(gadm_input_file_gpkg, "wb") as f:
+                shutil.copyfileobj(r.raw, f)
 
     return gadm_input_file_gpkg, gadm_filename
 
@@ -1054,9 +1034,6 @@ def get_gadm_layer_name(country_code, file_prefix, layer_id, code_layer):
 
     if file_prefix == "gadm41_":
         return "ADM_ADM_" + str(layer_id)
-    elif file_prefix == "gadm36_":
-        gadm_country_code = get_gadm_country_code(country_code)
-        return file_prefix + gadm_country_code + "_" + code_layer
     else:
         raise Exception(
             f"The requested GADM data version {file_prefix} does not exist."
@@ -1118,7 +1095,6 @@ def get_gadm_layer(
     contended_flag,
     update=False,
     out_logging=False,
-    use_zip_file=True,
 ):
     """
     Function to retrieve a specific layer id of a geopackage for a selection of
@@ -1146,8 +1122,6 @@ def get_gadm_layer(
         Update = true, forces re-download of files
     out_logging : bool
         out_logging = true, enables output logging
-    use_zip_file : bool
-        use_zip_file = true, enables output logging
     """
     # initialization of the list of geo dataframes
     geo_df_list = []
@@ -1161,7 +1135,6 @@ def get_gadm_layer(
             gadm_input_file_args,
             update,
             out_logging,
-            use_zip_file,
         )
 
         # get layers of a geopackage
@@ -1224,7 +1197,6 @@ def locate_bus(
     path_to_gadm=None,
     update=False,
     out_logging=False,
-    use_zip_file=True,
     gadm_clustering=False,
 ):
     """
@@ -1257,8 +1229,6 @@ def locate_bus(
         Update = true, forces re-download of files
     out_logging : bool
         out_logging = true, enables output logging
-    use_zip_file : bool
-        use_zip_file = true, enables output logging
     gadm_clustering : bool
         gadm_cluster = true, to enable clustering
     """
@@ -1288,7 +1258,6 @@ def locate_bus(
                 contended_flag,
                 update,
                 out_logging,
-                use_zip_file,
             )
             col = "GID_{}".format(gadm_level)
 
