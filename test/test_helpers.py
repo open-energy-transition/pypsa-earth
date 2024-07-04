@@ -545,7 +545,7 @@ def test_get_gadm_url():
     """
     Verify what is returned by get_gadm_url.
     """
-    gadm_filename = get_gadm_filename("XK")
+    gadm_filename = get_gadm_filename("FM")
     url_gadm41 = get_gadm_url(
         "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/",
         gadm_filename,
