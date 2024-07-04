@@ -128,8 +128,8 @@ def emission_extractor(filename, emission_year, country_names):
     """
 
     # data reading process
-    datapath = get_path(get_current_directory_path(), "data", filename)
-    df = pd.read_excel(datapath, sheet_name="v6.0_EM_CO2_fossil_IPCC1996", skiprows=8)
+    data_path = get_path(get_current_directory_path(), "data", str(filename))
+    df = pd.read_excel(data_path, sheet_name="v6.0_EM_CO2_fossil_IPCC1996", skiprows=8)
     df.columns = df.iloc[0]
     df = df.set_index("Country_code_A3")
     df = df.loc[
