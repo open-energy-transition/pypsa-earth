@@ -549,7 +549,7 @@ def test_get_gadm_url():
     """
     Verify what is returned by get_gadm_url.
     """
-    gadm_filename = get_gadm_filename("XK")
+    gadm_filename = get_gadm_filename("FM")
     url_with_zip_gadm36 = get_gadm_url(
         "https://biogeo.ucdavis.edu/data/gadm3.6/gpkg/",
         gadm_filename,
