@@ -910,7 +910,7 @@ def cycling_shift(df, steps=1):
     return df
 
 
-def get_gadm_country_code(country_code):
+def get_gadm_filename(country_code, file_prefix="gadm41_"):
     """
     Function to get three digits country code for GADM.
     """
@@ -933,16 +933,9 @@ def get_gadm_country_code(country_code):
     }
 
     if country_code in special_codes_gadm:
-        return special_codes_gadm[country_code]
+        return file_prefix + special_codes_gadm[country_code]
     else:
-        return two_2_three_digits_country(country_code)
-
-
-def get_gadm_filename(gadm_country_code, file_prefix="gadm41_"):
-    """
-    Function to get the gadm filename given the country code.
-    """
-    return file_prefix + gadm_country_code
+        return file_prefix + two_2_three_digits_country(country_code)
 
 
 def get_gadm_url(gadm_url_prefix, gadm_filename, use_zip_file=False):
@@ -988,8 +981,7 @@ def download_gadm(
 
     _logger = logging.getLogger(__name__)
 
-    gadm_country_code = get_gadm_country_code(country_code)
-    gadm_filename = get_gadm_filename(gadm_country_code, file_prefix)
+    gadm_filename = get_gadm_filename(country_code, file_prefix)
     gadm_url = get_gadm_url(gadm_url_prefix, gadm_filename)
     gadm_input_file = get_path(
         get_current_directory_path(),

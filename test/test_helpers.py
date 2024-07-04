@@ -31,7 +31,6 @@ from _helpers import (
     download_gadm,
     get_conv_factors,
     get_current_directory_path,
-    get_gadm_country_code,
     get_gadm_filename,
     get_gadm_url,
     get_path,
@@ -499,57 +498,54 @@ def test_get_gadm_filename():
     Verify what is returned by get_gadm_filename.
     """
     # Kosovo
-    assert get_gadm_filename(get_gadm_country_code("XK")) == "gadm41_XKO"
+    assert get_gadm_filename("XK") == "gadm41_XKO"
     # Clipperton island
-    assert get_gadm_filename(get_gadm_country_code("CP")) == "gadm41_XCL"
+    assert get_gadm_filename("CP") == "gadm41_XCL"
     # Saint-Martin
-    assert get_gadm_filename(get_gadm_country_code("SX")) == "gadm41_MAF"
+    assert get_gadm_filename("SX") == "gadm41_MAF"
     # French Southern Territories
-    assert get_gadm_filename(get_gadm_country_code("TF")) == "gadm41_ATF"
+    assert get_gadm_filename("TF") == "gadm41_ATF"
     # Aland
-    assert get_gadm_filename(get_gadm_country_code("AX")) == "gadm41_ALA"
+    assert get_gadm_filename("AX") == "gadm41_ALA"
     # British Indian Ocean Territory
-    assert get_gadm_filename(get_gadm_country_code("IO")) == "gadm41_IOT"
+    assert get_gadm_filename("IO") == "gadm41_IOT"
     # Cocos Islands
-    assert get_gadm_filename(get_gadm_country_code("CC")) == "gadm41_CCK"
+    assert get_gadm_filename("CC") == "gadm41_CCK"
     # Norfolk
-    assert get_gadm_filename(get_gadm_country_code("NF")) == "gadm41_NFK"
+    assert get_gadm_filename("NF") == "gadm41_NFK"
     # Pitcairn Islands
-    assert get_gadm_filename(get_gadm_country_code("PN")) == "gadm41_PCN"
+    assert get_gadm_filename("PN") == "gadm41_PCN"
     # Jersey
-    assert get_gadm_filename(get_gadm_country_code("JE")) == "gadm41_JEY"
+    assert get_gadm_filename("JE") == "gadm41_JEY"
     # Spratly Islands
-    assert get_gadm_filename(get_gadm_country_code("XS")) == "gadm41_XSP"
+    assert get_gadm_filename("XS") == "gadm41_XSP"
     # Guernsey
-    assert get_gadm_filename(get_gadm_country_code("GG")) == "gadm41_GGY"
+    assert get_gadm_filename("GG") == "gadm41_GGY"
     # United States Minor Outlying Islands
-    assert get_gadm_filename(get_gadm_country_code("UM")) == "gadm41_UMI"
+    assert get_gadm_filename("UM") == "gadm41_UMI"
     # Svalbard islands
-    assert get_gadm_filename(get_gadm_country_code("SJ")) == "gadm41_SJM"
+    assert get_gadm_filename("SJ") == "gadm41_SJM"
     # Christmas island
-    assert get_gadm_filename(get_gadm_country_code("CX")) == "gadm41_CXR"
+    assert get_gadm_filename("CX") == "gadm41_CXR"
     # Afghanistan
-    assert get_gadm_filename(get_gadm_country_code("AF")) == "gadm41_AFG"
+    assert get_gadm_filename("AF") == "gadm41_AFG"
     # American Samoa
-    assert get_gadm_filename(get_gadm_country_code("AS")) == "gadm41_ASM"
+    assert get_gadm_filename("AS") == "gadm41_ASM"
     # Aruba
-    assert get_gadm_filename(get_gadm_country_code("AW")) == "gadm41_ABW"
+    assert get_gadm_filename("AW") == "gadm41_ABW"
     # Germany
-    assert get_gadm_filename(get_gadm_country_code("DE")) == "gadm41_DEU"
+    assert get_gadm_filename("DE") == "gadm41_DEU"
     # Micronesia (Federated States of)
-    assert get_gadm_filename(get_gadm_country_code("FM")) == "gadm41_FSM"
+    assert get_gadm_filename("FM") == "gadm41_FSM"
     # Micronesia (Federated States of) with different file_prefix
-    assert (
-        get_gadm_filename(get_gadm_country_code("FM"), file_prefix="gadm456_")
-        == "gadm456_FSM"
-    )
+    assert get_gadm_filename("FM", file_prefix="gadm456_") == "gadm456_FSM"
 
 
 def test_get_gadm_url():
     """
     Verify what is returned by get_gadm_url.
     """
-    gadm_filename = get_gadm_filename(get_gadm_country_code("XK"))
+    gadm_filename = get_gadm_filename("XK")
     url_gadm41 = get_gadm_url(
         "https://geodata.ucdavis.edu/gadm/gadm4.1/gpkg/",
         gadm_filename,
