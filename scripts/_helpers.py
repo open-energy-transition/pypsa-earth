@@ -938,14 +938,11 @@ def get_gadm_filename(country_code, file_prefix="gadm41_"):
         return file_prefix + two_2_three_digits_country(country_code)
 
 
-def get_gadm_url(gadm_url_prefix, gadm_filename, use_zip_file=False):
+def get_gadm_url(gadm_url_prefix, gadm_filename):
     """
     Function to get the gadm url given a gadm filename.
     """
-    if use_zip_file:
-        return gadm_url_prefix + gadm_filename + "_gpkg.zip"
-    else:
-        return gadm_url_prefix + gadm_filename + ".gpkg"
+    return gadm_url_prefix + gadm_filename + ".gpkg"
 
 
 def download_gadm(

@@ -1078,7 +1078,6 @@ def gadm(
     out_logging=False,
     year=2020,
     nprocesses=None,
-    use_zip_file=False,
 ):
     if out_logging:
         logger.info("Stage 3 of 5: Creation GADM GeoDataFrame")
@@ -1094,7 +1093,6 @@ def gadm(
         contended_flag,
         update,
         out_logging,
-        use_zip_file,
     )
 
     # select and rename columns
