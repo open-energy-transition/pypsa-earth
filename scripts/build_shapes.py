@@ -1170,8 +1170,8 @@ if __name__ == "__main__":
     contended_flag = snakemake.params.build_shape_options["contended_flag"]
     worldpop_method = snakemake.params.build_shape_options["worldpop_method"]
     gdp_method = snakemake.params.build_shape_options["gdp_method"]
-    file_prefix = snakemake.params.build_shape_options["gadm_file_prefix_v41"]
-    gadm_url_prefix = snakemake.params.build_shape_options["gadm_url_prefix_v41"]
+    file_prefix = snakemake.params.build_shape_options["gadm_file_prefix"]
+    gadm_url_prefix = snakemake.params.build_shape_options["gadm_url_prefix"]
     gadm_input_file_args = ["data", "gadm"]
 
     country_shapes = countries(
