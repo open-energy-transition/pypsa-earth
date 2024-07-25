@@ -16,6 +16,7 @@ sys.path.append("./scripts")
 from _helpers import get_path
 from base_network import (
     _load_buses_from_osm,
+    _load_converters_from_osm,
     _load_lines_from_osm,
     _load_transformers_from_osm,
     get_country,
@@ -325,3 +326,73 @@ def test_load_transformers_from_osm():
     )
     pathlib.Path.unlink(file_path)
     assert df_transformers_comparison.empty
+
+
+def test_load_converters_from_osm():
+    data_converters_input = [
+        [
+            0,
+            "convert_20_41",
+            "41",
+            "42",
+            False,
+            False,
+            "US",
+            "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
+        ],
+    ]
+    column_converters_input = [
+        "index",
+        "converter_id",
+        "bus0",
+        "bus1",
+        "underground",
+        "under_construction",
+        "country",
+        "geometry",
+    ]
+    df_converters_input = pd.DataFrame(
+        data_converters_input, columns=column_converters_input
+    )
+
+    data_converters_reference = [
+        [
+            "convert_20_41",
+            0,
+            0,
+            "41",
+            "42",
+            False,
+            False,
+            "US",
+            "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
+            "B2B",
+            True,
+        ],
+    ]
+    column_converters_reference = [
+        "converter_id",
+        "Unnamed: 0",
+        "index",
+        "bus0",
+        "bus1",
+        "underground",
+        "under_construction",
+        "country",
+        "geometry",
+        "carrier",
+        "dc",
+    ]
+    df_converters_reference = pd.DataFrame(
+        data_converters_reference, columns=column_converters_reference
+    ).set_index("converter_id")
+
+    file_path = get_path(path_cwd, "converters_exercise.csv")
+    df_converters_input.to_csv(file_path)
+
+    df_converters_output = _load_converters_from_osm(file_path)
+
+    df_converters_comparison = df_converters_output.compare(df_converters_reference)
+    pathlib.Path.unlink(file_path)
+    print(df_converters_comparison)
+    assert df_converters_comparison.empty
