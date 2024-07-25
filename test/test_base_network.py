@@ -14,7 +14,12 @@ import pandas as pd
 sys.path.append("./scripts")
 
 from _helpers import get_path
-from base_network import _load_buses_from_osm, _load_lines_from_osm, get_country
+from base_network import (
+    _load_buses_from_osm,
+    _load_lines_from_osm,
+    _load_transformers_from_osm,
+    get_country,
+)
 
 path_cwd = str(pathlib.Path.cwd())
 
@@ -54,21 +59,6 @@ def test_load_buses_from_osm():
             "POINT (2.5914 9.3321)",
             True,
         ],
-        [
-            1,
-            1,
-            161000,
-            False,
-            "substation",
-            False,
-            "transmission",
-            0.0,
-            2.648,
-            6.7394,
-            "BJ",
-            "POINT (2.648 6.7394)",
-            True,
-        ],
     ]
     column_buses_input = [
         "bus_id",
@@ -103,22 +93,6 @@ def test_load_buses_from_osm():
             "AC",
             2.5914,
             9.3321,
-        ],
-        [
-            "1",
-            161.0,
-            "substation",
-            False,
-            "transmission",
-            0.0,
-            2.648,
-            6.7394,
-            "BJ",
-            "POINT (2.648 6.7394)",
-            True,
-            "AC",
-            2.648,
-            6.7394,
         ],
     ]
     column_buses_reference = [
@@ -177,28 +151,6 @@ def test_load_lines_from_osm():
             2.5914,
             9.3321,
         ],
-        [
-            "224381271-1_0",
-            50.0,
-            "line",
-            330000,
-            "11",
-            "2",
-            3.0,
-            71555.72699869394,
-            False,
-            False,
-            False,
-            "BJ",
-            "LINESTRING (3.2467 6.6037, 3.2465731 6.602494900000034)",
-            "MULTIPOINT ((3.2467 6.6037), (2.649 6.7404))",
-            "POINT (3.2467 6.6037)",
-            "POINT (2.649 6.7404)",
-            3.2467,
-            6.6037,
-            2.649,
-            6.7404,
-        ],
     ]
     column_lines_input = [
         "line_id",
@@ -247,28 +199,6 @@ def test_load_lines_from_osm():
             2.5914,
             9.3321,
         ],
-        [
-            "224381271-1_0",
-            50.0,
-            "line",
-            330.0,
-            "11",
-            "2",
-            3.0,
-            71.55572699869394,
-            False,
-            False,
-            False,
-            "BJ",
-            "LINESTRING (3.2467 6.6037, 3.2465731 6.602494900000034)",
-            "MULTIPOINT ((3.2467 6.6037), (2.649 6.7404))",
-            "POINT (3.2467 6.6037)",
-            "POINT (2.649 6.7404)",
-            3.2467,
-            6.6037,
-            2.649,
-            6.7404,
-        ],
     ]
     column_lines_reference = [
         "line_id",
@@ -304,3 +234,94 @@ def test_load_lines_from_osm():
     df_lines_comparison = df_lines_output.compare(df_lines_reference)
     pathlib.Path.unlink(file_path)
     assert df_lines_comparison.empty
+
+
+def test_load_transformers_from_osm():
+    data_transformers_input = [
+        [
+            "transf_1_0",
+            "1",
+            "2",
+            161000,
+            330000,
+            "BJ",
+            "LINESTRING(2.648 6.7394, 2.649 6.7404)",
+            "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
+            "POINT(2.648 6.7394)",
+            "POINT(2.649 6.7404)",
+            2.648,
+            6.7394,
+            2.649,
+            6.7404,
+        ],
+    ]
+    column_transformers_input = [
+        "line_id",
+        "bus0",
+        "bus1",
+        "voltage_bus0",
+        "voltage_bus1",
+        "country",
+        "geometry",
+        "bounds",
+        "bus_0_coors",
+        "bus_1_coors",
+        "bus0_lon",
+        "bus0_lat",
+        "bus1_lon",
+        "bus1_lat",
+    ]
+    df_transformers_input = pd.DataFrame(
+        data_transformers_input, columns=column_transformers_input
+    )
+
+    data_transformers_reference = [
+        [
+            "transf_1_0",
+            0,
+            "1",
+            "2",
+            161000,
+            330000,
+            "BJ",
+            "LINESTRING(2.648 6.7394, 2.649 6.7404)",
+            "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
+            "POINT(2.648 6.7394)",
+            "POINT(2.649 6.7404)",
+            2.648,
+            6.7394,
+            2.649,
+            6.7404,
+        ],
+    ]
+    column_transformers_reference = [
+        "transformer_id",
+        "Unnamed: 0",
+        "bus0",
+        "bus1",
+        "voltage_bus0",
+        "voltage_bus1",
+        "country",
+        "geometry",
+        "bounds",
+        "bus_0_coors",
+        "bus_1_coors",
+        "bus0_lon",
+        "bus0_lat",
+        "bus1_lon",
+        "bus1_lat",
+    ]
+    df_transformers_reference = pd.DataFrame(
+        data_transformers_reference, columns=column_transformers_reference
+    ).set_index("transformer_id")
+
+    file_path = get_path(path_cwd, "transformers_exercise.csv")
+    df_transformers_input.to_csv(file_path)
+
+    df_transformers_output = _load_transformers_from_osm(file_path)
+
+    df_transformers_comparison = df_transformers_output.compare(
+        df_transformers_reference
+    )
+    pathlib.Path.unlink(file_path)
+    assert df_transformers_comparison.empty

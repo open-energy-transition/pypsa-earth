@@ -161,7 +161,7 @@ def _load_lines_from_osm(fp_osm_lines):
     return lines
 
 
-def _load_converters_from_osm(fp_osm_converters, buses):
+def _load_converters_from_osm(fp_osm_converters):
     # the links file can be empty
     if get_path_size(fp_osm_converters) == 0:
         converters = pd.DataFrame()
@@ -180,7 +180,7 @@ def _load_converters_from_osm(fp_osm_converters, buses):
     return converters
 
 
-def _load_transformers_from_osm(fp_osm_transformers, buses):
+def _load_transformers_from_osm(fp_osm_transformers):
     transformers = (
         read_csv_nafix(
             fp_osm_transformers,
@@ -412,8 +412,8 @@ def base_network(
 ):
     buses = _load_buses_from_osm(inputs.osm_buses).reset_index(drop=True)
     lines = _load_lines_from_osm(inputs.osm_lines).reset_index(drop=True)
-    transformers = _load_transformers_from_osm(inputs.osm_transformers, buses)
-    converters = _load_converters_from_osm(inputs.osm_converters, buses)
+    transformers = _load_transformers_from_osm(inputs.osm_transformers)
+    converters = _load_converters_from_osm(inputs.osm_converters)
 
     lines_ac = lines[lines.tag_frequency.astype(float) != 0].copy()
     lines_dc = lines[lines.tag_frequency.astype(float) == 0].copy()
