@@ -13,16 +13,17 @@ import pandas as pd
 
 sys.path.append("./scripts")
 
-from _helpers import get_path
+from _helpers import change_to_script_dir, get_path, mock_snakemake
 from base_network import (
     _load_buses_from_osm,
     _load_converters_from_osm,
     _load_lines_from_osm,
     _load_transformers_from_osm,
+    _set_electrical_parameters_lines,
     get_country,
 )
 
-path_cwd = str(pathlib.Path.cwd())
+path_cwd = pathlib.Path.cwd()
 
 
 def test_get_country():
@@ -42,7 +43,7 @@ def test_get_country():
     assert comparison_series_no_tags.size == 0
 
 
-def test_load_buses_from_osm():
+def test_load_buses_from_osm(tmpdir):
 
     data_buses_input = [
         [
@@ -116,7 +117,7 @@ def test_load_buses_from_osm():
         data_buses_reference, columns=column_buses_reference
     ).set_index("bus_id")
 
-    file_path = get_path(path_cwd, "buses_exercise.csv")
+    file_path = get_path(tmpdir, "buses_exercise.csv")
     df_buses_input.to_csv(file_path)
 
     df_buses_output = _load_buses_from_osm(file_path)
@@ -128,7 +129,7 @@ def test_load_buses_from_osm():
     assert df_buses_comparison.empty
 
 
-def test_load_lines_from_osm():
+def test_load_lines_from_osm(tmpdir):
     data_lines_input = [
         [
             "204361221-1_0",
@@ -227,7 +228,7 @@ def test_load_lines_from_osm():
         data_lines_reference, columns=column_lines_reference
     ).set_index("line_id")
 
-    file_path = get_path(path_cwd, "lines_exercise.csv")
+    file_path = get_path(tmpdir, "lines_exercise.csv")
     df_lines_input.to_csv(file_path)
 
     df_lines_output = _load_lines_from_osm(file_path)
@@ -237,7 +238,7 @@ def test_load_lines_from_osm():
     assert df_lines_comparison.empty
 
 
-def test_load_transformers_from_osm():
+def test_load_transformers_from_osm(tmpdir):
     data_transformers_input = [
         [
             "transf_1_0",
@@ -316,7 +317,7 @@ def test_load_transformers_from_osm():
         data_transformers_reference, columns=column_transformers_reference
     ).set_index("transformer_id")
 
-    file_path = get_path(path_cwd, "transformers_exercise.csv")
+    file_path = get_path(tmpdir, "transformers_exercise.csv")
     df_transformers_input.to_csv(file_path)
 
     df_transformers_output = _load_transformers_from_osm(file_path)
@@ -328,7 +329,7 @@ def test_load_transformers_from_osm():
     assert df_transformers_comparison.empty
 
 
-def test_load_converters_from_osm():
+def test_load_converters_from_osm(tmpdir):
     data_converters_input = [
         [
             0,
@@ -387,7 +388,7 @@ def test_load_converters_from_osm():
         data_converters_reference, columns=column_converters_reference
     ).set_index("converter_id")
 
-    file_path = get_path(path_cwd, "converters_exercise.csv")
+    file_path = get_path(tmpdir, "converters_exercise.csv")
     df_converters_input.to_csv(file_path)
 
     df_converters_output = _load_converters_from_osm(file_path)
