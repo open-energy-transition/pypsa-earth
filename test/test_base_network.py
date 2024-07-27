@@ -432,6 +432,18 @@ def test_load_converters_from_osm(tmpdir):
 
 
 def test_get_linetypes_config():
-    _get_linetypes_config()
-
-    assert False
+    output_dict_ac = _get_linetypes_config(lines_dict["ac_types"], voltages_list)
+    output_dict_dc = _get_linetypes_config(lines_dict["dc_types"], voltages_list)
+    reference_dict_ac = {
+        132.0: "243-AL1/39-ST1A 20.0",
+        220.0: "Al/St 240/40 2-bundle 220.0",
+        300.0: "Al/St 240/40 3-bundle 300.0",
+        380.0: "Al/St 240/40 4-bundle 380.0",
+        500.0: "Al/St 240/40 4-bundle 380.0",
+        750.0: "Al/St 560/50 4-bundle 750.0",
+    }
+    reference_dict_dc = {
+        500.0: "HVDC XLPE 1000",
+    }
+    assert output_dict_ac == reference_dict_ac
+    assert output_dict_dc == reference_dict_dc
