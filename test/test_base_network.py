@@ -15,6 +15,7 @@ sys.path.append("./scripts")
 
 from _helpers import change_to_script_dir, get_path, mock_snakemake
 from base_network import (
+    _get_linetypes_config,
     _load_buses_from_osm,
     _load_converters_from_osm,
     _load_lines_from_osm,
@@ -24,6 +25,38 @@ from base_network import (
 )
 
 path_cwd = pathlib.Path.cwd()
+
+lines_dict = {
+    "ac_types": {
+        132.0: "243-AL1/39-ST1A 20.0",
+        220.0: "Al/St 240/40 2-bundle 220.0",
+        300.0: "Al/St 240/40 3-bundle 300.0",
+        380.0: "Al/St 240/40 4-bundle 380.0",
+        500.0: "Al/St 240/40 4-bundle 380.0",
+        750.0: "Al/St 560/50 4-bundle 750.0",
+    },
+    "dc_types": {
+        500.0: "HVDC XLPE 1000",
+    },
+    "s_max_pu": 0.7,
+    "s_nom_max": np.inf,
+    "length_factor": 1.25,
+    "under_construction": "zero",
+}
+
+links_dict = {
+    "p_max_pu": 1.0,
+    "p_nom_max": np.inf,
+    "under_construction": "zero",
+}
+
+transformers_dict = {
+    "x": 0.1,
+    "s_nom": 2000.0,
+    "type": "",
+}
+
+voltages_list = [132.0, 220.0, 300.0, 380.0, 500.0, 750.0]
 
 
 def test_get_country():
@@ -395,5 +428,10 @@ def test_load_converters_from_osm(tmpdir):
 
     df_converters_comparison = df_converters_output.compare(df_converters_reference)
     pathlib.Path.unlink(file_path)
-    print(df_converters_comparison)
     assert df_converters_comparison.empty
+
+
+def test_get_linetypes_config():
+    _get_linetypes_config()
+
+    assert False
