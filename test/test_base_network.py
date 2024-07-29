@@ -15,6 +15,7 @@ sys.path.append("./scripts")
 
 from _helpers import change_to_script_dir, get_path, mock_snakemake
 from base_network import (
+    _get_linetype_by_voltage,
     _get_linetypes_config,
     _load_buses_from_osm,
     _load_converters_from_osm,
@@ -129,6 +130,21 @@ transformers_dict = {
 }
 
 voltages_list = [132.0, 220.0, 300.0, 380.0, 500.0, 750.0]
+
+
+line_types_dict_ac = {
+    132.0: "243-AL1/39-ST1A 20.0",
+    220.0: "Al/St 240/40 2-bundle 220.0",
+    300.0: "Al/St 240/40 3-bundle 300.0",
+    380.0: "Al/St 240/40 4-bundle 380.0",
+    500.0: "Al/St 240/40 4-bundle 380.0",
+    750.0: "Al/St 560/50 4-bundle 750.0",
+}
+
+
+line_types_dict_dc = {
+    500.0: "HVDC XLPE 1000",
+}
 
 
 def test_get_country():
@@ -480,19 +496,49 @@ def test_load_converters_from_osm(tmpdir):
 def test_get_linetypes_config():
     output_dict_ac = _get_linetypes_config(lines_dict["ac_types"], voltages_list)
     output_dict_dc = _get_linetypes_config(lines_dict["dc_types"], voltages_list)
-    reference_dict_ac = {
-        132.0: "243-AL1/39-ST1A 20.0",
-        220.0: "Al/St 240/40 2-bundle 220.0",
-        300.0: "Al/St 240/40 3-bundle 300.0",
-        380.0: "Al/St 240/40 4-bundle 380.0",
-        500.0: "Al/St 240/40 4-bundle 380.0",
-        750.0: "Al/St 560/50 4-bundle 750.0",
-    }
-    reference_dict_dc = {
-        500.0: "HVDC XLPE 1000",
-    }
-    assert output_dict_ac == reference_dict_ac
-    assert output_dict_dc == reference_dict_dc
+    assert output_dict_ac == line_types_dict_ac
+    assert output_dict_dc == line_types_dict_dc
+
+
+def test_get_linetype_by_voltage():
+    v_nom_list = [
+        50.0,
+        101.0,
+        180.0,
+        210.0,
+        220.0,
+        225.0,
+        285.0,
+        300.0,
+        333.0,
+        390.0,
+        600.0,
+        750.0,
+        800.0,
+    ]
+
+    line_type_list = []
+
+    for v_nom in v_nom_list:
+        line_type_list.append(_get_linetype_by_voltage(v_nom, line_types_dict_ac))
+
+    print(line_type_list)
+
+    assert line_type_list == [
+        "243-AL1/39-ST1A 20.0",
+        "243-AL1/39-ST1A 20.0",
+        "Al/St 240/40 2-bundle 220.0",
+        "Al/St 240/40 2-bundle 220.0",
+        "Al/St 240/40 2-bundle 220.0",
+        "Al/St 240/40 2-bundle 220.0",
+        "Al/St 240/40 3-bundle 300.0",
+        "Al/St 240/40 3-bundle 300.0",
+        "Al/St 240/40 3-bundle 300.0",
+        "Al/St 240/40 4-bundle 380.0",
+        "Al/St 240/40 4-bundle 380.0",
+        "Al/St 560/50 4-bundle 750.0",
+        "Al/St 560/50 4-bundle 750.0",
+    ]
 
 
 def test_set_electrical_parameters_lines(tmpdir):
