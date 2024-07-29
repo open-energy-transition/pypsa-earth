@@ -20,11 +20,83 @@ from base_network import (
     _load_converters_from_osm,
     _load_lines_from_osm,
     _load_transformers_from_osm,
+    _set_electrical_parameters_dc_lines,
     _set_electrical_parameters_lines,
     get_country,
 )
 
 path_cwd = pathlib.Path.cwd()
+
+data_lines_input = [
+    [
+        "204361221-1_0",
+        50.0,
+        "line",
+        161000,
+        "111",
+        "0",
+        3.0,
+        110071.89434240988,
+        False,
+        False,
+        False,
+        "BJ",
+        "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+        "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+        "POINT (2.6594 10.2042)",
+        "POINT (2.5914 9.3321)",
+        2.6594,
+        10.2042,
+        2.5914,
+        9.3321,
+    ],
+    [
+        "204361287-1_1",
+        0.0,
+        "line",
+        178658,
+        "111",
+        "0",
+        3.0,
+        118723.89434240988,
+        False,
+        False,
+        False,
+        "BJ",
+        "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+        "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+        "POINT (2.6594 10.2042)",
+        "POINT (2.5914 9.3321)",
+        2.6594,
+        10.2042,
+        2.5914,
+        9.3321,
+    ],
+]
+column_lines_input = [
+    "line_id",
+    "tag_frequency",
+    "tag_type",
+    "voltage",
+    "bus0",
+    "bus1",
+    "circuits",
+    "length",
+    "underground",
+    "under_construction",
+    "dc",
+    "country",
+    "geometry",
+    "bounds",
+    "bus_0_coors",
+    "bus_1_coors",
+    "bus0_lon",
+    "bus0_lat",
+    "bus1_lon",
+    "bus1_lat",
+]
+df_lines_input = pd.DataFrame(data_lines_input, columns=column_lines_input)
+
 
 lines_dict = {
     "ac_types": {
@@ -163,16 +235,16 @@ def test_load_buses_from_osm(tmpdir):
 
 
 def test_load_lines_from_osm(tmpdir):
-    data_lines_input = [
+    data_lines_reference = [
         [
             "204361221-1_0",
             50.0,
             "line",
-            161000,
+            161.0,
             "111",
             "0",
             3.0,
-            110071.89434240988,
+            110.07189434240988,
             False,
             False,
             False,
@@ -186,41 +258,15 @@ def test_load_lines_from_osm(tmpdir):
             2.5914,
             9.3321,
         ],
-    ]
-    column_lines_input = [
-        "line_id",
-        "tag_frequency",
-        "tag_type",
-        "voltage",
-        "bus0",
-        "bus1",
-        "circuits",
-        "length",
-        "underground",
-        "under_construction",
-        "dc",
-        "country",
-        "geometry",
-        "bounds",
-        "bus_0_coors",
-        "bus_1_coors",
-        "bus0_lon",
-        "bus0_lat",
-        "bus1_lon",
-        "bus1_lat",
-    ]
-    df_lines_input = pd.DataFrame(data_lines_input, columns=column_lines_input)
-
-    data_lines_reference = [
         [
-            "204361221-1_0",
-            50.0,
+            "204361287-1_1",
+            0.0,
             "line",
-            161.0,
+            178.658,
             "111",
             "0",
             3.0,
-            110.07189434240988,
+            118.72389434240988,
             False,
             False,
             False,
@@ -447,3 +493,115 @@ def test_get_linetypes_config():
     }
     assert output_dict_ac == reference_dict_ac
     assert output_dict_dc == reference_dict_dc
+
+
+def test_set_electrical_parameters_lines(tmpdir):
+    file_path = get_path(tmpdir, "lines_exercise.csv")
+    df_lines_input.to_csv(file_path)
+    df_lines_output = _load_lines_from_osm(file_path).reset_index(drop=True)
+    df_lines_output_ac = df_lines_output[
+        df_lines_output.tag_frequency.astype(float) != 0
+    ].copy()
+    df_lines_output_dc = df_lines_output[
+        df_lines_output.tag_frequency.astype(float) == 0
+    ].copy()
+    lines_ac = _set_electrical_parameters_lines(
+        lines_dict, voltages_list, df_lines_output_ac
+    ).set_index("tag_frequency")
+    lines_dc = _set_electrical_parameters_dc_lines(
+        lines_dict, voltages_list, df_lines_output_dc
+    ).set_index("tag_frequency")
+
+    data_lines_ac_reference = [
+        [
+            50.0,
+            "line",
+            161.0,
+            "111",
+            "0",
+            3.0,
+            110.07189434240988,
+            False,
+            False,
+            False,
+            "BJ",
+            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+            "POINT (2.6594 10.2042)",
+            "POINT (2.5914 9.3321)",
+            2.6594,
+            10.2042,
+            2.5914,
+            9.3321,
+            "AC",
+            "243-AL1/39-ST1A 20.0",
+            0.7,
+        ],
+    ]
+
+    data_lines_dc_reference = [
+        [
+            0.0,
+            "line",
+            178.658,
+            "111",
+            "0",
+            3.0,
+            118.72389434240988,
+            False,
+            False,
+            True,
+            "BJ",
+            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+            "POINT (2.6594 10.2042)",
+            "POINT (2.5914 9.3321)",
+            2.6594,
+            10.2042,
+            2.5914,
+            9.3321,
+            "DC",
+            "HVDC XLPE 1000",
+            0.7,
+        ],
+    ]
+
+    column_lines_ac_dc_reference = [
+        "tag_frequency",
+        "tag_type",
+        "v_nom",
+        "bus0",
+        "bus1",
+        "num_parallel",
+        "length",
+        "underground",
+        "under_construction",
+        "dc",
+        "country",
+        "geometry",
+        "bounds",
+        "bus_0_coors",
+        "bus_1_coors",
+        "bus0_lon",
+        "bus0_lat",
+        "bus1_lon",
+        "bus1_lat",
+        "carrier",
+        "type",
+        "s_max_pu",
+    ]
+
+    lines_ac_reference = pd.DataFrame(
+        data_lines_ac_reference, columns=column_lines_ac_dc_reference
+    ).set_index("tag_frequency")
+    lines_dc_reference = pd.DataFrame(
+        data_lines_dc_reference, columns=column_lines_ac_dc_reference
+    ).set_index("tag_frequency")
+
+    df_lines_ac_comparison = lines_ac.compare(lines_ac_reference)
+    df_lines_dc_comparison = lines_dc.compare(lines_dc_reference)
+
+    pathlib.Path.unlink(file_path)
+
+    assert df_lines_ac_comparison.empty
+    assert df_lines_dc_comparison.empty
