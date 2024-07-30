@@ -23,6 +23,7 @@ from base_network import (
     _load_transformers_from_osm,
     _set_electrical_parameters_dc_lines,
     _set_electrical_parameters_lines,
+    _set_electrical_parameters_links,
     get_country,
 )
 
@@ -98,6 +99,92 @@ column_lines_input = [
 ]
 df_lines_input = pd.DataFrame(data_lines_input, columns=column_lines_input)
 
+data_lines_ac_reference = [
+    [
+        50.0,
+        "line",
+        161.0,
+        "111",
+        "0",
+        3.0,
+        110.07189434240988,
+        False,
+        False,
+        False,
+        "BJ",
+        "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+        "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+        "POINT (2.6594 10.2042)",
+        "POINT (2.5914 9.3321)",
+        2.6594,
+        10.2042,
+        2.5914,
+        9.3321,
+        "AC",
+        "243-AL1/39-ST1A 20.0",
+        0.7,
+    ],
+]
+
+data_lines_dc_reference = [
+    [
+        0.0,
+        "line",
+        178.658,
+        "111",
+        "0",
+        3.0,
+        118.72389434240988,
+        False,
+        False,
+        True,
+        "BJ",
+        "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+        "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+        "POINT (2.6594 10.2042)",
+        "POINT (2.5914 9.3321)",
+        2.6594,
+        10.2042,
+        2.5914,
+        9.3321,
+        "DC",
+        "HVDC XLPE 1000",
+        0.7,
+    ],
+]
+
+column_lines_ac_dc_reference = [
+    "tag_frequency",
+    "tag_type",
+    "v_nom",
+    "bus0",
+    "bus1",
+    "num_parallel",
+    "length",
+    "underground",
+    "under_construction",
+    "dc",
+    "country",
+    "geometry",
+    "bounds",
+    "bus_0_coors",
+    "bus_1_coors",
+    "bus0_lon",
+    "bus0_lat",
+    "bus1_lon",
+    "bus1_lat",
+    "carrier",
+    "type",
+    "s_max_pu",
+]
+
+lines_ac_reference = pd.DataFrame(
+    data_lines_ac_reference, columns=column_lines_ac_dc_reference
+).set_index("tag_frequency")
+
+lines_dc_reference = pd.DataFrame(
+    data_lines_dc_reference, columns=column_lines_ac_dc_reference
+).set_index("tag_frequency")
 
 lines_dict = {
     "ac_types": {
@@ -118,7 +205,7 @@ lines_dict = {
 }
 
 links_dict = {
-    "p_max_pu": 1.0,
+    "p_max_pu": 2.1,
     "p_nom_max": np.inf,
     "under_construction": "zero",
 }
@@ -131,7 +218,6 @@ transformers_dict = {
 
 voltages_list = [132.0, 220.0, 300.0, 380.0, 500.0, 750.0]
 
-
 line_types_dict_ac = {
     132.0: "243-AL1/39-ST1A 20.0",
     220.0: "Al/St 240/40 2-bundle 220.0",
@@ -140,7 +226,6 @@ line_types_dict_ac = {
     500.0: "Al/St 240/40 4-bundle 380.0",
     750.0: "Al/St 560/50 4-bundle 750.0",
 }
-
 
 line_types_dict_dc = {
     500.0: "HVDC XLPE 1000",
@@ -165,7 +250,6 @@ def test_get_country():
 
 
 def test_load_buses_from_osm(tmpdir):
-
     data_buses_input = [
         [
             0,
@@ -558,92 +642,6 @@ def test_set_electrical_parameters_lines(tmpdir):
         lines_dict, voltages_list, df_lines_output_dc
     ).set_index("tag_frequency")
 
-    data_lines_ac_reference = [
-        [
-            50.0,
-            "line",
-            161.0,
-            "111",
-            "0",
-            3.0,
-            110.07189434240988,
-            False,
-            False,
-            False,
-            "BJ",
-            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
-            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
-            "POINT (2.6594 10.2042)",
-            "POINT (2.5914 9.3321)",
-            2.6594,
-            10.2042,
-            2.5914,
-            9.3321,
-            "AC",
-            "243-AL1/39-ST1A 20.0",
-            0.7,
-        ],
-    ]
-
-    data_lines_dc_reference = [
-        [
-            0.0,
-            "line",
-            178.658,
-            "111",
-            "0",
-            3.0,
-            118.72389434240988,
-            False,
-            False,
-            True,
-            "BJ",
-            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
-            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
-            "POINT (2.6594 10.2042)",
-            "POINT (2.5914 9.3321)",
-            2.6594,
-            10.2042,
-            2.5914,
-            9.3321,
-            "DC",
-            "HVDC XLPE 1000",
-            0.7,
-        ],
-    ]
-
-    column_lines_ac_dc_reference = [
-        "tag_frequency",
-        "tag_type",
-        "v_nom",
-        "bus0",
-        "bus1",
-        "num_parallel",
-        "length",
-        "underground",
-        "under_construction",
-        "dc",
-        "country",
-        "geometry",
-        "bounds",
-        "bus_0_coors",
-        "bus_1_coors",
-        "bus0_lon",
-        "bus0_lat",
-        "bus1_lon",
-        "bus1_lat",
-        "carrier",
-        "type",
-        "s_max_pu",
-    ]
-
-    lines_ac_reference = pd.DataFrame(
-        data_lines_ac_reference, columns=column_lines_ac_dc_reference
-    ).set_index("tag_frequency")
-    lines_dc_reference = pd.DataFrame(
-        data_lines_dc_reference, columns=column_lines_ac_dc_reference
-    ).set_index("tag_frequency")
-
     df_lines_ac_comparison = lines_ac.compare(lines_ac_reference)
     df_lines_dc_comparison = lines_dc.compare(lines_dc_reference)
 
@@ -651,3 +649,27 @@ def test_set_electrical_parameters_lines(tmpdir):
 
     assert df_lines_ac_comparison.empty
     assert df_lines_dc_comparison.empty
+
+
+def test_set_electrical_parameters_links(tmpdir):
+    file_path = get_path(tmpdir, "lines_exercise.csv")
+    df_lines_input.to_csv(file_path)
+    df_lines_output = _load_lines_from_osm(file_path).reset_index(drop=True)
+    df_lines_output_dc = df_lines_output[
+        df_lines_output.tag_frequency.astype(float) == 0
+    ].copy()
+    lines_dc = _set_electrical_parameters_dc_lines(
+        lines_dict, voltages_list, df_lines_output_dc
+    )
+
+    new_lines_dc = _set_electrical_parameters_links(links_dict, lines_dc).set_index(
+        "tag_frequency"
+    )
+
+    new_lines_dc_reference = lines_dc_reference.copy(deep=True)
+    new_lines_dc_reference["p_max_pu"] = links_dict["p_max_pu"]
+    new_lines_dc_reference["p_min_pu"] = -links_dict["p_max_pu"]
+
+    df_comparison = new_lines_dc.compare(new_lines_dc_reference)
+    print(df_comparison)
+    assert df_comparison.empty
