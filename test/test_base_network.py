@@ -21,13 +21,19 @@ from base_network import (
     _load_converters_from_osm,
     _load_lines_from_osm,
     _load_transformers_from_osm,
+    _set_electrical_parameters_converters,
     _set_electrical_parameters_dc_lines,
     _set_electrical_parameters_lines,
     _set_electrical_parameters_links,
+    _set_electrical_parameters_transformers,
     get_country,
 )
 
 path_cwd = pathlib.Path.cwd()
+
+# Common references
+
+# ---> lines
 
 data_lines_input = [
     [
@@ -204,11 +210,15 @@ lines_dict = {
     "under_construction": "zero",
 }
 
+# ---> links
+
 links_dict = {
     "p_max_pu": 2.1,
     "p_nom_max": np.inf,
     "under_construction": "zero",
 }
+
+# ---> transformers
 
 transformers_dict = {
     "x": 0.1,
@@ -216,20 +226,148 @@ transformers_dict = {
     "type": "",
 }
 
+data_transformers_input = [
+    [
+        "transf_1_0",
+        "1",
+        "2",
+        161000,
+        330000,
+        "BJ",
+        "LINESTRING(2.648 6.7394, 2.649 6.7404)",
+        "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
+        "POINT(2.648 6.7394)",
+        "POINT(2.649 6.7404)",
+        2.648,
+        6.7394,
+        2.649,
+        6.7404,
+    ],
+]
+
+column_transformers_input = [
+    "line_id",
+    "bus0",
+    "bus1",
+    "voltage_bus0",
+    "voltage_bus1",
+    "country",
+    "geometry",
+    "bounds",
+    "bus_0_coors",
+    "bus_1_coors",
+    "bus0_lon",
+    "bus0_lat",
+    "bus1_lon",
+    "bus1_lat",
+]
+df_transformers_input = pd.DataFrame(
+    data_transformers_input, columns=column_transformers_input
+)
+
+data_transformers_reference = [
+    [
+        "transf_1_0",
+        0,
+        "1",
+        "2",
+        161000,
+        330000,
+        "BJ",
+        "LINESTRING(2.648 6.7394, 2.649 6.7404)",
+        "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
+        "POINT(2.648 6.7394)",
+        "POINT(2.649 6.7404)",
+        2.648,
+        6.7394,
+        2.649,
+        6.7404,
+    ],
+]
+column_transformers_reference = [
+    "transformer_id",
+    "Unnamed: 0",
+    "bus0",
+    "bus1",
+    "voltage_bus0",
+    "voltage_bus1",
+    "country",
+    "geometry",
+    "bounds",
+    "bus_0_coors",
+    "bus_1_coors",
+    "bus0_lon",
+    "bus0_lat",
+    "bus1_lon",
+    "bus1_lat",
+]
+df_transformers_reference = pd.DataFrame(
+    data_transformers_reference, columns=column_transformers_reference
+).set_index("transformer_id")
+
+# ---> converters
+
+data_converters_input = [
+    [
+        0,
+        "convert_20_41",
+        "41",
+        "42",
+        False,
+        False,
+        "US",
+        "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
+    ],
+]
+column_converters_input = [
+    "index",
+    "converter_id",
+    "bus0",
+    "bus1",
+    "underground",
+    "under_construction",
+    "country",
+    "geometry",
+]
+df_converters_input = pd.DataFrame(
+    data_converters_input, columns=column_converters_input
+)
+
+data_converters_reference = [
+    [
+        "convert_20_41",
+        0,
+        0,
+        "41",
+        "42",
+        False,
+        False,
+        "US",
+        "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
+        "B2B",
+        True,
+    ],
+]
+column_converters_reference = [
+    "converter_id",
+    "Unnamed: 0",
+    "index",
+    "bus0",
+    "bus1",
+    "underground",
+    "under_construction",
+    "country",
+    "geometry",
+    "carrier",
+    "dc",
+]
+df_converters_reference = pd.DataFrame(
+    data_converters_reference, columns=column_converters_reference
+).set_index("converter_id")
+
+# ---> voltages
+
 voltages_list = [132.0, 220.0, 300.0, 380.0, 500.0, 750.0]
-
-line_types_dict_ac = {
-    132.0: "243-AL1/39-ST1A 20.0",
-    220.0: "Al/St 240/40 2-bundle 220.0",
-    300.0: "Al/St 240/40 3-bundle 300.0",
-    380.0: "Al/St 240/40 4-bundle 380.0",
-    500.0: "Al/St 240/40 4-bundle 380.0",
-    750.0: "Al/St 560/50 4-bundle 750.0",
-}
-
-line_types_dict_dc = {
-    500.0: "HVDC XLPE 1000",
-}
 
 
 def test_get_country():
@@ -418,84 +556,6 @@ def test_load_lines_from_osm(tmpdir):
 
 
 def test_load_transformers_from_osm(tmpdir):
-    data_transformers_input = [
-        [
-            "transf_1_0",
-            "1",
-            "2",
-            161000,
-            330000,
-            "BJ",
-            "LINESTRING(2.648 6.7394, 2.649 6.7404)",
-            "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
-            "POINT(2.648 6.7394)",
-            "POINT(2.649 6.7404)",
-            2.648,
-            6.7394,
-            2.649,
-            6.7404,
-        ],
-    ]
-    column_transformers_input = [
-        "line_id",
-        "bus0",
-        "bus1",
-        "voltage_bus0",
-        "voltage_bus1",
-        "country",
-        "geometry",
-        "bounds",
-        "bus_0_coors",
-        "bus_1_coors",
-        "bus0_lon",
-        "bus0_lat",
-        "bus1_lon",
-        "bus1_lat",
-    ]
-    df_transformers_input = pd.DataFrame(
-        data_transformers_input, columns=column_transformers_input
-    )
-
-    data_transformers_reference = [
-        [
-            "transf_1_0",
-            0,
-            "1",
-            "2",
-            161000,
-            330000,
-            "BJ",
-            "LINESTRING(2.648 6.7394, 2.649 6.7404)",
-            "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
-            "POINT(2.648 6.7394)",
-            "POINT(2.649 6.7404)",
-            2.648,
-            6.7394,
-            2.649,
-            6.7404,
-        ],
-    ]
-    column_transformers_reference = [
-        "transformer_id",
-        "Unnamed: 0",
-        "bus0",
-        "bus1",
-        "voltage_bus0",
-        "voltage_bus1",
-        "country",
-        "geometry",
-        "bounds",
-        "bus_0_coors",
-        "bus_1_coors",
-        "bus0_lon",
-        "bus0_lat",
-        "bus1_lon",
-        "bus1_lat",
-    ]
-    df_transformers_reference = pd.DataFrame(
-        data_transformers_reference, columns=column_transformers_reference
-    ).set_index("transformer_id")
-
     file_path = get_path(tmpdir, "transformers_exercise.csv")
     df_transformers_input.to_csv(file_path)
 
@@ -509,64 +569,6 @@ def test_load_transformers_from_osm(tmpdir):
 
 
 def test_load_converters_from_osm(tmpdir):
-    data_converters_input = [
-        [
-            0,
-            "convert_20_41",
-            "41",
-            "42",
-            False,
-            False,
-            "US",
-            "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
-        ],
-    ]
-    column_converters_input = [
-        "index",
-        "converter_id",
-        "bus0",
-        "bus1",
-        "underground",
-        "under_construction",
-        "country",
-        "geometry",
-    ]
-    df_converters_input = pd.DataFrame(
-        data_converters_input, columns=column_converters_input
-    )
-
-    data_converters_reference = [
-        [
-            "convert_20_41",
-            0,
-            0,
-            "41",
-            "42",
-            False,
-            False,
-            "US",
-            "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
-            "B2B",
-            True,
-        ],
-    ]
-    column_converters_reference = [
-        "converter_id",
-        "Unnamed: 0",
-        "index",
-        "bus0",
-        "bus1",
-        "underground",
-        "under_construction",
-        "country",
-        "geometry",
-        "carrier",
-        "dc",
-    ]
-    df_converters_reference = pd.DataFrame(
-        data_converters_reference, columns=column_converters_reference
-    ).set_index("converter_id")
-
     file_path = get_path(tmpdir, "converters_exercise.csv")
     df_converters_input.to_csv(file_path)
 
@@ -580,8 +582,8 @@ def test_load_converters_from_osm(tmpdir):
 def test_get_linetypes_config():
     output_dict_ac = _get_linetypes_config(lines_dict["ac_types"], voltages_list)
     output_dict_dc = _get_linetypes_config(lines_dict["dc_types"], voltages_list)
-    assert output_dict_ac == line_types_dict_ac
-    assert output_dict_dc == line_types_dict_dc
+    assert output_dict_ac == lines_dict["ac_types"]
+    assert output_dict_dc == lines_dict["dc_types"]
 
 
 def test_get_linetype_by_voltage():
@@ -604,9 +606,7 @@ def test_get_linetype_by_voltage():
     line_type_list = []
 
     for v_nom in v_nom_list:
-        line_type_list.append(_get_linetype_by_voltage(v_nom, line_types_dict_ac))
-
-    print(line_type_list)
+        line_type_list.append(_get_linetype_by_voltage(v_nom, lines_dict["ac_types"]))
 
     assert line_type_list == [
         "243-AL1/39-ST1A 20.0",
@@ -669,7 +669,50 @@ def test_set_electrical_parameters_links(tmpdir):
     new_lines_dc_reference = lines_dc_reference.copy(deep=True)
     new_lines_dc_reference["p_max_pu"] = links_dict["p_max_pu"]
     new_lines_dc_reference["p_min_pu"] = -links_dict["p_max_pu"]
-
+    pathlib.Path.unlink(file_path)
     df_comparison = new_lines_dc.compare(new_lines_dc_reference)
-    print(df_comparison)
+    assert df_comparison.empty
+
+
+def test_set_electrical_parameters_transformers(tmpdir):
+    file_path = get_path(tmpdir, "transformers_exercise.csv")
+    df_transformers_input.to_csv(file_path)
+    df_transformers_output = _load_transformers_from_osm(file_path)
+
+    df_transformers_parameters = _set_electrical_parameters_transformers(
+        transformers_dict, df_transformers_output
+    )
+
+    df_transformers_parameters_reference = df_transformers_reference.copy(deep=True)
+    df_transformers_parameters_reference["x"] = transformers_dict["x"]
+    df_transformers_parameters_reference["s_nom"] = transformers_dict["s_nom"]
+    df_transformers_parameters_reference["type"] = transformers_dict["type"]
+    pathlib.Path.unlink(file_path)
+    df_comparison = df_transformers_parameters.compare(
+        df_transformers_parameters_reference
+    )
+    assert df_comparison.empty
+
+
+def test_set_electrical_parameters_converters(tmpdir):
+    file_path = get_path(tmpdir, "converters_exercise.csv")
+    df_converters_input.to_csv(file_path)
+
+    df_converters_output = _load_converters_from_osm(file_path)
+
+    df_converters_parameters = _set_electrical_parameters_converters(
+        links_dict, df_converters_output
+    )
+
+    df_converters_parameters.to_csv(get_path(path_cwd, "converters_output.csv"))
+
+    df_converters_parameters_reference = df_converters_reference.copy(deep=True)
+    df_converters_parameters_reference["p_max_pu"] = links_dict["p_max_pu"]
+    df_converters_parameters_reference["p_min_pu"] = -links_dict["p_max_pu"]
+    df_converters_parameters_reference["p_nom"] = 2000
+    df_converters_parameters_reference["under_construction"] = False
+    df_converters_parameters_reference["underground"] = False
+
+    pathlib.Path.unlink(file_path)
+    df_comparison = df_converters_parameters.compare(df_converters_parameters_reference)
     assert df_comparison.empty
