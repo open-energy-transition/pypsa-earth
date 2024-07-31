@@ -35,161 +35,122 @@ path_cwd = pathlib.Path.cwd()
 
 # ---> lines
 
-data_lines_input = [
-    [
-        "204361221-1_0",
-        50.0,
-        "line",
-        161000,
-        "111",
-        "0",
-        3.0,
-        110071.89434240988,
-        False,
-        False,
-        False,
-        "BJ",
-        "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
-        "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
-        "POINT (2.6594 10.2042)",
-        "POINT (2.5914 9.3321)",
-        2.6594,
-        10.2042,
-        2.5914,
-        9.3321,
-    ],
-    [
-        "204361287-1_1",
-        0.0,
-        "line",
-        178658,
-        "111",
-        "0",
-        3.0,
-        118723.89434240988,
-        False,
-        False,
-        False,
-        "BJ",
-        "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
-        "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
-        "POINT (2.6594 10.2042)",
-        "POINT (2.5914 9.3321)",
-        2.6594,
-        10.2042,
-        2.5914,
-        9.3321,
-    ],
-]
-column_lines_input = [
-    "line_id",
-    "tag_frequency",
-    "tag_type",
-    "voltage",
-    "bus0",
-    "bus1",
-    "circuits",
-    "length",
-    "underground",
-    "under_construction",
-    "dc",
-    "country",
-    "geometry",
-    "bounds",
-    "bus_0_coors",
-    "bus_1_coors",
-    "bus0_lon",
-    "bus0_lat",
-    "bus1_lon",
-    "bus1_lat",
-]
-df_lines_input = pd.DataFrame(data_lines_input, columns=column_lines_input)
+df_lines_input = pd.DataFrame(
+    {
+        "line_id": ["204361221-1_0", "204361287-1_1"],
+        "tag_frequency": [50.0, 0.0],
+        "tag_type": ["line", "line"],
+        "voltage": [161000, 178658],
+        "bus0": ["111", "111"],
+        "bus1": ["0", "0"],
+        "circuits": (3.0, 3.0),
+        "length": [110071.89434240988, 118723.89434240988],
+        "underground": [False, False],
+        "under_construction": [False, False],
+        "dc": [False, False],
+        "country": ["BJ", "BJ"],
+        "geometry": [
+            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+        ],
+        "bounds": [
+            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+        ],
+        "bus_0_coors": ["POINT (2.6594 10.2042)", "POINT (2.6594 10.2042)"],
+        "bus_1_coors": ["POINT (2.5914 9.3321)", "POINT (2.5914 9.3321)"],
+        "bus0_lon": [2.6594, 2.6594],
+        "bus0_lat": [10.2042, 10.2042],
+        "bus1_lon": [2.5914, 2.5914],
+        "bus1_lat": [9.3321, 9.3321],
+    }
+)
 
-data_lines_ac_reference = [
-    [
-        50.0,
-        "line",
-        161.0,
-        "111",
-        "0",
-        3.0,
-        110.07189434240988,
-        False,
-        False,
-        False,
-        "BJ",
-        "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
-        "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
-        "POINT (2.6594 10.2042)",
-        "POINT (2.5914 9.3321)",
-        2.6594,
-        10.2042,
-        2.5914,
-        9.3321,
-        "AC",
-        "243-AL1/39-ST1A 20.0",
-        0.7,
-    ],
-]
-
-data_lines_dc_reference = [
-    [
-        0.0,
-        "line",
-        178.658,
-        "111",
-        "0",
-        3.0,
-        118.72389434240988,
-        False,
-        False,
-        True,
-        "BJ",
-        "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
-        "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
-        "POINT (2.6594 10.2042)",
-        "POINT (2.5914 9.3321)",
-        2.6594,
-        10.2042,
-        2.5914,
-        9.3321,
-        "DC",
-        "HVDC XLPE 1000",
-        0.7,
-    ],
-]
-
-column_lines_ac_dc_reference = [
-    "tag_frequency",
-    "tag_type",
-    "v_nom",
-    "bus0",
-    "bus1",
-    "num_parallel",
-    "length",
-    "underground",
-    "under_construction",
-    "dc",
-    "country",
-    "geometry",
-    "bounds",
-    "bus_0_coors",
-    "bus_1_coors",
-    "bus0_lon",
-    "bus0_lat",
-    "bus1_lon",
-    "bus1_lat",
-    "carrier",
-    "type",
-    "s_max_pu",
-]
+df_lines_reference = pd.DataFrame(
+    {
+        "line_id": ["204361221-1_0", "204361287-1_1"],
+        "tag_frequency": [50.0, 0.0],
+        "tag_type": ["line", "line"],
+        "v_nom": [161.0, 178.658],
+        "bus0": ["111", "111"],
+        "bus1": ["0", "0"],
+        "num_parallel": [3.0, 3.0],
+        "length": [110.07189434240988, 118.72389434240988],
+        "underground": [False, False],
+        "under_construction": [False, False],
+        "dc": [False, False],
+        "country": ["BJ", "BJ"],
+        "geometry": [
+            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+        ],
+        "bounds": [
+            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+        ],
+        "bus_0_coors": ["POINT (2.6594 10.2042)", "POINT (2.6594 10.2042)"],
+        "bus_1_coors": ["POINT (2.5914 9.3321)", "POINT (2.5914 9.3321)"],
+        "bus0_lon": [2.6594, 2.6594],
+        "bus0_lat": [10.2042, 10.2042],
+        "bus1_lon": [2.5914, 2.5914],
+        "bus1_lat": [9.3321, 9.3321],
+    }
+).set_index("line_id")
 
 lines_ac_reference = pd.DataFrame(
-    data_lines_ac_reference, columns=column_lines_ac_dc_reference
+    {
+        "tag_frequency": 50.0,
+        "tag_type": "line",
+        "v_nom": 161.0,
+        "bus0": "111",
+        "bus1": "0",
+        "num_parallel": 3.0,
+        "length": 110.07189434240988,
+        "underground": False,
+        "under_construction": False,
+        "dc": False,
+        "country": "BJ",
+        "geometry": "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+        "bounds": "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+        "bus_0_coors": "POINT (2.6594 10.2042)",
+        "bus_1_coors": "POINT (2.5914 9.3321)",
+        "bus0_lon": 2.6594,
+        "bus0_lat": 10.2042,
+        "bus1_lon": 2.5914,
+        "bus1_lat": 9.3321,
+        "carrier": "AC",
+        "type": "243-AL1/39-ST1A 20.0",
+        "s_max_pu": 0.7,
+    },
+    index=[0],
 ).set_index("tag_frequency")
 
 lines_dc_reference = pd.DataFrame(
-    data_lines_dc_reference, columns=column_lines_ac_dc_reference
+    {
+        "tag_frequency": 0.0,
+        "tag_type": "line",
+        "v_nom": 178.658,
+        "bus0": "111",
+        "bus1": "0",
+        "num_parallel": 3.0,
+        "length": 118.72389434240988,
+        "underground": False,
+        "under_construction": False,
+        "dc": True,
+        "country": "BJ",
+        "geometry": "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
+        "bounds": "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
+        "bus_0_coors": "POINT (2.6594 10.2042)",
+        "bus_1_coors": "POINT (2.5914 9.3321)",
+        "bus0_lon": 2.6594,
+        "bus0_lat": 10.2042,
+        "bus1_lon": 2.5914,
+        "bus1_lat": 9.3321,
+        "carrier": "DC",
+        "type": "HVDC XLPE 1000",
+        "s_max_pu": 0.7,
+    },
+    index=[0],
 ).set_index("tag_frequency")
 
 lines_dict = {
@@ -226,143 +187,80 @@ transformers_dict = {
     "type": "",
 }
 
-data_transformers_input = [
-    [
-        "transf_1_0",
-        "1",
-        "2",
-        161000,
-        330000,
-        "BJ",
-        "LINESTRING(2.648 6.7394, 2.649 6.7404)",
-        "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
-        "POINT(2.648 6.7394)",
-        "POINT(2.649 6.7404)",
-        2.648,
-        6.7394,
-        2.649,
-        6.7404,
-    ],
-]
 
-column_transformers_input = [
-    "line_id",
-    "bus0",
-    "bus1",
-    "voltage_bus0",
-    "voltage_bus1",
-    "country",
-    "geometry",
-    "bounds",
-    "bus_0_coors",
-    "bus_1_coors",
-    "bus0_lon",
-    "bus0_lat",
-    "bus1_lon",
-    "bus1_lat",
-]
 df_transformers_input = pd.DataFrame(
-    data_transformers_input, columns=column_transformers_input
+    {
+        "line_id": "transf_1_0",
+        "bus0": "1",
+        "bus1": "2",
+        "voltage_bus0": 161000,
+        "voltage_bus1": 330000,
+        "country": "BJ",
+        "geometry": "LINESTRING(2.648 6.7394, 2.649 6.7404)",
+        "bounds": "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
+        "bus_0_coors": "POINT(2.648 6.7394)",
+        "bus_1_coors": "POINT(2.649 6.7404)",
+        "bus0_lon": 2.648,
+        "bus0_lat": 6.7394,
+        "bus1_lon": 2.649,
+        "bus1_lat": 6.7404,
+    },
+    index=[0],
 )
 
-data_transformers_reference = [
-    [
-        "transf_1_0",
-        0,
-        "1",
-        "2",
-        161000,
-        330000,
-        "BJ",
-        "LINESTRING(2.648 6.7394, 2.649 6.7404)",
-        "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
-        "POINT(2.648 6.7394)",
-        "POINT(2.649 6.7404)",
-        2.648,
-        6.7394,
-        2.649,
-        6.7404,
-    ],
-]
-column_transformers_reference = [
-    "transformer_id",
-    "Unnamed: 0",
-    "bus0",
-    "bus1",
-    "voltage_bus0",
-    "voltage_bus1",
-    "country",
-    "geometry",
-    "bounds",
-    "bus_0_coors",
-    "bus_1_coors",
-    "bus0_lon",
-    "bus0_lat",
-    "bus1_lon",
-    "bus1_lat",
-]
 df_transformers_reference = pd.DataFrame(
-    data_transformers_reference, columns=column_transformers_reference
+    {
+        "transformer_id": "transf_1_0",
+        "Unnamed: 0": 0,
+        "bus0": "1",
+        "bus1": "2",
+        "voltage_bus0": 161000,
+        "voltage_bus1": 330000,
+        "country": "BJ",
+        "geometry": "LINESTRING(2.648 6.7394, 2.649 6.7404)",
+        "bounds": "MULTIPOINT((2.648 6.7394), (2.649 6.7404))",
+        "bus_0_coors": "POINT(2.648 6.7394)",
+        "bus_1_coors": "POINT(2.649 6.7404)",
+        "bus0_lon": 2.648,
+        "bus0_lat": 6.7394,
+        "bus1_lon": 2.649,
+        "bus1_lat": 6.7404,
+    },
+    index=[0],
 ).set_index("transformer_id")
 
 # ---> converters
 
-data_converters_input = [
-    [
-        0,
-        "convert_20_41",
-        "41",
-        "42",
-        False,
-        False,
-        "US",
-        "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
-    ],
-]
-column_converters_input = [
-    "index",
-    "converter_id",
-    "bus0",
-    "bus1",
-    "underground",
-    "under_construction",
-    "country",
-    "geometry",
-]
+
 df_converters_input = pd.DataFrame(
-    data_converters_input, columns=column_converters_input
+    {
+        "index": 0,
+        "converter_id": "convert_20_41",
+        "bus0": "41",
+        "bus1": "42",
+        "underground": False,
+        "under_construction": False,
+        "country": "US",
+        "geometry": "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
+    },
+    index=[0],
 )
 
-data_converters_reference = [
-    [
-        "convert_20_41",
-        0,
-        0,
-        "41",
-        "42",
-        False,
-        False,
-        "US",
-        "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
-        "B2B",
-        True,
-    ],
-]
-column_converters_reference = [
-    "converter_id",
-    "Unnamed: 0",
-    "index",
-    "bus0",
-    "bus1",
-    "underground",
-    "under_construction",
-    "country",
-    "geometry",
-    "carrier",
-    "dc",
-]
 df_converters_reference = pd.DataFrame(
-    data_converters_reference, columns=column_converters_reference
+    {
+        "converter_id": "convert_20_41",
+        "Unnamed: 0": 0,
+        "index": 0,
+        "bus0": "41",
+        "bus1": "42",
+        "underground": False,
+        "under_construction": False,
+        "country": "US",
+        "geometry": "LINESTRING(-122.3787 37.6821, -122.3777 37.6831)",
+        "carrier": "B2B",
+        "dc": True,
+    },
+    index=[0],
 ).set_index("converter_id")
 
 # ---> voltages
@@ -482,77 +380,6 @@ def test_load_lines_from_osm(tmpdir):
     """
     Verify what returned by _load_lines_from_osm.
     """
-    data_lines_reference = [
-        [
-            "204361221-1_0",
-            50.0,
-            "line",
-            161.0,
-            "111",
-            "0",
-            3.0,
-            110.07189434240988,
-            False,
-            False,
-            False,
-            "BJ",
-            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
-            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
-            "POINT (2.6594 10.2042)",
-            "POINT (2.5914 9.3321)",
-            2.6594,
-            10.2042,
-            2.5914,
-            9.3321,
-        ],
-        [
-            "204361287-1_1",
-            0.0,
-            "line",
-            178.658,
-            "111",
-            "0",
-            3.0,
-            118.72389434240988,
-            False,
-            False,
-            False,
-            "BJ",
-            "LINESTRING (2.6594 10.2042, 2.6594451 10.2042341)",
-            "MULTIPOINT ((2.6594 10.2042), (2.5914 9.3321))",
-            "POINT (2.6594 10.2042)",
-            "POINT (2.5914 9.3321)",
-            2.6594,
-            10.2042,
-            2.5914,
-            9.3321,
-        ],
-    ]
-    column_lines_reference = [
-        "line_id",
-        "tag_frequency",
-        "tag_type",
-        "v_nom",
-        "bus0",
-        "bus1",
-        "num_parallel",
-        "length",
-        "underground",
-        "under_construction",
-        "dc",
-        "country",
-        "geometry",
-        "bounds",
-        "bus_0_coors",
-        "bus_1_coors",
-        "bus0_lon",
-        "bus0_lat",
-        "bus1_lon",
-        "bus1_lat",
-    ]
-    df_lines_reference = pd.DataFrame(
-        data_lines_reference, columns=column_lines_reference
-    ).set_index("line_id")
 
     file_path = get_path(tmpdir, "lines_exercise.csv")
     df_lines_input.to_csv(file_path)
@@ -736,8 +563,6 @@ def test_set_electrical_parameters_converters(tmpdir):
     df_converters_parameters = _set_electrical_parameters_converters(
         links_dict, df_converters_output
     )
-
-    df_converters_parameters.to_csv(get_path(path_cwd, "converters_output.csv"))
 
     df_converters_parameters_reference = df_converters_reference.copy(deep=True)
     df_converters_parameters_reference["p_max_pu"] = links_dict["p_max_pu"]
