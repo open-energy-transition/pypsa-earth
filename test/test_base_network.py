@@ -13,7 +13,7 @@ import pandas as pd
 
 sys.path.append("./scripts")
 
-from _helpers import change_to_script_dir, get_path, mock_snakemake
+from _helpers import get_path
 from base_network import (
     _get_linetype_by_voltage,
     _get_linetypes_config,
@@ -371,6 +371,9 @@ voltages_list = [132.0, 220.0, 300.0, 380.0, 500.0, 750.0]
 
 
 def test_get_country():
+    """
+    Verify what returned by get_country()
+    """
     data_list = [['"country"=>"NG"'], ['"country"=>"CH"'], ['"country"=>"AU"']]
     df_exercise_with_tags = pd.DataFrame(data_list, columns=["tags"])
     df_exercise_no_tags = pd.DataFrame(data_list, columns=["other"])
@@ -388,6 +391,9 @@ def test_get_country():
 
 
 def test_load_buses_from_osm(tmpdir):
+    """
+    Verify what returned by _load_buses_from_osm.
+    """
     data_buses_input = [
         [
             0,
@@ -473,6 +479,9 @@ def test_load_buses_from_osm(tmpdir):
 
 
 def test_load_lines_from_osm(tmpdir):
+    """
+    Verify what returned by _load_lines_from_osm.
+    """
     data_lines_reference = [
         [
             "204361221-1_0",
@@ -556,6 +565,9 @@ def test_load_lines_from_osm(tmpdir):
 
 
 def test_load_transformers_from_osm(tmpdir):
+    """
+    Verify what returned by _load_transformers_from_osm.
+    """
     file_path = get_path(tmpdir, "transformers_exercise.csv")
     df_transformers_input.to_csv(file_path)
 
@@ -569,6 +581,9 @@ def test_load_transformers_from_osm(tmpdir):
 
 
 def test_load_converters_from_osm(tmpdir):
+    """
+    Verify what returned by _load_converters_from_osm.
+    """
     file_path = get_path(tmpdir, "converters_exercise.csv")
     df_converters_input.to_csv(file_path)
 
@@ -580,6 +595,9 @@ def test_load_converters_from_osm(tmpdir):
 
 
 def test_get_linetypes_config():
+    """
+    Verify what returned by _get_linetypes_config.
+    """
     output_dict_ac = _get_linetypes_config(lines_dict["ac_types"], voltages_list)
     output_dict_dc = _get_linetypes_config(lines_dict["dc_types"], voltages_list)
     assert output_dict_ac == lines_dict["ac_types"]
@@ -587,6 +605,9 @@ def test_get_linetypes_config():
 
 
 def test_get_linetype_by_voltage():
+    """
+    Verify what returned by _get_linetype_by_voltage.
+    """
     v_nom_list = [
         50.0,
         101.0,
@@ -626,6 +647,9 @@ def test_get_linetype_by_voltage():
 
 
 def test_set_electrical_parameters_lines(tmpdir):
+    """
+    Verify what returned by _set_electrical_parameters_lines.
+    """
     file_path = get_path(tmpdir, "lines_exercise.csv")
     df_lines_input.to_csv(file_path)
     df_lines_output = _load_lines_from_osm(file_path).reset_index(drop=True)
@@ -652,6 +676,9 @@ def test_set_electrical_parameters_lines(tmpdir):
 
 
 def test_set_electrical_parameters_links(tmpdir):
+    """
+    Verify what returned by _set_electrical_parameters_links.
+    """
     file_path = get_path(tmpdir, "lines_exercise.csv")
     df_lines_input.to_csv(file_path)
     df_lines_output = _load_lines_from_osm(file_path).reset_index(drop=True)
@@ -675,6 +702,9 @@ def test_set_electrical_parameters_links(tmpdir):
 
 
 def test_set_electrical_parameters_transformers(tmpdir):
+    """
+    Verify what returned by _set_electrical_parameters_transformers.
+    """
     file_path = get_path(tmpdir, "transformers_exercise.csv")
     df_transformers_input.to_csv(file_path)
     df_transformers_output = _load_transformers_from_osm(file_path)
@@ -695,6 +725,9 @@ def test_set_electrical_parameters_transformers(tmpdir):
 
 
 def test_set_electrical_parameters_converters(tmpdir):
+    """
+    Verify what returned by _set_electrical_parameters_converters.
+    """
     file_path = get_path(tmpdir, "converters_exercise.csv")
     df_converters_input.to_csv(file_path)
 
