@@ -60,7 +60,6 @@ import pathlib
 import re
 from zipfile import ZipFile
 
-import country_converter as cc
 import numpy as np
 import pandas as pd
 import pypsa
