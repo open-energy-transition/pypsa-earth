@@ -349,13 +349,9 @@ if __name__ == "__main__":
 
     opts = snakemake.wildcards.opts.split("-")
 
-    emissions_file_url = snakemake.params.prepare_network_options["emissions_file_url"]
-    emissions_file_name = snakemake.params.prepare_network_options[
-        "emissions_file_name"
-    ]
-    emissions_sheet_name = snakemake.params.prepare_network_options[
-        "emissions_sheet_name"
-    ]
+    emissions_file_url = snakemake.params.prepare_network["emissions_file_url"]
+    emissions_file_name = snakemake.params.prepare_network["emissions_file_name"]
+    emissions_sheet_name = snakemake.params.prepare_network["emissions_sheet_name"]
 
     n = pypsa.Network(snakemake.input[0])
     Nyears = n.snapshot_weightings.objective.sum() / 8760.0
