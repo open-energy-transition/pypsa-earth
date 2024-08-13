@@ -60,6 +60,7 @@ import pathlib
 import re
 from zipfile import ZipFile
 
+import country_converter as cc
 import numpy as np
 import pandas as pd
 import pypsa
@@ -71,7 +72,6 @@ from _helpers import (
     get_current_directory_path,
     get_path,
     mock_snakemake,
-    two_2_three_digits_country,
 )
 from add_electricity import load_costs, update_transmission_costs
 
@@ -149,7 +149,7 @@ def emission_extractor(
     ]
     df = df.loc[:, "Y_1970":"Y_2018"].astype(float).ffill(axis=1)
     df = df.loc[:, "Y_1970":"Y_2018"].astype(float).bfill(axis=1)
-    cc_iso3 = two_2_three_digits_country(country_names_emissions)
+    cc_iso3 = cc.convert(country_names_emissions, to="ISO3")
     if len(country_names_emissions) == 1:
         cc_iso3 = [cc_iso3]
     emission_by_country = df.loc[
