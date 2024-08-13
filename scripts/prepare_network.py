@@ -60,7 +60,6 @@ import pathlib
 import re
 from zipfile import ZipFile
 
-import country_converter as cc
 import numpy as np
 import pandas as pd
 import pypsa
@@ -72,6 +71,7 @@ from _helpers import (
     get_current_directory_path,
     get_path,
     mock_snakemake,
+    two_2_three_digits_country,
 )
 from add_electricity import load_costs, update_transmission_costs
 
@@ -131,7 +131,7 @@ def emission_extractor(
         Global emission sheet name
     year_emissions : int
         Year of CO2 emissions
-    country_names_emissions : numpy.ndarray
+    country_names_emissions : list(str)
         Two-letter country codes of analysed countries.
 
     Returns
@@ -149,9 +149,10 @@ def emission_extractor(
     ]
     df = df.loc[:, "Y_1970":"Y_2018"].astype(float).ffill(axis=1)
     df = df.loc[:, "Y_1970":"Y_2018"].astype(float).bfill(axis=1)
-    cc_iso3 = cc.convert(country_names_emissions, to="ISO3")
-    if len(country_names_emissions) == 1:
-        cc_iso3 = [cc_iso3]
+    cc_iso3 = [
+        two_2_three_digits_country(two_code_country)
+        for two_code_country in country_names_emissions
+    ]
     emission_by_country = df.loc[
         df.index.intersection(cc_iso3), "Y_" + str(year_emissions)
     ]
@@ -382,7 +383,7 @@ if __name__ == "__main__":
         if "Co2L" in o:
             m = re.findall("[0-9]*\.?[0-9]+$", o)
             if snakemake.params.electricity["automatic_emission"]:
-                country_names = n.buses.country.unique()
+                country_names = n.buses.country.unique().tolist()
                 emission_year = snakemake.params.electricity[
                     "automatic_emission_base_year"
                 ]
