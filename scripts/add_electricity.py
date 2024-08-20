@@ -458,10 +458,17 @@ def attach_conventional_generators(
                 n.generators.loc[idx, attr] = values
 
 
-def attach_hydro(n, costs, ppl):
-    if "hydro" not in snakemake.params.renewable:
+def attach_hydro(
+    n,
+    costs,
+    ppl,
+    dict_renewable_config,
+    hydro_capacities_file_path,
+    alternative_clustering,
+):
+    if "hydro" not in dict_renewable_config:
         return
-    c = snakemake.params.renewable["hydro"]
+    c = dict_renewable_config["hydro"]
     carriers = c.get("carriers", ["ror", "PHS", "hydro"])
 
     _add_missing_carriers_from_costs(n, costs, carriers)
@@ -484,7 +491,7 @@ def attach_hydro(n, costs, ppl):
     ror = ppl.query('technology == "Run-Of-River"')
     phs = ppl.query('technology == "Pumped Storage"')
     hydro = ppl.query('technology == "Reservoir"')
-    if snakemake.params.alternative_clustering:
+    if alternative_clustering:
         bus_id = ppl["region_id"]
     else:
         bus_id = ppl["bus"]
@@ -572,7 +579,7 @@ def attach_hydro(n, costs, ppl):
         hydro_max_hours = c.get("hydro_max_hours")
         hydro_stats = (
             pd.read_csv(
-                snakemake.input.hydro_capacities,
+                hydro_capacities_file_path,
                 comment="#",
                 na_values=["-"],
                 index_col=0,
@@ -871,7 +878,14 @@ if __name__ == "__main__":
         extendable_carriers,
         snakemake.params.length_factor,
     )
-    attach_hydro(n, costs, ppl)
+    attach_hydro(
+        n,
+        costs,
+        ppl,
+        snakemake.params.renewable,
+        snakemake.input.hydro_capacities,
+        snakemake.params.alternative_clustering,
+    )
 
     if snakemake.params.electricity.get("estimate_renewable_capacities"):
         estimate_renewable_capacities_irena(
