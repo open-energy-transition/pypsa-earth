@@ -273,10 +273,8 @@ config_dict = {
 
 
 def test_attach_hydro():
-    file_path_costs = get_path(path_cwd, "test", "test_data", "costs.csv")
-    file_path_powerplants = get_path(
-        path_cwd, "test", "test_data", "custom_powerplants.csv"
-    )
+    file_path_costs = get_path(path_cwd, "data", "costs.csv")
+    file_path_powerplants = get_path(path_cwd, "data", "custom_powerplants.csv")
     file_path_hydro_capacities = get_path(path_cwd, "data", "hydro_capacities.csv")
     test_network_de = pypsa.examples.scigrid_de(from_master=True)
     power_plants = load_powerplants(file_path_powerplants)
