@@ -10,6 +10,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import yaml
 
 sys.path.append("./scripts")
 
@@ -30,6 +31,9 @@ from base_network import (
 )
 
 path_cwd = pathlib.Path.cwd()
+path_config = pathlib.Path(path_cwd, "config.default.yaml")
+with open(path_config, "r") as file:
+    config_dict = yaml.safe_load(file)
 
 # Common references
 
@@ -227,39 +231,6 @@ lines_dc_reference = pd.DataFrame(
     index=[0],
 ).set_index("tag_frequency")
 
-lines_dict = {
-    "ac_types": {
-        132.0: "243-AL1/39-ST1A 20.0",
-        220.0: "Al/St 240/40 2-bundle 220.0",
-        300.0: "Al/St 240/40 3-bundle 300.0",
-        380.0: "Al/St 240/40 4-bundle 380.0",
-        500.0: "Al/St 240/40 4-bundle 380.0",
-        750.0: "Al/St 560/50 4-bundle 750.0",
-    },
-    "dc_types": {
-        500.0: "HVDC XLPE 1000",
-    },
-    "s_max_pu": 0.7,
-    "s_nom_max": np.inf,
-    "length_factor": 1.25,
-    "under_construction": "zero",
-}
-
-# ---> links
-
-links_dict = {
-    "p_max_pu": 2.1,
-    "p_nom_max": np.inf,
-    "under_construction": "zero",
-}
-
-# ---> transformers
-
-transformers_dict = {
-    "x": 0.1,
-    "s_nom": 2000.0,
-    "type": "",
-}
 
 df_transformers_input = pd.DataFrame(
     {
@@ -301,10 +272,6 @@ df_transformers_reference = pd.DataFrame(
     },
     index=[0],
 ).set_index("transformer_id")
-
-# ---> voltages
-
-voltages_list = [132.0, 220.0, 300.0, 380.0, 500.0, 750.0]
 
 
 def test_get_country():
@@ -378,10 +345,14 @@ def test_get_linetypes_config():
     """
     Verify what returned by _get_linetypes_config.
     """
-    output_dict_ac = _get_linetypes_config(lines_dict["ac_types"], voltages_list)
-    output_dict_dc = _get_linetypes_config(lines_dict["dc_types"], voltages_list)
-    assert output_dict_ac == lines_dict["ac_types"]
-    assert output_dict_dc == lines_dict["dc_types"]
+    output_dict_ac = _get_linetypes_config(
+        config_dict["lines"]["ac_types"], config_dict["electricity"]["voltages"]
+    )
+    output_dict_dc = _get_linetypes_config(
+        config_dict["lines"]["dc_types"], config_dict["electricity"]["voltages"]
+    )
+    assert output_dict_ac == config_dict["lines"]["ac_types"]
+    assert output_dict_dc == config_dict["lines"]["dc_types"]
 
 
 def test_get_linetype_by_voltage():
@@ -407,7 +378,9 @@ def test_get_linetype_by_voltage():
     line_type_list = []
 
     for v_nom in v_nom_list:
-        line_type_list.append(_get_linetype_by_voltage(v_nom, lines_dict["ac_types"]))
+        line_type_list.append(
+            _get_linetype_by_voltage(v_nom, config_dict["lines"]["ac_types"])
+        )
 
     assert line_type_list == [
         "243-AL1/39-ST1A 20.0",
@@ -440,10 +413,10 @@ def test_set_electrical_parameters_lines(tmpdir):
         df_lines_output.tag_frequency.astype(float) == 0
     ].copy()
     lines_ac = _set_electrical_parameters_lines(
-        lines_dict, voltages_list, df_lines_output_ac
+        config_dict["lines"], config_dict["electricity"]["voltages"], df_lines_output_ac
     ).set_index("tag_frequency")
     lines_dc = _set_electrical_parameters_dc_lines(
-        lines_dict, voltages_list, df_lines_output_dc
+        config_dict["lines"], config_dict["electricity"]["voltages"], df_lines_output_dc
     ).set_index("tag_frequency")
     df_lines_ac_comparison = lines_ac.compare(lines_ac_reference)
     df_lines_dc_comparison = lines_dc.compare(lines_dc_reference)
@@ -463,14 +436,14 @@ def test_set_electrical_parameters_links(tmpdir):
         df_lines_output.tag_frequency.astype(float) == 0
     ].copy()
     lines_dc = _set_electrical_parameters_dc_lines(
-        lines_dict, voltages_list, df_lines_output_dc
+        config_dict["lines"], config_dict["electricity"]["voltages"], df_lines_output_dc
     )
-    new_lines_dc = _set_electrical_parameters_links(links_dict, lines_dc).set_index(
-        "tag_frequency"
-    )
+    new_lines_dc = _set_electrical_parameters_links(
+        config_dict["links"], lines_dc
+    ).set_index("tag_frequency")
     new_lines_dc_reference = lines_dc_reference.copy(deep=True)
-    new_lines_dc_reference["p_max_pu"] = links_dict["p_max_pu"]
-    new_lines_dc_reference["p_min_pu"] = -links_dict["p_max_pu"]
+    new_lines_dc_reference["p_max_pu"] = config_dict["links"]["p_max_pu"]
+    new_lines_dc_reference["p_min_pu"] = -config_dict["links"]["p_max_pu"]
     pathlib.Path.unlink(file_path)
     df_comparison = new_lines_dc.compare(new_lines_dc_reference)
     assert df_comparison.empty
@@ -484,12 +457,12 @@ def test_set_electrical_parameters_transformers(tmpdir):
     df_transformers_input.to_csv(file_path)
     df_transformers_output = _load_transformers_from_osm(file_path)
     df_transformers_parameters = _set_electrical_parameters_transformers(
-        transformers_dict, df_transformers_output
+        config_dict["transformers"], df_transformers_output
     )
     df_transformers_parameters_reference = df_transformers_reference.copy(deep=True)
-    df_transformers_parameters_reference["x"] = transformers_dict["x"]
-    df_transformers_parameters_reference["s_nom"] = transformers_dict["s_nom"]
-    df_transformers_parameters_reference["type"] = transformers_dict["type"]
+    df_transformers_parameters_reference["x"] = config_dict["transformers"]["x"]
+    df_transformers_parameters_reference["s_nom"] = config_dict["transformers"]["s_nom"]
+    df_transformers_parameters_reference["type"] = config_dict["transformers"]["type"]
     pathlib.Path.unlink(file_path)
     df_comparison = df_transformers_parameters.compare(
         df_transformers_parameters_reference
@@ -505,11 +478,11 @@ def test_set_electrical_parameters_converters(tmpdir):
     df_converters_input.to_csv(file_path)
     df_converters_output = _load_converters_from_osm(file_path)
     df_converters_parameters = _set_electrical_parameters_converters(
-        links_dict, df_converters_output
+        config_dict["links"], df_converters_output
     )
     df_converters_parameters_reference = df_converters_reference.copy(deep=True)
-    df_converters_parameters_reference["p_max_pu"] = links_dict["p_max_pu"]
-    df_converters_parameters_reference["p_min_pu"] = -links_dict["p_max_pu"]
+    df_converters_parameters_reference["p_max_pu"] = config_dict["links"]["p_max_pu"]
+    df_converters_parameters_reference["p_min_pu"] = -config_dict["links"]["p_max_pu"]
     df_converters_parameters_reference["p_nom"] = 2000
     df_converters_parameters_reference["under_construction"] = False
     df_converters_parameters_reference["underground"] = False
