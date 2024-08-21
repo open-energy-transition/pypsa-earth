@@ -464,6 +464,7 @@ def attach_hydro(
     ppl,
     dict_renewable_config,
     hydro_capacities_file_path,
+    hydro_profile_file_path,
     alternative_clustering,
 ):
     if "hydro" not in dict_renewable_config:
@@ -496,9 +497,13 @@ def attach_hydro(
     else:
         bus_id = ppl["bus"]
 
+    country = ppl["bus"].map(n.buses.country).rename("country")
+
     inflow_idx = ror.index.union(hydro.index)
     if not inflow_idx.empty:
-        with xr.open_dataarray(snakemake.input.profile_hydro) as inflow:
+        dist_key = ppl.loc[inflow_idx, "p_nom"].groupby(country).transform(normed)
+
+        with xr.open_dataarray(hydro_profile_file_path) as inflow:
             inflow_buses = bus_id[inflow_idx]
             missing_plants = pd.Index(inflow_buses.unique()).difference(
                 inflow.indexes["plant"]
@@ -524,7 +529,7 @@ def attach_hydro(
                 loss_p_nom = ror.p_nom.sum() + hydro.p_nom.sum() - total_p_nom
 
                 logger.warning(
-                    f"'{snakemake.input.profile_hydro}' is missing inflow time-series for at least one bus: {', '.join(missing_plants)}."
+                    f"'{hydro_profile_file_path}' is missing inflow time-series for at least one bus: {', '.join(missing_plants)}."
                     f"Corresponding hydro plants are dropped, corresponding to a total loss of {loss_p_nom:.2f}MW out of {total_p_nom:.2f}MW."
                 )
 
@@ -539,6 +544,7 @@ def attach_hydro(
                     .assign_coords(name=network_buses_to_keep)
                     .transpose("time", "name")
                     .to_pandas()
+                    .multiply(dist_key, axis=1)
                 )
 
     if "ror" in carriers and not ror.empty:
@@ -884,6 +890,7 @@ if __name__ == "__main__":
         ppl,
         snakemake.params.renewable,
         snakemake.input.hydro_capacities,
+        snakemake.input.profile_hydro,
         snakemake.params.alternative_clustering,
     )
 
