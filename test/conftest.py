@@ -8,7 +8,10 @@
 import pathlib
 import shutil
 
+import powerplantmatching as pm
+import pypsa
 import pytest
+import yaml
 
 _content_temp_file = "content"
 _name_temp_file = "hello.txt"
@@ -30,3 +33,32 @@ def get_temp_folder(tmpdir):
     sub_temp_content_dir = temp_content_dir.join(_sub_temp_content_dir)
     yield sub_temp_content_dir
     shutil.rmtree(str(sub_temp_content_dir))
+
+
+@pytest.fixture(scope="function")
+def get_power_network():
+    return pypsa.examples.scigrid_de(from_master=True)
+
+
+@pytest.fixture(scope="function")
+def get_power_network_country():
+    return "Germany"
+
+
+@pytest.fixture(scope="function")
+def get_power_plants(get_power_network, get_power_network_country):
+    power_network = get_power_network
+    country_string = get_power_network_country
+    return (
+        pm.powerplants()
+        .query("Country == '{}'".format(country_string))
+        .powerplant.map_bus(power_network.buses)
+    )
+
+
+@pytest.fixture(scope="function")
+def get_config_dict():
+    path_config = pathlib.Path(pathlib.Path.cwd(), "config.default.yaml")
+    with open(path_config, "r") as file:
+        config_dict = yaml.safe_load(file)
+    return config_dict

@@ -232,7 +232,7 @@ def load_powerplants(ppl_fn):
     # drop powerplants with null capacity
     null_ppls = ppl[ppl.p_nom <= 0]
     if not null_ppls.empty:
-        logger.warning(f"Drop powerplants with null capacity: {list(null_ppls.name)}.")
+        logger.warning(f"Drop powerplants with null capacity: {list(null_ppls.index)}.")
         ppl = ppl.drop(null_ppls.index).reset_index(drop=True)
     return ppl
 
@@ -504,6 +504,8 @@ def attach_hydro(
         dist_key = ppl.loc[inflow_idx, "p_nom"].groupby(country).transform(normed)
 
         with xr.open_dataarray(hydro_profile_file_path) as inflow:
+
+            # get the buses corresponding only to Run-Of-River and Reservoir
             inflow_buses = bus_id[inflow_idx]
             missing_plants = pd.Index(inflow_buses.unique()).difference(
                 inflow.indexes["plant"]
