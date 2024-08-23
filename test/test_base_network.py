@@ -10,9 +10,10 @@ import sys
 
 import numpy as np
 import pandas as pd
-import yaml
 
 sys.path.append("./scripts")
+
+from test.conftest import get_config_dict
 
 from _helpers import get_path
 from base_network import (
@@ -29,11 +30,6 @@ from base_network import (
     _set_electrical_parameters_transformers,
     get_country,
 )
-
-path_cwd = pathlib.Path.cwd()
-path_config = pathlib.Path(path_cwd, "config.default.yaml")
-with open(path_config, "r") as file:
-    config_dict = yaml.safe_load(file)
 
 # Common references
 
@@ -341,10 +337,11 @@ def test_load_converters_from_osm(tmpdir):
     assert df_converters_comparison.empty
 
 
-def test_get_linetypes_config():
+def test_get_linetypes_config(get_config_dict):
     """
     Verify what returned by _get_linetypes_config.
     """
+    config_dict = get_config_dict
     output_dict_ac = _get_linetypes_config(
         config_dict["lines"]["ac_types"], config_dict["electricity"]["voltages"]
     )
@@ -355,10 +352,11 @@ def test_get_linetypes_config():
     assert output_dict_dc == config_dict["lines"]["dc_types"]
 
 
-def test_get_linetype_by_voltage():
+def test_get_linetype_by_voltage(get_config_dict):
     """
     Verify what returned by _get_linetype_by_voltage.
     """
+    config_dict = get_config_dict
     v_nom_list = [
         50.0,
         101.0,
@@ -399,10 +397,11 @@ def test_get_linetype_by_voltage():
     ]
 
 
-def test_set_electrical_parameters_lines(tmpdir):
+def test_set_electrical_parameters_lines(get_config_dict, tmpdir):
     """
     Verify what returned by _set_electrical_parameters_lines.
     """
+    config_dict = get_config_dict
     file_path = get_path(tmpdir, "lines_exercise.csv")
     df_lines_input.to_csv(file_path)
     df_lines_output = _load_lines_from_osm(file_path).reset_index(drop=True)
@@ -425,10 +424,11 @@ def test_set_electrical_parameters_lines(tmpdir):
     assert df_lines_dc_comparison.empty
 
 
-def test_set_electrical_parameters_links(tmpdir):
+def test_set_electrical_parameters_links(get_config_dict, tmpdir):
     """
     Verify what returned by _set_electrical_parameters_links.
     """
+    config_dict = get_config_dict
     file_path = get_path(tmpdir, "lines_exercise.csv")
     df_lines_input.to_csv(file_path)
     df_lines_output = _load_lines_from_osm(file_path).reset_index(drop=True)
@@ -449,10 +449,11 @@ def test_set_electrical_parameters_links(tmpdir):
     assert df_comparison.empty
 
 
-def test_set_electrical_parameters_transformers(tmpdir):
+def test_set_electrical_parameters_transformers(get_config_dict, tmpdir):
     """
     Verify what returned by _set_electrical_parameters_transformers.
     """
+    config_dict = get_config_dict
     file_path = get_path(tmpdir, "transformers_exercise.csv")
     df_transformers_input.to_csv(file_path)
     df_transformers_output = _load_transformers_from_osm(file_path)
@@ -470,10 +471,11 @@ def test_set_electrical_parameters_transformers(tmpdir):
     assert df_comparison.empty
 
 
-def test_set_electrical_parameters_converters(tmpdir):
+def test_set_electrical_parameters_converters(get_config_dict, tmpdir):
     """
     Verify what returned by _set_electrical_parameters_converters.
     """
+    config_dict = get_config_dict
     file_path = get_path(tmpdir, "converters_exercise.csv")
     df_converters_input.to_csv(file_path)
     df_converters_output = _load_converters_from_osm(file_path)

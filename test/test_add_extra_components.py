@@ -9,9 +9,10 @@ import pathlib
 import sys
 
 import pypsa
-import yaml
 
 sys.path.append("./scripts")
+
+from test.conftest import get_config_dict
 
 from add_electricity import load_costs
 from add_extra_components import (
@@ -22,18 +23,14 @@ from add_extra_components import (
 
 path_cwd = pathlib.Path.cwd()
 path_costs = pathlib.Path(path_cwd, "data", "costs.csv")
-path_config = pathlib.Path(path_cwd, "config.default.yaml")
-with open(path_config, "r") as file:
-    config_dict = yaml.safe_load(file)
-config_dict["electricity"]["extendable_carriers"]["StorageUnit"] = ["H2"]
-config_dict["electricity"]["extendable_carriers"]["Link"] = ["H2 pipeline"]
-config_dict["renewable"]["csp"]["csp_model"] = "simple"
 
 
-def test_attach_storageunits():
+def test_attach_storageunits(get_config_dict):
     """
     Verify what is returned by attach_storageunits()
     """
+    config_dict = get_config_dict
+    config_dict["electricity"]["extendable_carriers"]["StorageUnit"] = ["H2"]
     test_network_de = pypsa.examples.scigrid_de(from_master=True)
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     test_costs = load_costs(
@@ -66,10 +63,12 @@ def test_attach_storageunits():
     assert output_component_dict == reference_component_dict
 
 
-def test_attach_stores():
+def test_attach_stores(get_config_dict):
     """
     Verify what is returned by attach_stores()
     """
+    config_dict = get_config_dict
+    config_dict["renewable"]["csp"]["csp_model"] = "simple"
     test_network_de = pypsa.examples.scigrid_de(from_master=True)
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     test_costs = load_costs(
@@ -115,10 +114,12 @@ def test_attach_stores():
     assert output_component_dict == reference_component_dict
 
 
-def test_attach_hydrogen_pipelines():
+def test_attach_hydrogen_pipelines(get_config_dict):
     """
     Verify what is returned by attach_hydrogen_pipelines()
     """
+    config_dict = get_config_dict
+    config_dict["electricity"]["extendable_carriers"]["Link"] = ["H2 pipeline"]
     test_network_de = pypsa.examples.scigrid_de(from_master=True)
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     test_costs = load_costs(
