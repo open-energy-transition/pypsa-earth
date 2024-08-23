@@ -9,25 +9,30 @@ import pathlib
 import sys
 
 import xarray as xr
-import yaml
 
 sys.path.append("./scripts")
 
-from test.conftest import get_config_dict, get_power_network, get_power_plants
+from test.conftest import (
+    get_config_dict,
+    get_power_network_scigrid_de,
+    get_power_plants,
+)
 
 from add_electricity import attach_hydro, load_costs, load_powerplants
 
 path_cwd = pathlib.Path.cwd()
 
 
-def test_attach_hydro(get_config_dict, get_power_network, get_power_plants, tmpdir):
+def test_attach_hydro(
+    get_config_dict, get_power_network_scigrid_de, get_power_plants, tmpdir
+):
     config_dict = get_config_dict
     file_path_costs = pathlib.Path(path_cwd, "test", "test_data", "costs.csv")
     file_path_powerplants = pathlib.Path(tmpdir, "powerplants_de.csv")
     file_path_hydro_capacities = pathlib.Path(path_cwd, "data", "hydro_capacities.csv")
     file_path_hydro_profile = pathlib.Path(tmpdir, "profile_hydro_de.nc")
 
-    test_network_de = get_power_network
+    test_network_de = get_power_network_scigrid_de
     test_network_de.buses["country"] = "DE"
 
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
