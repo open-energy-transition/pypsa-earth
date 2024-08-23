@@ -8,6 +8,7 @@
 import pathlib
 import shutil
 
+import pypsa
 import pytest
 
 _content_temp_file = "content"
@@ -30,3 +31,13 @@ def get_temp_folder(tmpdir):
     sub_temp_content_dir = temp_content_dir.join(_sub_temp_content_dir)
     yield sub_temp_content_dir
     shutil.rmtree(str(sub_temp_content_dir))
+
+
+@pytest.fixture(scope="function")
+def get_power_network_scigrid_de():
+    return pypsa.examples.scigrid_de(from_master=True)
+
+
+@pytest.fixture(scope="function")
+def get_power_network_ac_dc_meshed():
+    return pypsa.examples.ac_dc_meshed(from_master=True)

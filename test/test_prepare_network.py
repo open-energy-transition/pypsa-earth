@@ -8,10 +8,11 @@
 
 import sys
 
-import pypsa
 from pandas import Timestamp
 
 sys.path.append("./scripts")
+
+from test.conftest import get_power_network_ac_dc_meshed, get_power_network_scigrid_de
 
 from prepare_network import (
     add_co2limit,
@@ -59,11 +60,11 @@ def test_emission_extractor():
     ]
 
 
-def test_add_co2limit():
+def test_add_co2limit(get_power_network_scigrid_de):
     """
     Verify what returned by add_co2limit.
     """
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     add_co2limit(test_network_de, co2limit, number_years)
     assert (
@@ -76,11 +77,11 @@ def test_add_co2limit():
     )
 
 
-def test_add_gaslimit():
+def test_add_gaslimit(get_power_network_scigrid_de):
     """
     Verify what returned by add_gaslimit.
     """
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
     test_network_de.add("Carrier", "OCGT")
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     add_gaslimit(test_network_de, number_years, number_years)
@@ -92,11 +93,11 @@ def test_add_gaslimit():
     )
 
 
-def test_add_emission_prices():
+def test_add_emission_prices(get_power_network_ac_dc_meshed):
     """
     Verify what returned by add_emission_prices.
     """
-    test_network_ac_dc_meshed = pypsa.examples.ac_dc_meshed(from_master=True)
+    test_network_ac_dc_meshed = get_power_network_ac_dc_meshed
     add_emission_prices(
         test_network_ac_dc_meshed, emission_prices={"co2": 1.0}, exclude_co2=False
     )
@@ -118,21 +119,21 @@ def test_add_emission_prices():
     ]
 
 
-def test_set_line_s_max_pu():
+def test_set_line_s_max_pu(get_power_network_scigrid_de):
     """
     Verify what returned by set_line_s_max_pu.
     """
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
     s_max_pu_new_value = 3.0
     set_line_s_max_pu(test_network_de, s_max_pu_new_value)
     assert test_network_de.lines["s_max_pu"].unique()[0] == s_max_pu_new_value
 
 
-def test_average_every_nhours():
+def test_average_every_nhours(get_power_network_scigrid_de):
     """
     Verify what returned by average_every_nhours.
     """
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
 
     # The input network is already sampled in 1H snapshots.
     # Hence, average_every_nhours should not change anything
@@ -151,14 +152,12 @@ def test_average_every_nhours():
     ]
 
 
-def test_enforce_autarky():
+def test_enforce_autarky_only_crossborder_false(get_power_network_ac_dc_meshed):
     """
-    Verify what returned by enforce_autarky.
+    Verify what returned by enforce_autarky when only_crossborder is False.
     """
-
-    # test with only_crossborder=False
     # --> it removes all lines and all DC links
-    test_network_no_cross_border = pypsa.examples.ac_dc_meshed(from_master=True)
+    test_network_no_cross_border = get_power_network_ac_dc_meshed
 
     bus_country_list = ["UK", "UK", "UK", "UK", "DE", "DE", "DE", "NO", "NO"]
     test_network_no_cross_border.buses["country"] = bus_country_list
@@ -186,9 +185,13 @@ def test_enforce_autarky():
         == reference_component_dict_no_cross_border
     )
 
-    # test with only_crossborder=True
+
+def test_enforce_autarky_only_crossborder_true(get_power_network_ac_dc_meshed):
+    """
+    Verify what returned by enforce_autarky when only_crossborder is True.
+    """
     # --> it removes links and lines that cross borders
-    test_network_with_cross_border = pypsa.examples.ac_dc_meshed(from_master=True)
+    test_network_with_cross_border = get_power_network_ac_dc_meshed
     bus_country_list = ["UK", "UK", "UK", "UK", "DE", "DE", "DE", "NO", "NO"]
     test_network_with_cross_border.buses["country"] = bus_country_list
     test_network_with_cross_border.links["carrier"] = "DC"
@@ -212,17 +215,19 @@ def test_enforce_autarky():
         "Load": 6,
         "Generator": 6,
     }
+    print(output_component_dict_with_cross_border)
+
     assert (
         output_component_dict_with_cross_border
         == reference_component_dict_with_cross_border
     )
 
 
-def test_set_line_nom_max():
+def test_set_line_nom_max(get_power_network_ac_dc_meshed):
     """
     Verify what returned by set_line_nom_max.
     """
-    test_network = pypsa.examples.ac_dc_meshed(from_master=True)
+    test_network = get_power_network_ac_dc_meshed
     s_nom_max_value = 5.0
     p_nom_max_value = 10.0
     set_line_nom_max(

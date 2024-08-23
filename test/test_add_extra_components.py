@@ -9,9 +9,10 @@ import pathlib
 import sys
 
 import pandas as pd
-import pypsa
 
 sys.path.append("./scripts")
+
+from test.conftest import get_power_network_scigrid_de
 
 from add_electricity import load_costs
 from add_extra_components import (
@@ -134,11 +135,11 @@ config_dict = {
 }
 
 
-def test_attach_storageunits():
+def test_attach_storageunits(get_power_network_scigrid_de):
     """
     Verify what is returned by attach_storageunits()
     """
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     test_costs = load_costs(
         path_costs,
@@ -169,11 +170,11 @@ def test_attach_storageunits():
     assert output_component_dict == reference_component_dict
 
 
-def test_attach_stores():
+def test_attach_stores(get_power_network_scigrid_de):
     """
     Verify what is returned by attach_stores()
     """
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     test_costs = load_costs(
         path_costs,
@@ -207,11 +208,11 @@ def test_attach_stores():
     assert output_component_dict == reference_component_dict
 
 
-def test_attach_hydrogen_pipelines():
+def test_attach_hydrogen_pipelines(get_power_network_scigrid_de):
     """
     Verify what is returned by attach_hydrogen_pipelines()
     """
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     test_costs = load_costs(
         path_costs,
