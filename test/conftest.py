@@ -51,8 +51,8 @@ def get_power_network_country():
 
 
 @pytest.fixture(scope="function")
-def get_power_plants(get_power_network, get_power_network_country):
-    power_network = get_power_network
+def get_power_plants(get_power_network_scigrid_de, get_power_network_country):
+    power_network = get_power_network_scigrid_de
     country_string = get_power_network_country
     return (
         pm.powerplants()

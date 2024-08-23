@@ -102,4 +102,5 @@ def test_attach_hydro(
         if c.name == "StorageUnit":
             print("storage unit_t inflow", test_network_de.storage_units_t.inflow)
 
-    assert reference_component_dict == output_component_dict
+    assert False
+    # assert reference_component_dict == output_component_dict
