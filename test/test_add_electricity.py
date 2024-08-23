@@ -8,6 +8,7 @@
 import pathlib
 import sys
 
+import pandas as pd
 import xarray as xr
 
 sys.path.append("./scripts")
@@ -18,9 +19,39 @@ from test.conftest import (
     get_power_plants,
 )
 
-from add_electricity import attach_hydro, load_costs, load_powerplants
+from add_electricity import (
+    attach_hydro,
+    calculate_annuity,
+    load_costs,
+    load_powerplants,
+)
 
 path_cwd = pathlib.Path.cwd()
+
+
+def test_calculate_annuity():
+
+    # test for r being a pandas Series
+    n_series = pd.Series(data={"x": 1, "y": 2, "z": 3}, index=["x", "y", "z"])
+    r_series = pd.Series(data={"x": 1, "y": 2, "z": 3}, index=["x", "y", "z"])
+    output_series = calculate_annuity(n_series, r_series)
+    print(output_series)
+    comparison_series = output_series.compare(
+        pd.Series(
+            data={"x": 2.000000, "y": 9.0 / 4.0, "z": 192.0 / 63.0},
+            index=["x", "y", "z"],
+        )
+    )
+    print(comparison_series)
+    assert comparison_series.empty
+
+    # test for r being a non-negative scalar
+    output_value = calculate_annuity(1.0, 1.0)
+    assert output_value == 2.0
+
+    # test for r being a negative scalar
+    output_value = calculate_annuity(1.0, -1.0)
+    assert output_value == 1.0
 
 
 def test_attach_hydro(
