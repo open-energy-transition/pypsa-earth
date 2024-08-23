@@ -8,11 +8,9 @@
 import pathlib
 import sys
 
-import pypsa
-
 sys.path.append("./scripts")
 
-from test.conftest import get_config_dict
+from test.conftest import get_config_dict, get_power_network_scigrid_de
 
 from add_electricity import load_costs
 from add_extra_components import (
@@ -25,13 +23,13 @@ path_cwd = pathlib.Path.cwd()
 path_costs = pathlib.Path(path_cwd, "data", "costs.csv")
 
 
-def test_attach_storageunits(get_config_dict):
+def test_attach_storageunits(get_config_dict, get_power_network_scigrid_de):
     """
     Verify what is returned by attach_storageunits()
     """
     config_dict = get_config_dict
     config_dict["electricity"]["extendable_carriers"]["StorageUnit"] = ["H2"]
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     test_costs = load_costs(
         path_costs,
@@ -51,7 +49,6 @@ def test_attach_storageunits(get_config_dict):
         "Generator": 1423,
         "StorageUnit": 623,
     }
-
     attach_storageunits(test_network_de, test_costs, config_dict)
 
     output_component_dict = {}
@@ -63,13 +60,13 @@ def test_attach_storageunits(get_config_dict):
     assert output_component_dict == reference_component_dict
 
 
-def test_attach_stores(get_config_dict):
+def test_attach_stores(get_config_dict, get_power_network_scigrid_de):
     """
     Verify what is returned by attach_stores()
     """
     config_dict = get_config_dict
     config_dict["renewable"]["csp"]["csp_model"] = "simple"
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     test_costs = load_costs(
         path_costs,
@@ -77,14 +74,6 @@ def test_attach_stores(get_config_dict):
         config_dict["electricity"],
         number_years,
     )
-
-    before_component_dict = {}
-    for c in test_network_de.iterate_components(
-        list(test_network_de.components.keys())[2:]
-    ):
-        before_component_dict[c.name] = len(c.df)
-
-    print("before", before_component_dict)
 
     reference_component_dict = {
         "Bus": 1755,
@@ -108,19 +97,16 @@ def test_attach_stores(get_config_dict):
     ):
         output_component_dict[c.name] = len(c.df)
 
-    print(before_component_dict)
-    print(output_component_dict)
-
     assert output_component_dict == reference_component_dict
 
 
-def test_attach_hydrogen_pipelines(get_config_dict):
+def test_attach_hydrogen_pipelines(get_config_dict, get_power_network_scigrid_de):
     """
     Verify what is returned by attach_hydrogen_pipelines()
     """
     config_dict = get_config_dict
     config_dict["electricity"]["extendable_carriers"]["Link"] = ["H2 pipeline"]
-    test_network_de = pypsa.examples.scigrid_de(from_master=True)
+    test_network_de = get_power_network_scigrid_de
     number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
     test_costs = load_costs(
         path_costs,
