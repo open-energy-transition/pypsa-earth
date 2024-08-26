@@ -20,6 +20,7 @@ from test.conftest import (
 )
 
 from add_electricity import (
+    _add_missing_carriers_from_costs,
     attach_hydro,
     calculate_annuity,
     load_costs,
@@ -52,6 +53,44 @@ def test_calculate_annuity():
     # test for r being a negative scalar
     output_value = calculate_annuity(1.0, -1.0)
     assert output_value == 1.0
+
+
+def test_add_missing_carriers_from_costs(
+    get_config_dict, get_power_network_scigrid_de, tmpdir
+):
+    file_path_costs = pathlib.Path(path_cwd, "test", "test_data", "costs.csv")
+    config_dict = get_config_dict
+    test_network_de = get_power_network_scigrid_de
+    number_years = test_network_de.snapshot_weightings.objective.sum() / 8760.0
+    test_costs = load_costs(
+        file_path_costs,
+        config_dict["costs"],
+        config_dict["electricity"],
+        number_years,
+    )
+    carriers = ["ror", "PHS", "hydro"]
+
+    reference_component_dict = {
+        "Bus": 585,
+        "Carrier": 3,
+        "Line": 852,
+        "LineType": 34,
+        "Transformer": 96,
+        "TransformerType": 14,
+        "Load": 489,
+        "Generator": 1423,
+        "StorageUnit": 38,
+    }
+
+    _add_missing_carriers_from_costs(test_network_de, test_costs, carriers)
+
+    output_component_dict = {}
+    for c in test_network_de.iterate_components(
+        list(test_network_de.components.keys())[2:]
+    ):
+        output_component_dict[c.name] = len(c.df)
+
+    assert reference_component_dict == output_component_dict
 
 
 def test_attach_hydro(
@@ -133,5 +172,4 @@ def test_attach_hydro(
         if c.name == "StorageUnit":
             print("storage unit_t inflow", test_network_de.storage_units_t.inflow)
 
-    assert False
-    # assert reference_component_dict == output_component_dict
+    assert reference_component_dict == output_component_dict

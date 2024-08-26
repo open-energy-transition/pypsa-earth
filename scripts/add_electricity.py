@@ -18,7 +18,7 @@ Relevant Settings
         version:
         rooftop_share:
         USD2013_to_EUR2013:
-        dicountrate:
+        discountrate:
         emission_prices:
 
     electricity:
