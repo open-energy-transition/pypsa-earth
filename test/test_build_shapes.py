@@ -18,7 +18,6 @@ path_cwd = str(pathlib.Path.cwd())
 def test_gadm(get_config_dict, tmpdir):
     config_dict = get_config_dict
 
-    gadm_shapes_path = pathlib.Path(path_cwd, "test", "gadm_shapes_XK.geojson")
     mem_mb = 3096
 
     countries_list = ["XK"]
@@ -52,7 +51,6 @@ def test_gadm(get_config_dict, tmpdir):
         year,
         nprocesses=nprocesses,
     )
-    # save_to_geojson(gadm_shapes_df, gadm_shapes_path)
     assert gadm_shapes_df.shape == (7, 4)
     assert gadm_shapes_df.index.unique().tolist() == [f"XK.{x}_1" for x in range(1, 8)]
     assert gadm_shapes_df.loc["XK.1_1"]["pop"] == 207473.70381259918
