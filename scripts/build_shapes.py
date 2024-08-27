@@ -241,7 +241,7 @@ def download_WorldPop(
     worldpop_method: str
          worldpop_method = "api" will use the API method to access the WorldPop 100mx100m dataset.  worldpop_method = "standard" will use the standard method to access the WorldPop 1KMx1KM dataset.
     country_code : str
-        Two letter country codes of the downloaded files.
+        Two-letter country codes of the downloaded files.
         Files downloaded from https://data.worldpop.org/ datasets WorldPop UN adjusted
     year : int
         Year of the data to download
@@ -489,8 +489,6 @@ def add_gdp_data(
     update=False,
     out_logging=False,
     name_file_nc="GDP_PPP_1990_2015_5arcmin_v2.nc",
-    nprocesses=2,
-    disable_progressbar=False,
 ):
     """
     Function to add gdp data to arbitrary number of shapes in a country.
@@ -939,7 +937,6 @@ def add_population_data(
     out_logging=False,
     mem_read_limit_per_process=1024,
     nprocesses=2,
-    disable_progressbar=False,
 ):
     """
     Function to add population data to arbitrary number of shapes in a country.

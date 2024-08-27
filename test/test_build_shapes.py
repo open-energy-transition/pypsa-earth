@@ -8,17 +8,26 @@
 import pathlib
 import sys
 
+import geopandas as gpd
+import numpy as np
+
 sys.path.append("./scripts")
 
-from build_shapes import get_countries_shapes, get_gadm_shapes, save_to_geojson
+from build_shapes import (
+    country_cover,
+    get_countries_shapes,
+    get_gadm_shapes,
+    save_to_geojson,
+)
 
 path_cwd = str(pathlib.Path.cwd())
 
 
-def test_get_countries_shape(get_config_dict):
+def test_get_countries_shapes(get_config_dict):
     """
-    Verify what is returned by countries.
+    Verify what is returned by get_countries_shapes.
     """
+
     config_dict = get_config_dict
 
     countries_list = ["XK"]
@@ -46,9 +55,53 @@ def test_get_countries_shape(get_config_dict):
     assert country_shapes_df.index.unique().tolist() == ["XK"]
 
 
-def test_gadm(get_config_dict):
+def test_country_cover(get_config_dict):
     """
-    Verify what is returned by gadm.
+    Verify what is returned by country_cover.
+    """
+
+    config_dict = get_config_dict
+
+    countries_list = ["NG"]
+    geo_crs = config_dict["crs"]["geo_crs"]
+
+    update = config_dict["build_shape_options"]["update_file"]
+    out_logging = config_dict["build_shape_options"]["out_logging"]
+    contended_flag = config_dict["build_shape_options"]["contended_flag"]
+    file_prefix = config_dict["build_shape_options"]["gadm_file_prefix"]
+    gadm_url_prefix = config_dict["build_shape_options"]["gadm_url_prefix"]
+    gadm_input_file_args = ["data", "gadm"]
+
+    country_shapes_df = get_countries_shapes(
+        countries_list,
+        geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        gadm_input_file_args,
+        contended_flag,
+        update,
+        out_logging,
+    )
+
+    africa_shapes_df = gpd.GeoDataFrame(
+        geometry=[
+            country_cover(
+                country_shapes_df, eez_shapes=None, out_logging=False, distance=0.02
+            )
+        ]
+    )
+    africa_shapes_df["area"] = africa_shapes_df.area
+    africa_shapes_df["centroid"] = africa_shapes_df.centroid
+    assert np.round(africa_shapes_df.area[0], 6) == 75.750104
+    assert (
+        str(africa_shapes_df.centroid[0])
+        == "POINT (8.100519548407405 9.59158035236806)"
+    )
+
+
+def test_get_gadm_shapes(get_config_dict):
+    """
+    Verify what is returned by get_gadm_shapes.
     """
     config_dict = get_config_dict
 
