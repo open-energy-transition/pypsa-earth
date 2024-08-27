@@ -65,9 +65,8 @@ def _simplify_polys(polys, minarea=0.01, tolerance=0.01, filterremote=False):
     return polys.simplify(tolerance=tolerance)
 
 
-def countries(
+def get_countries_shapes(
     countries,
-    layer_id,
     geo_crs,
     file_prefix,
     gadm_url_prefix,
@@ -252,7 +251,7 @@ def download_WorldPop(
         Minimum size of each file to download
     """
     if worldpop_method == "api":
-        return download_WorldPop_API(country_code, year, update, out_logging, size_min)
+        return download_WorldPop_API(country_code, year, update)
 
     elif worldpop_method == "standard":
         return download_WorldPop_standard(
@@ -274,7 +273,7 @@ def download_WorldPop_standard(
     Parameters
     ----------
     country_code : str
-        Two letter country codes of the downloaded files.
+        Two-letter country codes of the downloaded files.
         Files downloaded from https://data.worldpop.org/ datasets WorldPop UN adjusted
     year : int
         Year of the data to download
@@ -330,9 +329,7 @@ def download_WorldPop_standard(
     return WorldPop_inputfile, WorldPop_filename
 
 
-def download_WorldPop_API(
-    country_code, year=2020, update=False, out_logging=False, size_min=300
-):
+def download_WorldPop_API(country_code, year=2020, size_min=300):
     """
     Download tiff file for each country code using the api method from worldpop
     API with 100mx100m resolution.
@@ -340,14 +337,10 @@ def download_WorldPop_API(
     Parameters
     ----------
     country_code : str
-        Two letter country codes of the downloaded files.
+        Two-letter country codes of the downloaded files.
         Files downloaded from https://data.worldpop.org/ datasets WorldPop UN adjusted
     year : int
         Year of the data to download
-    update : bool
-        Update = true, forces re-download of files
-    size_min : int
-        Minimum size of each file to download
     Returns
     -------
     WorldPop_inputfile : str
@@ -1062,7 +1055,7 @@ def add_population_data(
                     pbar.update(1)
 
 
-def gadm(
+def get_gadm_shapes(
     worldpop_method,
     gdp_method,
     countries,
@@ -1173,9 +1166,8 @@ if __name__ == "__main__":
     gadm_url_prefix = snakemake.params.build_shape_options["gadm_url_prefix"]
     gadm_input_file_args = ["data", "gadm"]
 
-    country_shapes = countries(
+    country_shapes_df = get_countries_shapes(
         countries_list,
-        layer_id,
         geo_crs,
         file_prefix,
         gadm_url_prefix,
@@ -1184,20 +1176,20 @@ if __name__ == "__main__":
         update,
         out_logging,
     )
-    country_shapes.to_file(snakemake.output.country_shapes)
+    country_shapes_df.to_file(snakemake.output.country_shapes)
 
     offshore_shapes = eez(
-        countries_list, geo_crs, country_shapes, EEZ_gpkg, out_logging
+        countries_list, geo_crs, country_shapes_df, EEZ_gpkg, out_logging
     )
 
     offshore_shapes.reset_index().to_file(snakemake.output.offshore_shapes)
 
     africa_shape = gpd.GeoDataFrame(
-        geometry=[country_cover(country_shapes, offshore_shapes.geometry)]
+        geometry=[country_cover(country_shapes_df, offshore_shapes.geometry)]
     )
     africa_shape.reset_index().to_file(snakemake.output.africa_shape)
 
-    gadm_shapes = gadm(
+    gadm_shapes = get_gadm_shapes(
         worldpop_method,
         gdp_method,
         countries_list,
