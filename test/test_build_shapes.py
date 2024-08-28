@@ -16,6 +16,7 @@ sys.path.append("./scripts")
 from build_shapes import (
     _simplify_polys,
     country_cover,
+    download_WorldPop_API,
     download_WorldPop_standard,
     get_countries_shapes,
     get_gadm_shapes,
@@ -162,6 +163,16 @@ def test_download_world_pop_standard(get_config_dict):
         update=update_val,
         out_logging=out_logging_val,
         size_min=300,
+    )
+    assert world_pop_file_name == "nga_ppp_2020_UNadj_constrained.tif"
+
+
+def test_download_world_pop_api():
+    """
+    Verify what is returned by download_WorldPop_API.
+    """
+    world_pop_input_file, world_pop_file_name = download_WorldPop_API(
+        "NG", year=2020, size_min=300
     )
     assert world_pop_file_name == "nga_ppp_2020_UNadj_constrained.tif"
 
