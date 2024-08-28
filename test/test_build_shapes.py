@@ -14,13 +14,61 @@ import numpy as np
 sys.path.append("./scripts")
 
 from build_shapes import (
+    _simplify_polys,
     country_cover,
+    download_WorldPop_standard,
     get_countries_shapes,
     get_gadm_shapes,
     save_to_geojson,
 )
 
 path_cwd = str(pathlib.Path.cwd())
+
+
+def test_simplify_polys(get_config_dict):
+    """
+    Verify what is returned by _simplify_polys.
+    """
+
+    config_dict = get_config_dict
+
+    countries_list = ["NG"]
+    geo_crs = config_dict["crs"]["geo_crs"]
+
+    update = config_dict["build_shape_options"]["update_file"]
+    out_logging = config_dict["build_shape_options"]["out_logging"]
+    contended_flag = config_dict["build_shape_options"]["contended_flag"]
+    file_prefix = config_dict["build_shape_options"]["gadm_file_prefix"]
+    gadm_url_prefix = config_dict["build_shape_options"]["gadm_url_prefix"]
+    gadm_input_file_args = ["data", "gadm"]
+
+    country_shapes_df = get_countries_shapes(
+        countries_list,
+        geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        gadm_input_file_args,
+        contended_flag,
+        update,
+        out_logging,
+    )
+
+    simplified_poly = _simplify_polys(country_shapes_df)
+
+    simplified_poly_df = gpd.GeoDataFrame(
+        geometry=[
+            country_cover(
+                simplified_poly, eez_shapes=None, out_logging=False, distance=0.02
+            )
+        ]
+    )
+    simplified_poly_df["area"] = simplified_poly_df.area
+    simplified_poly_df["centroid"] = simplified_poly_df.centroid
+    assert np.round(simplified_poly_df.area[0], 6) == 75.750018
+    assert (
+        str(simplified_poly_df.centroid[0])
+        == "POINT (8.100522482086877 9.591585359563023)"
+    )
 
 
 def test_get_countries_shapes(get_config_dict):
@@ -97,6 +145,25 @@ def test_country_cover(get_config_dict):
         str(africa_shapes_df.centroid[0])
         == "POINT (8.100519548407405 9.59158035236806)"
     )
+
+
+def test_download_world_pop_standard(get_config_dict):
+    """
+    Verify what is returned by download_WorldPop_standard.
+    """
+
+    config_dict = get_config_dict
+    update_val = config_dict["build_shape_options"]["update_file"]
+    out_logging_val = config_dict["build_shape_options"]["out_logging"]
+
+    world_pop_input_file, world_pop_file_name = download_WorldPop_standard(
+        "NG",
+        year=2020,
+        update=update_val,
+        out_logging=out_logging_val,
+        size_min=300,
+    )
+    assert world_pop_file_name == "nga_ppp_2020_UNadj_constrained.tif"
 
 
 def test_get_gadm_shapes(get_config_dict):
