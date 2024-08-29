@@ -13,8 +13,10 @@ import numpy as np
 
 sys.path.append("./scripts")
 
+from _helpers import get_gadm_layer
 from build_shapes import (
     _simplify_polys,
+    add_population_data,
     country_cover,
     download_WorldPop_API,
     download_WorldPop_standard,
@@ -227,3 +229,70 @@ def test_get_gadm_shapes(get_config_dict):
     assert gadm_shapes_df.index.unique().tolist() == [f"XK.{x}_1" for x in range(1, 8)]
     assert gadm_shapes_df.loc["XK.1_1"]["pop"] == 207473.70381259918
     assert gadm_shapes_df.loc["XK.7_1"]["gdp"] == 2385293056.0
+
+
+def test_add_population_data(get_config_dict):
+    """
+    Verify what is returned by add_population_data.
+    """
+    config_dict = get_config_dict
+
+    mem_mb = 3096
+
+    countries_list = ["XK"]
+    geo_crs = config_dict["crs"]["geo_crs"]
+
+    layer_id = config_dict["build_shape_options"]["gadm_layer_id"]
+    update = config_dict["build_shape_options"]["update_file"]
+    out_logging = config_dict["build_shape_options"]["out_logging"]
+    year = config_dict["build_shape_options"]["year"]
+    nprocesses = config_dict["build_shape_options"]["nprocesses"]
+    contended_flag = config_dict["build_shape_options"]["contended_flag"]
+    worldpop_method = config_dict["build_shape_options"]["worldpop_method"]
+    file_prefix = config_dict["build_shape_options"]["gadm_file_prefix"]
+    gadm_url_prefix = config_dict["build_shape_options"]["gadm_url_prefix"]
+    gadm_input_file_args = ["data", "gadm"]
+
+    mem_read_limit_per_process = mem_mb / nprocesses
+
+    df_gadm = get_gadm_layer(
+        countries_list,
+        layer_id,
+        geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        gadm_input_file_args,
+        contended_flag,
+        update,
+        out_logging,
+    )
+
+    # select and rename columns
+    df_gadm.rename(columns={"GID_0": "country"}, inplace=True)
+
+    # drop useless columns
+    df_gadm.drop(
+        df_gadm.columns.difference(["country", "GADM_ID", "geometry"]),
+        axis=1,
+        inplace=True,
+        errors="ignore",
+    )
+
+    add_population_data(
+        df_gadm,
+        countries_list,
+        worldpop_method,
+        year,
+        update,
+        out_logging,
+        mem_read_limit_per_process,
+        nprocesses=nprocesses,
+    )
+
+    assert np.round(df_gadm["pop"].values[0], 0) == 207474.0
+    assert np.round(df_gadm["pop"].values[1], 0) == 208332.0
+    assert np.round(df_gadm["pop"].values[2], 0) == 257191.0
+    assert np.round(df_gadm["pop"].values[3], 0) == 215703.0
+    assert np.round(df_gadm["pop"].values[4], 0) == 610695.0
+    assert np.round(df_gadm["pop"].values[5], 0) == 420344.0
+    assert np.round(df_gadm["pop"].values[6], 0) == 215316.0
