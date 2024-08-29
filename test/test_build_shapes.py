@@ -65,11 +65,14 @@ def test_simplify_polys(get_config_dict):
     )
     simplified_poly_df["area"] = simplified_poly_df.area
     simplified_poly_df["centroid"] = simplified_poly_df.centroid
+    simplified_poly_df["perimeter"] = simplified_poly_df.length
+    print(simplified_poly_df["perimeter"][0])
     assert np.round(simplified_poly_df.area[0], 6) == 75.750018
     assert (
         str(simplified_poly_df.centroid[0])
         == "POINT (8.100522482086877 9.591585359563023)"
     )
+    assert np.round(simplified_poly_df["perimeter"][0], 6) == 47.060882
 
 
 def test_get_countries_shapes(get_config_dict):
@@ -141,11 +144,14 @@ def test_country_cover(get_config_dict):
     )
     africa_shapes_df["area"] = africa_shapes_df.area
     africa_shapes_df["centroid"] = africa_shapes_df.centroid
+    africa_shapes_df["perimeter"] = africa_shapes_df.length
+    print(africa_shapes_df["perimeter"])
     assert np.round(africa_shapes_df.area[0], 6) == 75.750104
     assert (
         str(africa_shapes_df.centroid[0])
         == "POINT (8.100519548407405 9.59158035236806)"
     )
+    assert np.round(africa_shapes_df["perimeter"][0], 6) == 47.080743
 
 
 def test_download_world_pop_standard(get_config_dict):
