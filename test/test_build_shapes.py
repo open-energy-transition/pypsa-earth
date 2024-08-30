@@ -22,6 +22,7 @@ from build_shapes import (
     download_WorldPop_standard,
     get_countries_shapes,
     get_gadm_shapes,
+    load_gdp,
     save_to_geojson,
 )
 
@@ -296,3 +297,17 @@ def test_add_population_data(get_config_dict):
     assert np.round(df_gadm["pop"].values[4], 0) == 610695.0
     assert np.round(df_gadm["pop"].values[5], 0) == 420344.0
     assert np.round(df_gadm["pop"].values[6], 0) == 215316.0
+
+
+def test_load_gdp(get_config_dict):
+    """
+    Verify what is returned by load_gdp.
+    """
+    config_dict = get_config_dict
+
+    update = config_dict["build_shape_options"]["update_file"]
+    out_logging = config_dict["build_shape_options"]["out_logging"]
+    year = config_dict["build_shape_options"]["year"]
+    name_file_nc = "GDP_PPP_1990_2015_5arcmin_v2.nc"
+    GDP_tif, name_tif = load_gdp(year, update, out_logging, name_file_nc)
+    assert name_tif == "GDP_PPP_1990_2015_5arcmin_v2.tif"

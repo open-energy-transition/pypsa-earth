@@ -376,7 +376,7 @@ def download_WorldPop_API(country_code, year=2020, size_min=300):
     return WorldPop_inputfile, WorldPop_filename
 
 
-def convert_GDP(name_file_nc, year=2015, out_logging=False):
+def convert_gdp(name_file_nc, year=2015, out_logging=False):
     """
     Function to convert the nc database of the GDP to tif, based on the work at https://doi.org/10.1038/sdata.2018.4.
     The dataset shall be downloaded independently by the user (see guide) or together with pypsa-earth package.
@@ -423,7 +423,7 @@ def convert_GDP(name_file_nc, year=2015, out_logging=False):
     return GDP_tif, name_file_tif
 
 
-def load_GDP(
+def load_gdp(
     year=2015,
     update=False,
     out_logging=False,
@@ -448,7 +448,7 @@ def load_GDP(
             logger.warning(
                 f"Stage 5 of 5: File {name_file_tif} not found, the file will be produced by processing {name_file_nc}"
             )
-        convert_GDP(name_file_nc, year, out_logging)
+        convert_gdp(name_file_nc, year, out_logging)
 
     return GDP_tif, name_file_tif
 
@@ -511,7 +511,7 @@ def add_gdp_data(
     # initialize new gdp column
     df_gadm["gdp"] = 0.0
 
-    GDP_tif, name_tif = load_GDP(year, update, out_logging, name_file_nc)
+    GDP_tif, name_tif = load_gdp(year, update, out_logging, name_file_nc)
 
     with rasterio.open(GDP_tif) as src:
         # resample data to target shape
