@@ -136,19 +136,19 @@ def save_to_geojson(df, fn):
             pass
 
 
-def load_EEZ(countries_codes, geo_crs, EEZ_gpkg="./data/eez/eez_v11.gpkg"):
+def load_eez(countries_codes, geo_crs, eez_gpkg_file="./data/eez/eez_v11.gpkg"):
     """
     Function to load the database of the Exclusive Economic Zones.
 
     The dataset shall be downloaded independently by the user (see
     guide) or together with pypsa-earth package.
     """
-    if not pathlib.Path(EEZ_gpkg).exists():
+    if not pathlib.Path(eez_gpkg_file).exists():
         raise Exception(
-            f"File EEZ {EEZ_gpkg} not found, please download it from https://www.marineregions.org/download_file.php?name=World_EEZ_v11_20191118_gpkg.zip and copy it in {pathlib.Path(EEZ_gpkg).parent}"
+            f"File EEZ {eez_gpkg_file} not found, please download it from https://www.marineregions.org/download_file.php?name=World_EEZ_v11_20191118_gpkg.zip and copy it in {pathlib.Path(EEZ_gpkg).parent}"
         )
 
-    geodf_EEZ = gpd.read_file(EEZ_gpkg, engine="pyogrio").to_crs(geo_crs)
+    geodf_EEZ = gpd.read_file(eez_gpkg_file, engine="pyogrio").to_crs(geo_crs)
     geodf_EEZ.dropna(axis=0, how="any", subset=["ISO_TER1"], inplace=True)
     # [["ISO_TER1", "TERRITORY1", "ISO_SOV1", "ISO_SOV2", "ISO_SOV3", "geometry"]]
     geodf_EEZ = geodf_EEZ[["ISO_TER1", "geometry"]]
@@ -168,11 +168,11 @@ def load_EEZ(countries_codes, geo_crs, EEZ_gpkg="./data/eez/eez_v11.gpkg"):
     return geodf_EEZ
 
 
-def eez(
+def get_eez(
     countries,
     geo_crs,
     country_shapes,
-    EEZ_gpkg,
+    eez_gpkg_file,
     out_logging=False,
     distance=0.01,
     minarea=0.01,
@@ -188,7 +188,7 @@ def eez(
         logger.info("Stage 2 of 5: Create offshore shapes")
 
     # load data
-    df_eez = load_EEZ(countries, geo_crs, EEZ_gpkg)
+    df_eez = load_eez(countries, geo_crs, eez_gpkg_file)
 
     eez_countries = [cc for cc in countries if df_eez.name.str.contains(cc).any()]
     ret_df = gpd.GeoDataFrame(
@@ -1175,7 +1175,7 @@ if __name__ == "__main__":
     )
     country_shapes_df.to_file(snakemake.output.country_shapes)
 
-    offshore_shapes = eez(
+    offshore_shapes = get_eez(
         countries_list, geo_crs, country_shapes_df, EEZ_gpkg, out_logging
     )
 
