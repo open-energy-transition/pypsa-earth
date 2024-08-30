@@ -19,10 +19,6 @@ Files: data/*
 Copyright:  The PyPSA-Earth and PyPSA-Eur Authors
 License: CC-BY-4.0
 
-Files: test/*
-Copyright:  The PyPSA-Earth and PyPSA-Eur Authors
-License: CC-BY-4.0
-
 Files: .github/*
 Copyright:  The PyPSA-Earth and PyPSA-Eur Authors
 License: CC0-1.0
