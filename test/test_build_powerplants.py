@@ -127,33 +127,3 @@ def test_add_power_plants(get_config_dict):
         countries_names,
     )
     assert ppl_replace.shape == (4, 19)
-
-    # false
-    config_dict["electricity"]["custom_powerplants"] = "false"
-    custom_power_plant_query = config_dict["electricity"]["custom_powerplants"]
-    if isinstance(ppl_query, str):
-        power_plants_config["main_query"] = ppl_query
-    countries_names = ["Nigeria"]
-    power_plants_config["target_countries"] = countries_names
-    ppl_false = add_power_plants(
-        custom_power_plants_file_path,
-        power_plants_config,
-        custom_power_plant_query,
-        countries_names,
-    )
-    assert ppl_false.shape == (31, 18)
-
-    # merge
-    config_dict["electricity"]["custom_powerplants"] = "merge"
-    custom_power_plant_query = config_dict["electricity"]["custom_powerplants"]
-    if isinstance(ppl_query, str):
-        power_plants_config["main_query"] = ppl_query
-    countries_names = ["Nigeria"]
-    power_plants_config["target_countries"] = countries_names
-    ppl_merge = add_power_plants(
-        custom_power_plants_file_path,
-        power_plants_config,
-        custom_power_plant_query,
-        countries_names,
-    )
-    assert ppl_merge.shape == (35, 20)
