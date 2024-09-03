@@ -795,7 +795,6 @@ def test_load_costs(
         config_dict["electricity"],
         number_years,
     )
-    # output_test_costs.to_csv(pathlib.Path(path_cwd, "test", "test_data", "output_cost.csv"))
     comparison_dict = reference_costs_dict.compare(output_costs_dict)
     assert comparison_dict.empty
 
@@ -860,12 +859,12 @@ def test_attach_hydro(
         "Transformer": 96,
         "TransformerType": 14,
         "Load": 489,
-        "Generator": 2059,
+        "Generator": 2058,
         "StorageUnit": 69,
     }
 
     # attach_hydro adds:
-    # - 636 Generators (corresponding to the ror technology)
+    # - 635 Generators (corresponding to the ror technology)
     # - 4 Storage Units (corresponding to the hydro technology)
     # - 27 Storage Units (corresponding to the phs technology)
 

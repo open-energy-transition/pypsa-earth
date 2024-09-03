@@ -8,6 +8,7 @@
 import pathlib
 import shutil
 
+import powerplantmatching as pm
 import pypsa
 import pytest
 import yaml
@@ -42,6 +43,17 @@ def get_power_network_scigrid_de():
 @pytest.fixture(scope="function")
 def get_power_network_ac_dc_meshed():
     return pypsa.examples.ac_dc_meshed(from_master=True)
+
+
+@pytest.fixture(scope="function")
+def get_power_plants(get_power_network_scigrid_de):
+    power_network = get_power_network_scigrid_de
+    country_string = "Germany"
+    return (
+        pm.powerplants()
+        .query("Country == '{}'".format(country_string))
+        .powerplant.map_bus(power_network.buses)
+    )
 
 
 @pytest.fixture(scope="function")
