@@ -26,9 +26,6 @@ from prepare_network import (
     set_line_s_max_pu,
 )
 
-emissions_file_url = "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/EDGAR/datasets/v60_GHG/CO2_excl_short-cycle_org_C/v60_GHG_CO2_excl_short-cycle_org_C_1970_2018.zip"
-emissions_file_name = "v60_CO2_excl_short-cycle_org_C_1970_2018.xls"
-emissions_sheet_name = "v6.0_EM_CO2_fossil_IPCC1996"
 automatic_emission_base_year = 1990
 country_names = ["DE", "IT", "NG"]
 co2limit = 7.75e7
@@ -38,8 +35,8 @@ def test_download_emission_data():
     """
     Verify what returned by download_emission_data.
     """
-    file_name = download_emission_data(emissions_file_url, emissions_file_name)
-    assert file_name == emissions_file_name
+    file_name = download_emission_data()
+    assert file_name == "v60_CO2_excl_short-cycle_org_C_1970_2018.xls"
 
 
 def test_emission_extractor():
@@ -47,8 +44,7 @@ def test_emission_extractor():
     Verify what returned by emission_extractor.
     """
     output_series = emission_extractor(
-        emissions_file_name,
-        emissions_sheet_name,
+        "v60_CO2_excl_short-cycle_org_C_1970_2018.xls",
         automatic_emission_base_year,
         country_names,
     )

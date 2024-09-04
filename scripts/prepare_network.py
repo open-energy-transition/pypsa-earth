@@ -80,16 +80,9 @@ idx = pd.IndexSlice
 logger = create_logger(__name__)
 
 
-def download_emission_data(url_emissions, file_name_emissions):
+def download_emission_data():
     """
     Download emission file from EDGAR.
-
-    Parameters
-    ----------
-    url_emissions : str
-        global emission file url.
-    file_name_emissions : str
-        global emission file name.
 
     Returns
     -------
@@ -97,41 +90,38 @@ def download_emission_data(url_emissions, file_name_emissions):
     """
 
     try:
-        with requests.get(url_emissions) as rq:
+        url = "https://jeodpp.jrc.ec.europa.eu/ftp/jrc-opendata/EDGAR/datasets/v60_GHG/CO2_excl_short-cycle_org_C/v60_GHG_CO2_excl_short-cycle_org_C_1970_2018.zip"
+        with requests.get(url) as rq:
             with open("data/co2.zip", "wb") as file:
                 file.write(rq.content)
         root_path = get_current_directory_path()
         file_path = get_path(root_path, "data/co2.zip")
         with ZipFile(file_path, "r") as zipObj:
             zipObj.extract(
-                file_name_emissions,
+                "v60_CO2_excl_short-cycle_org_C_1970_2018.xls",
                 get_path(root_path, "data"),
             )
         pathlib.Path(file_path).unlink(missing_ok=True)
-        return file_name_emissions
+        return "v60_CO2_excl_short-cycle_org_C_1970_2018.xls"
     except requests.exceptions.RequestException as e:
         logger.error(
-            f"Failed download resource from '{url_emissions}' with exception message '{e}'."
+            f"Failed download resource from '{url}' with exception message '{e}'."
         )
         raise SystemExit(e)
 
 
-def emission_extractor(
-    file_name_emissions, sheet_name_emissions, year_emissions, country_names_emissions
-):
+def emission_extractor(filename, emission_year, country_names):
     """
     Extracts CO2 emission values for given country codes from the global
     emission file.
 
     Parameters
     ----------
-    file_name_emissions : str
+    filename : str
         Global emission filename
-    sheet_name_emissions: str
-        Global emission sheet name
-    year_emissions : int
+    emission_year : int
         Year of CO2 emissions
-    country_names_emissions : list(str)
+    country_names : numpy.ndarray
         Two-letter country codes of analysed countries.
 
     Returns
@@ -140,8 +130,8 @@ def emission_extractor(
     """
 
     # data reading process
-    data_path = get_path(get_current_directory_path(), "data", file_name_emissions)
-    df = pd.read_excel(data_path, sheet_name=sheet_name_emissions, skiprows=8)
+    data_path = get_path(get_current_directory_path(), "data", filename)
+    df = pd.read_excel(data_path, sheet_name="v6.0_EM_CO2_fossil_IPCC1996", skiprows=8)
     df.columns = df.iloc[0]
     df = df.set_index("Country_code_A3")
     df = df.loc[
@@ -151,10 +141,10 @@ def emission_extractor(
     df = df.loc[:, "Y_1970":"Y_2018"].astype(float).bfill(axis=1)
     cc_iso3 = [
         two_2_three_digits_country(two_code_country)
-        for two_code_country in country_names_emissions
+        for two_code_country in country_names
     ]
     emission_by_country = df.loc[
-        df.index.intersection(cc_iso3), "Y_" + str(year_emissions)
+        df.index.intersection(cc_iso3), "Y_" + str(emission_year)
     ]
     missing_ccs = np.setdiff1d(cc_iso3, df.index.intersection(cc_iso3))
     if missing_ccs.size:
@@ -350,10 +340,6 @@ if __name__ == "__main__":
 
     opts = snakemake.wildcards.opts.split("-")
 
-    emissions_file_url = snakemake.params.prepare_network["emissions_file_url"]
-    emissions_file_name = snakemake.params.prepare_network["emissions_file_name"]
-    emissions_sheet_name = snakemake.params.prepare_network["emissions_sheet_name"]
-
     n = pypsa.Network(snakemake.input[0])
     Nyears = n.snapshot_weightings.objective.sum() / 8760.0
     costs = load_costs(
@@ -387,11 +373,9 @@ if __name__ == "__main__":
                 emission_year = snakemake.params.electricity[
                     "automatic_emission_base_year"
                 ]
-                filename = download_emission_data(
-                    emissions_file_url, emissions_file_name
-                )
+                filename = download_emission_data()
                 co2limit = emission_extractor(
-                    filename, emissions_sheet_name, emission_year, country_names
+                    filename, emission_year, country_names
                 ).sum()
                 if len(m) > 0:
                     co2limit = co2limit * float(m[0])
