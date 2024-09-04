@@ -763,7 +763,6 @@ rule prepare_network:
         s_max_pu=config["lines"]["s_max_pu"],
         electricity=config["electricity"],
         costs=config["costs"],
-        prepare_network=config["prepare_network"],
     input:
         "networks/" + RDIR + "elec_s{simpl}_{clusters}_ec.nc",
         tech_costs=COSTS,
