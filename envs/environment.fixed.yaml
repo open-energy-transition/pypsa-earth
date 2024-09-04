@@ -142,8 +142,8 @@ dependencies:
 - gdk-pixbuf=2.42.12
 - geographiclib=2.0
 - geojson-rewind=1.1.0
-- geopandas=0.14.4
-- geopandas-base=0.14.4
+- geopandas=0.14.3
+- geopandas-base=0.14.3
 - geopy=2.4.1
 - geos=3.12.2
 - geotiff=1.7.3
