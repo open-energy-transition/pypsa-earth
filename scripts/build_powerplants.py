@@ -125,17 +125,17 @@ logger = create_logger(__name__)
 def add_power_plants(
     custom_power_plants_file_path,
     power_plants_config_dict,
-    custom_power_plant_query,
+    powerplants_retrieval_strategy,
     countries_names_list,
 ):
 
-    if custom_power_plant_query == "replace":
+    if powerplants_retrieval_strategy == "replace":
         # use only the data from custom_powerplants.csv
         custom_power_plants = read_csv_nafix(
             custom_power_plants_file_path, index_col=0, dtype={"bus": "str"}
         )
         return custom_power_plants
-    elif custom_power_plant_query == "merge":
+    elif powerplants_retrieval_strategy == "merge":
         # merge the data from powerplantmatching and custom_powerplants.csv
         ppl_ppm = (
             pm.powerplants(
@@ -156,8 +156,8 @@ def add_power_plants(
         )
         return power_plants
     elif (
-        custom_power_plant_query not in ["merge", "replace"]
-        or custom_power_plant_query is None
+        powerplants_retrieval_strategy not in ["merge", "replace"]
+        or powerplants_retrieval_strategy is None
     ):
         # use only the data from powerplantsmatching
         power_plants = (
@@ -175,7 +175,7 @@ def add_power_plants(
     else:
         raise Exception(
             "No power plants were built for custom_powerplants {}".format(
-                custom_power_plant_query
+                powerplants_retrieval_strategy
             )
         )
 
@@ -223,30 +223,30 @@ if __name__ == "__main__":
     configure_logging(snakemake)
 
     with open(snakemake.input.pm_config, "r") as f:
-        power_plants_config = yaml.safe_load(f)
+        powerplants_config = yaml.safe_load(f)
 
     filepath_osm_ppl = snakemake.input.osm_powerplants
     filepath_osm2pm_ppl = snakemake.output.powerplants_osm2pm
-    custom_powerplants_query = snakemake.params.custom_powerplants_query
+    powerplants_retrieval_strategy = snakemake.params.powerplants_retrieval_strategy
 
     n = pypsa.Network(snakemake.input.base_network)
     countries_codes = n.buses.country.unique()
     countries_names = list(map(two_digits_2_name_country, countries_codes))
 
-    power_plants_config["target_countries"] = countries_names
+    powerplants_config["target_countries"] = countries_names
 
     if (
         "EXTERNAL_DATABASE"
-        in power_plants_config["matching_sources"]
-        + power_plants_config["fully_included_sources"]
+        in powerplants_config["matching_sources"]
+        + powerplants_config["fully_included_sources"]
     ):
-        if "EXTERNAL_DATABASE" not in power_plants_config:
+        if "EXTERNAL_DATABASE" not in powerplants_config:
             logger.error(
                 "Missing configuration EXTERNAL_DATABASE in powerplantmatching config yaml\n\t"
                 "Please check file configs/powerplantmatching_config.yaml"
             )
         logger.info("Parsing OSM generator data to powerplantmatching format")
-        power_plants_config["EXTERNAL_DATABASE"]["fn"] = get_path(
+        powerplants_config["EXTERNAL_DATABASE"]["fn"] = get_path(
             get_current_directory_path(), filepath_osm2pm_ppl
         )
     else:
@@ -257,14 +257,14 @@ if __name__ == "__main__":
     # specify the main query for filtering powerplants
     ppl_query = snakemake.params.powerplants_filter
     if isinstance(ppl_query, str):
-        power_plants_config["main_query"] = ppl_query
+        powerplants_config["main_query"] = ppl_query
     else:
-        power_plants_config["main_query"] = ""
+        powerplants_config["main_query"] = ""
 
     ppl = add_power_plants(
         snakemake.input.custom_power_plants_file,
-        power_plants_config,
-        custom_powerplants_query,
+        powerplants_config,
+        powerplants_retrieval_strategy,
         countries_names,
     )
 

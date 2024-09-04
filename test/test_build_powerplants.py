@@ -115,7 +115,7 @@ def test_add_power_plants(get_config_dict):
 
     # replace
     config_dict["electricity"]["custom_powerplants"] = "replace"
-    custom_power_plant_query = config_dict["electricity"]["custom_powerplants"]
+    powerplants_retrieval_strategy = config_dict["electricity"]["custom_powerplants"]
     if isinstance(ppl_query, str):
         power_plants_config["main_query"] = ppl_query
     countries_names = ["Nigeria"]
@@ -123,7 +123,7 @@ def test_add_power_plants(get_config_dict):
     ppl_replace = add_power_plants(
         custom_power_plants_file_path,
         power_plants_config,
-        custom_power_plant_query,
+        powerplants_retrieval_strategy,
         countries_names,
     )
     assert ppl_replace.shape == (4, 19)
