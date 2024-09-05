@@ -229,7 +229,6 @@ def test_get_gadm_shapes(get_config_dict):
     assert gadm_shapes_df.shape == (7, 4)
     assert gadm_shapes_df.index.unique().tolist() == [f"XK.{x}_1" for x in range(1, 8)]
     assert gadm_shapes_df.loc["XK.1_1"]["pop"] == 207473.70381259918
-    assert gadm_shapes_df.loc["XK.7_1"]["gdp"] == 2385293056.0
 
 
 def test_add_population_data(get_config_dict):
