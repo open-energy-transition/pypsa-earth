@@ -127,3 +127,39 @@ def test_add_power_plants(get_config_dict):
         countries_names,
     )
     assert ppl_replace.shape == (4, 19)
+
+    # false
+    config_dict["electricity"]["custom_powerplants"] = "false"
+    powerplants_retrieval_strategy = config_dict["electricity"]["custom_powerplants"]
+    if isinstance(ppl_query, str):
+        power_plants_config["main_query"] = ppl_query
+    countries_names = ["Nigeria"]
+    power_plants_config["target_countries"] = countries_names
+    ppl_false = add_power_plants(
+        custom_power_plants_file_path,
+        power_plants_config,
+        powerplants_retrieval_strategy,
+        countries_names,
+    )
+    # The number of powerplants returned by powerplantmatching
+    # may vary depending on the version of powerplantmatching
+    # The numbers below refer to version 0.15.5
+    assert ppl_false.shape == (31, 18)
+
+    # merge
+    config_dict["electricity"]["custom_powerplants"] = "merge"
+    powerplants_retrieval_strategy = config_dict["electricity"]["custom_powerplants"]
+    if isinstance(ppl_query, str):
+        power_plants_config["main_query"] = ppl_query
+    countries_names = ["Nigeria"]
+    power_plants_config["target_countries"] = countries_names
+    ppl_merge = add_power_plants(
+        custom_power_plants_file_path,
+        power_plants_config,
+        powerplants_retrieval_strategy,
+        countries_names,
+    )
+    # The number of powerplants returned by powerplantmatching
+    # may vary depending on the version of powerplantmatching
+    # The numbers below refer to version 0.15.5
+    assert ppl_merge.shape == (35, 20)
