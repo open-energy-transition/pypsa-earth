@@ -799,14 +799,30 @@ def test_load_costs(
     assert comparison_dict.empty
 
 
+def test_load_powerplants(get_config_dict):
+    file_path_powerplants = pathlib.Path(
+        path_cwd, "test", "test_data", "powerplants_de.csv"
+    )
+    power_plants = load_powerplants(file_path_powerplants)
+    power_plants.to_csv(
+        pathlib.Path(path_cwd, "test", "test_data", "processed_ppl.csv"), index=False
+    )
+
+
 def test_attach_hydro(
     get_config_dict, get_power_network_scigrid_de, get_power_plants, tmpdir
 ):
     config_dict = get_config_dict
     file_path_costs = pathlib.Path(path_cwd, "test", "test_data", "costs.csv")
-    file_path_powerplants = pathlib.Path(tmpdir, "powerplants_de.csv")
+    # file_path_powerplants = pathlib.Path(tmpdir, "powerplants_de.csv")
+    file_path_powerplants = pathlib.Path(
+        path_cwd, "test", "test_data", "powerplants_de.csv"
+    )
     file_path_hydro_capacities = pathlib.Path(path_cwd, "data", "hydro_capacities.csv")
-    file_path_hydro_profile = pathlib.Path(tmpdir, "profile_hydro_de.nc")
+    # file_path_hydro_profile = pathlib.Path(tmpdir, "profile_hydro_de.nc")
+    file_path_hydro_profile = pathlib.Path(
+        path_cwd, "test", "test_data", "profile_hydro_de.nc"
+    )
 
     test_network_de = get_power_network_scigrid_de
     test_network_de.buses["country"] = "DE"
@@ -824,12 +840,11 @@ def test_attach_hydro(
     ):
         print("BEFORE Component '{}' has {} entries)".format(c.name, len(c.df)))
 
-        if c.name == "StorageUnit":
-            print("storage unit_t inflow", test_network_de.storage_units_t.inflow)
-
-    powerplants_file = get_power_plants
-    powerplants_file.to_csv(file_path_powerplants)
+    # powerplants_file = get_power_plants
+    # powerplants_file.to_csv(file_path_powerplants)
     power_plants = load_powerplants(file_path_powerplants)
+
+    print("index", power_plants.index.values)
 
     inflow_de = xr.DataArray(
         1,
@@ -874,8 +889,5 @@ def test_attach_hydro(
     ):
         output_component_dict[c.name] = len(c.df)
         print("AFTER Component '{}' has {} entries)".format(c.name, len(c.df)))
-
-        if c.name == "StorageUnit":
-            print("storage unit_t inflow", test_network_de.storage_units_t.inflow)
 
     assert reference_component_dict == output_component_dict

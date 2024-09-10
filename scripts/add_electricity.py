@@ -497,13 +497,8 @@ def attach_hydro(
     else:
         bus_id = ppl["bus"]
 
-    # country = ppl["bus"].map(n.buses.country).rename("country")
-    # print("country", country)
-
     inflow_idx = ror.index.union(hydro.index)
     if not inflow_idx.empty:
-        # dist_key = ppl.loc[inflow_idx, "p_nom"].groupby(country).transform(normed)
-        # print("dist_key", dist_key)
 
         with xr.open_dataarray(hydro_profile_file_path) as inflow:
 
@@ -548,7 +543,6 @@ def attach_hydro(
                     .assign_coords(name=network_buses_to_keep)
                     .transpose("time", "name")
                     .to_pandas()
-                    # .multiply(dist_key, axis=1)
                 )
 
     if "ror" in carriers and not ror.empty:
