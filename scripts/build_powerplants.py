@@ -125,17 +125,17 @@ logger = create_logger(__name__)
 def add_power_plants(
     custom_power_plants_file_path,
     power_plants_config_dict,
-    powerplants_retrieval_strategy,
+    powerplants_assignment_strategy,
     countries_names_list,
 ):
 
-    if powerplants_retrieval_strategy == "replace":
+    if powerplants_assignment_strategy == "replace":
         # use only the data from custom_powerplants.csv
         custom_power_plants = read_csv_nafix(
             custom_power_plants_file_path, index_col=0, dtype={"bus": "str"}
         )
         return custom_power_plants
-    elif powerplants_retrieval_strategy == "merge":
+    elif powerplants_assignment_strategy == "merge":
         # merge the data from powerplantmatching and custom_powerplants.csv
         ppl_ppm = (
             pm.powerplants(
@@ -156,8 +156,8 @@ def add_power_plants(
         )
         return power_plants
     elif (
-        powerplants_retrieval_strategy not in ["merge", "replace"]
-        or powerplants_retrieval_strategy is None
+        powerplants_assignment_strategy not in ["merge", "replace"]
+        or powerplants_assignment_strategy is None
     ):
         # use only the data from powerplantsmatching
         power_plants = (
@@ -175,7 +175,7 @@ def add_power_plants(
     else:
         raise Exception(
             "No power plants were built for custom_powerplants {}".format(
-                powerplants_retrieval_strategy
+                powerplants_assignment_strategy
             )
         )
 
@@ -227,7 +227,7 @@ if __name__ == "__main__":
 
     filepath_osm_ppl = snakemake.input.osm_powerplants
     filepath_osm2pm_ppl = snakemake.output.powerplants_osm2pm
-    powerplants_retrieval_strategy = snakemake.params.powerplants_retrieval_strategy
+    powerplants_assignment_strategy = snakemake.params.custom_powerplants
 
     n = pypsa.Network(snakemake.input.base_network)
     countries_codes = n.buses.country.unique()
@@ -262,9 +262,9 @@ if __name__ == "__main__":
         powerplants_config["main_query"] = ""
 
     ppl = add_power_plants(
-        snakemake.input.custom_power_plants_file,
+        snakemake.input.custom_powerplants_file,
         powerplants_config,
-        powerplants_retrieval_strategy,
+        powerplants_assignment_strategy,
         countries_names,
     )
 

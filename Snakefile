@@ -488,11 +488,11 @@ rule build_powerplants:
         gadm_layer_id=config["build_shape_options"]["gadm_layer_id"],
         alternative_clustering=config["cluster_options"]["alternative_clustering"],
         powerplants_filter=config["electricity"]["powerplants_filter"],
-        powerplants_retrieval_strategy=config["electricity"]["custom_powerplants"],
+        custom_powerplants=config["electricity"]["custom_powerplants"],
     input:
         base_network="networks/" + RDIR + "base.nc",
         pm_config="configs/powerplantmatching_config.yaml",
-        custom_power_plants_file="data/custom_powerplants.csv",
+        custom_powerplants_file="data/custom_powerplants.csv",
         osm_powerplants="resources/" + RDIR + "osm/clean/all_clean_generators.csv",
         gadm_shapes="resources/" + RDIR + "shapes/gadm_shapes.geojson",
     output:

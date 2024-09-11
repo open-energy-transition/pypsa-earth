@@ -103,7 +103,7 @@ def test_add_power_plants(get_config_dict):
     Verify what returned by add_power_plants.
     """
     config_dict = get_config_dict
-    custom_power_plants_file_path = pathlib.Path(
+    custom_powerplants_file_path = pathlib.Path(
         path_cwd, "test", "test_data", "custom_NG_powerplants.csv"
     )
     pm_config_path = pathlib.Path(path_cwd, "configs", "powerplantmatching_config.yaml")
@@ -121,7 +121,7 @@ def test_add_power_plants(get_config_dict):
     countries_names = ["Nigeria"]
     power_plants_config["target_countries"] = countries_names
     ppl_replace = add_power_plants(
-        custom_power_plants_file_path,
+        custom_powerplants_file_path,
         power_plants_config,
         powerplants_retrieval_strategy,
         countries_names,
@@ -130,15 +130,15 @@ def test_add_power_plants(get_config_dict):
 
     # false
     config_dict["electricity"]["custom_powerplants"] = "false"
-    powerplants_retrieval_strategy = config_dict["electricity"]["custom_powerplants"]
+    powerplants_assignment_strategy = config_dict["electricity"]["custom_powerplants"]
     if isinstance(ppl_query, str):
         power_plants_config["main_query"] = ppl_query
     countries_names = ["Nigeria"]
     power_plants_config["target_countries"] = countries_names
     ppl_false = add_power_plants(
-        custom_power_plants_file_path,
+        custom_powerplants_file_path,
         power_plants_config,
-        powerplants_retrieval_strategy,
+        powerplants_assignment_strategy,
         countries_names,
     )
     # The number of powerplants returned by powerplantmatching
@@ -148,13 +148,13 @@ def test_add_power_plants(get_config_dict):
 
     # merge
     config_dict["electricity"]["custom_powerplants"] = "merge"
-    powerplants_retrieval_strategy = config_dict["electricity"]["custom_powerplants"]
+    powerplants_assignment_strategy = config_dict["electricity"]["custom_powerplants"]
     if isinstance(ppl_query, str):
         power_plants_config["main_query"] = ppl_query
     countries_names = ["Nigeria"]
     power_plants_config["target_countries"] = countries_names
     ppl_merge = add_power_plants(
-        custom_power_plants_file_path,
+        custom_powerplants_file_path,
         power_plants_config,
         powerplants_retrieval_strategy,
         countries_names,
