@@ -125,17 +125,17 @@ logger = create_logger(__name__)
 def add_power_plants(
     custom_power_plants_file_path,
     power_plants_config_dict,
-    powerplants_assignment_strategy,
+    ppl_assignment_strategy,
     countries_names_list,
 ):
 
-    if powerplants_assignment_strategy == "replace":
+    if ppl_assignment_strategy == "replace":
         # use only the data from custom_powerplants.csv
         custom_power_plants = read_csv_nafix(
             custom_power_plants_file_path, index_col=0, dtype={"bus": "str"}
         )
         return custom_power_plants
-    elif powerplants_assignment_strategy == "merge":
+    elif ppl_assignment_strategy == "merge":
         # merge the data from powerplantmatching and custom_powerplants.csv
         ppl_ppm = (
             pm.powerplants(
@@ -156,8 +156,8 @@ def add_power_plants(
         )
         return power_plants
     elif (
-        powerplants_assignment_strategy not in ["merge", "replace"]
-        or powerplants_assignment_strategy is None
+        ppl_assignment_strategy not in ["merge", "replace"]
+        or ppl_assignment_strategy is None
     ):
         # use only the data from powerplantsmatching
         power_plants = (
@@ -175,7 +175,7 @@ def add_power_plants(
     else:
         raise Exception(
             "No power plants were built for custom_powerplants {}".format(
-                powerplants_assignment_strategy
+                ppl_assignment_strategy
             )
         )
 
