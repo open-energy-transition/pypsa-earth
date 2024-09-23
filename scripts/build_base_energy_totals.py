@@ -124,7 +124,11 @@ def calc_sector(sector):
             ].index
             df_sector.loc[index_volume, "Quantity_TWh"] = df_sector.loc[
                 index_volume
-            ].apply(lambda x: x["Quantity"] * fuels_conv_toTWh[x["Commodity"]], axis=1)
+            ].apply(
+                lambda x: x["Quantity"]
+                * fuels_conv_toTWh[x["Commodity"].map(modify_commodity)],
+                axis=1,
+            )
 
             sectors_dfs[sector] = df_sector.copy()
 
