@@ -10,13 +10,11 @@ import numpy as np
 import pandas as pd
 from _helpers import (
     build_directory,
-    change_to_script_dir,
     configure_logging,
     create_logger,
     mock_snakemake,
     read_geojson,
     read_osm_config,
-    sets_path_to_root,
     to_csv_nafix,
 )
 from shapely.geometry import LineString, Point
@@ -343,7 +341,7 @@ def get_transformers(buses, lines):
     return df_transformers
 
 
-def get_converters(buses, lines):
+def get_converters(buses):
     """
     Function to create fake converter lines that connect buses of the same
     station_id of different polarities.
@@ -513,7 +511,7 @@ def set_lv_substations(buses):
 
 
 def merge_stations_lines_by_station_id_and_voltage(
-    lines, buses, geo_crs, distance_crs, tol=2000
+    lines, buses, distance_crs, tol=2000
 ):
     """
     Function to merge close stations and adapt the line datasets to adhere to
@@ -559,9 +557,7 @@ def merge_stations_lines_by_station_id_and_voltage(
     return lines, buses
 
 
-def create_station_at_equal_bus_locations(
-    lines, buses, geo_crs, distance_crs, tol=2000
-):
+def create_station_at_equal_bus_locations(lines, buses, distance_crs, tol=2000):
     # V1. Create station_id at same bus location
     # - We saw that buses are not connected exactly at one point, they are
     #   usually connected to a substation "area" (analysed on maps)
@@ -739,7 +735,7 @@ def force_ac_lines(df, col="tag_frequency"):
     # TODO: default frequency may be by country
     default_ac_frequency = 50
 
-    df["tag_frequency"] = default_ac_frequency
+    df[col] = default_ac_frequency
     df["dc"] = False
 
     return df
@@ -891,7 +887,6 @@ def built_network(
 
 if __name__ == "__main__":
     if "snakemake" not in globals():
-        change_to_script_dir(__file__)
         snakemake = mock_snakemake("build_osm_network")
 
     configure_logging(snakemake)
@@ -902,8 +897,6 @@ if __name__ == "__main__":
     force_ac = snakemake.params.build_osm_network.get("force_ac", False)
     build_osm_network = snakemake.params.build_osm_network
     countries = snakemake.params.countries
-
-    sets_path_to_root("pypsa-earth")
 
     built_network(
         snakemake.input,
