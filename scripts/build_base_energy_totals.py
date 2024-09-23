@@ -103,7 +103,7 @@ def calc_sector(sector):
             ].index
             df_sector.loc[index_mass, "Quantity_TWh"] = df_sector.loc[index_mass].apply(
                 lambda x: x["Quantity"]
-                * fuels_conv_toTWh[x["Commodity"].map(modify_commodity)],
+                * fuels_conv_toTWh[modify_commodity(x["Commodity"])],
                 axis=1,
             )
 
@@ -126,7 +126,7 @@ def calc_sector(sector):
                 index_volume
             ].apply(
                 lambda x: x["Quantity"]
-                * fuels_conv_toTWh[x["Commodity"].map(modify_commodity)],
+                * fuels_conv_toTWh[modify_commodity(x["Commodity"])],
                 axis=1,
             )
 
