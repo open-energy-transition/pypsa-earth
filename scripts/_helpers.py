@@ -94,7 +94,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
 
 
 def copy_default_files():
-    fn = Path("config.yaml")
+    fn = pathlib.Path("config.yaml")
     if not fn.exists():
         fn.write_text(
             "# Write down config entries differing from config.default.yaml\n\nrun: {}"
