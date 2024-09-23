@@ -525,7 +525,7 @@ if __name__ == "__main__":
 
     cutout = atlite.Cutout(paths["cutout"])
 
-    check_cutout_match(cutout=cutout, geodf=regions)
+    check_cutout_match(cutout=cutout)
 
     if not snakemake.wildcards.technology.startswith("hydro"):
         # the region should be restricted for non-hydro technologies, as the hydro potential is calculated across hydrobasins which may span beyond the region of the country
