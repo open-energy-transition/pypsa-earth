@@ -14,7 +14,7 @@ from zipfile import ZipFile
 import country_converter as coco
 import numpy as np
 import pandas as pd
-from _helpers import aggregate_fuels, get_conv_factors, mock_snakemake
+from _helpers import aggregate_fuels, get_conv_factors, mock_snakemake, modify_commodity
 
 _logger = logging.getLogger(__name__)
 
@@ -102,7 +102,9 @@ def calc_sector(sector):
                 df_sector["Unit"] == "Metric tons,  thousand"
             ].index
             df_sector.loc[index_mass, "Quantity_TWh"] = df_sector.loc[index_mass].apply(
-                lambda x: x["Quantity"] * fuels_conv_toTWh[x["Commodity"]], axis=1
+                lambda x: x["Quantity"]
+                * fuels_conv_toTWh[x["Commodity"].map(modify_commodity)],
+                axis=1,
             )
 
             index_energy = df_sector[
@@ -416,7 +418,6 @@ if __name__ == "__main__":
 
     # Create a dictionary with all the conversion factors from ktons or m3 to TWh based on https://unstats.un.org/unsd/energy/balance/2014/05.pdf
     fuels_conv_toTWh = get_conv_factors("industry")
-
     # Fetch country list and demand base year from the config file
     year = snakemake.params.base_year
     countries = snakemake.params.countries
