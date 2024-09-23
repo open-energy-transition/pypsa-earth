@@ -741,7 +741,7 @@ def force_ac_lines(df, col="tag_frequency"):
     return df
 
 
-def add_buses_to_empty_countries(country_list, fp_country_shapes, buses):
+def add_buses_to_empty_countries(geo_crs_val, country_list, fp_country_shapes, buses):
     """
     Function to add a bus for countries missing substation data.
     """
@@ -759,7 +759,7 @@ def add_buses_to_empty_countries(country_list, fp_country_shapes, buses):
         no_data_countries_shape = (
             country_shapes[country_shapes.index.isin(no_data_countries) == True]
             .reset_index()
-            .to_crs(geo_crs)
+            .to_crs(geo_crs_val)
         )
         length = len(no_data_countries)
         df = gpd.GeoDataFrame(
@@ -779,7 +779,7 @@ def add_buses_to_empty_countries(country_list, fp_country_shapes, buses):
                 "geometry": no_data_countries_shape["geometry"].centroid,
                 "substation_lv": [True] * length,
             },
-            crs=geo_crs,
+            crs=geo_crs_val,
         ).astype(
             buses.dtypes.to_dict()
         )  # keep the same dtypes as buses
@@ -808,6 +808,7 @@ def built_network(
     outputs,
     build_osm_network_config,
     countries_config,
+    geo_crs_val,
     distance_crs,
     force_ac=False,
 ):
@@ -845,7 +846,9 @@ def built_network(
         logger.info("Stage 3/5: Avoid nodes overpassing lines: disabled")
 
     # Add bus to countries with no buses
-    buses = add_buses_to_empty_countries(countries_config, inputs.country_shapes, buses)
+    buses = add_buses_to_empty_countries(
+        geo_crs_val, countries_config, inputs.country_shapes, buses
+    )
 
     # METHOD to merge buses with same voltage and within tolerance Step 4/5
     if build_osm_network_config.get("group_close_buses", False):
@@ -902,6 +905,7 @@ if __name__ == "__main__":
         snakemake.output,
         build_osm_network,
         countries,
+        geo_crs,
         distance_crs,
         force_ac=force_ac,
     )
