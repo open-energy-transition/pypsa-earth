@@ -808,7 +808,6 @@ def built_network(
     outputs,
     build_osm_network_config,
     countries_config,
-    geo_crs,
     distance_crs,
     force_ac=False,
 ):
@@ -855,7 +854,7 @@ def built_network(
             f"Stage 4/5: Aggregate close substations: enabled with tolerance {tol} m"
         )
         lines, buses = merge_stations_lines_by_station_id_and_voltage(
-            lines, buses, geo_crs, distance_crs, tol=tol
+            lines, buses, distance_crs, tol=tol
         )
     else:
         logger.info("Stage 4/5: Aggregate close substations: disabled")
@@ -866,7 +865,7 @@ def built_network(
     transformers = get_transformers(buses, lines)
 
     # get converters: currently modelled as links connecting buses with different polarity
-    converters = get_converters(buses, lines)
+    converters = get_converters(buses)
 
     logger.info("Save outputs")
 
@@ -903,7 +902,6 @@ if __name__ == "__main__":
         snakemake.output,
         build_osm_network,
         countries,
-        geo_crs,
         distance_crs,
         force_ac=force_ac,
     )
