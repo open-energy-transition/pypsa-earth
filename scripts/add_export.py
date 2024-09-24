@@ -223,8 +223,8 @@ if __name__ == "__main__":
     gadm_url_prefix = snakemake.params.gadm_url_prefix
     contended_flag = snakemake.params.contended_flag
     gadm_input_file_args = ["data", "raw", "gadm"]
-    shapes_path = (snakemake.input["shapes_path"],)
-    gadm_clustering = (snakemake.params.alternative_clustering,)
+    shapes_path = snakemake.input["shapes_path"]
+    gadm_clustering = snakemake.params.alternative_clustering
 
     # Create export profile
     export_profile = create_export_profile()
