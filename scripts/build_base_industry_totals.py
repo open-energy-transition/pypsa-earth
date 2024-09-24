@@ -30,8 +30,7 @@ def create_industry_base_totals(df):
     # Converting values of mass (ktons) to energy (TWh)
     index_mass = df.loc[df["Unit"] == "Metric tons,  thousand"].index
     df.loc[index_mass, "Quantity_TWh"] = df.loc[index_mass].apply(
-        lambda x: x["Quantity"]
-        * fuels_conv_toTWh.get(modify_commodity(x["Commodity"]), float("nan")),
+        lambda x: x["Quantity"] * fuels_conv_toTWh.get(x["Commodity"], float("nan")),
         axis=1,
     )
 
@@ -50,8 +49,7 @@ def create_industry_base_totals(df):
     # Converting values of volume (thousand m3) to energy (TWh)
     index_volume = df[df["Unit"] == "Cubic metres, thousand"].index
     df.loc[index_volume, "Quantity_TWh"] = df.loc[index_volume].apply(
-        lambda x: x["Quantity"] * fuels_conv_toTWh[modify_commodity(x["Commodity"])],
-        axis=1,
+        lambda x: x["Quantity"] * fuels_conv_toTWh[x["Commodity"]], axis=1
     )
 
     df["carrier"] = df["Commodity"].map(fuel_dict)
@@ -134,6 +132,9 @@ if __name__ == "__main__":
     df[["Commodity", "Transaction", "extra"]] = df["Commodity - Transaction"].str.split(
         " - ", expand=True
     )
+
+    # Modify the commodity column, replacing typos and case-folding the strings
+    df["Commodity"] = df["Commodity"].map(modify_commodity)
 
     df = df[
         df.Commodity != "Other bituminous coal"

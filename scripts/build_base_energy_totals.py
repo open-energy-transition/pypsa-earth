@@ -102,9 +102,7 @@ def calc_sector(sector):
                 df_sector["Unit"] == "Metric tons,  thousand"
             ].index
             df_sector.loc[index_mass, "Quantity_TWh"] = df_sector.loc[index_mass].apply(
-                lambda x: x["Quantity"]
-                * fuels_conv_toTWh[modify_commodity(x["Commodity"])],
-                axis=1,
+                lambda x: x["Quantity"] * fuels_conv_toTWh[x["Commodity"]], axis=1
             )
 
             index_energy = df_sector[
@@ -124,11 +122,7 @@ def calc_sector(sector):
             ].index
             df_sector.loc[index_volume, "Quantity_TWh"] = df_sector.loc[
                 index_volume
-            ].apply(
-                lambda x: x["Quantity"]
-                * fuels_conv_toTWh[modify_commodity(x["Commodity"])],
-                axis=1,
-            )
+            ].apply(lambda x: x["Quantity"] * fuels_conv_toTWh[x["Commodity"]], axis=1)
 
             sectors_dfs[sector] = df_sector.copy()
 
@@ -401,6 +395,9 @@ if __name__ == "__main__":
         " - ", expand=True
     )
 
+    # Modify the commodity column, replacing typos and case-folding the strings
+    df["Commodity"] = df["Commodity"].map(modify_commodity)
+
     # Remove Foootnote and Estimate from 'Commodity - Transaction' column
     df = df.loc[df["Commodity - Transaction"] != "Footnote"]
     df = df.loc[df["Commodity - Transaction"] != "Estimate"]
@@ -422,6 +419,7 @@ if __name__ == "__main__":
 
     # Create a dictionary with all the conversion factors from ktons or m3 to TWh based on https://unstats.un.org/unsd/energy/balance/2014/05.pdf
     fuels_conv_toTWh = get_conv_factors("industry")
+
     # Fetch country list and demand base year from the config file
     year = snakemake.params.base_year
     countries = snakemake.params.countries
