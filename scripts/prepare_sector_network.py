@@ -2613,7 +2613,7 @@ if __name__ == "__main__":
     # Load all sector wildcards
     options = snakemake.config["sector"]
     gadm_level = options["gadm_level"]
-    shapes_path = (snakemake.input["shapes_path"],)
+    shapes_path = snakemake.input["shapes_path"]
     gadm_clustering = snakemake.config["cluster_options"]["alternative_clustering"]
     geo_crs = snakemake.params.geo_crs
     file_prefix = snakemake.params.gadm_file_prefix
