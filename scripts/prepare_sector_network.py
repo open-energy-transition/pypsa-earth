@@ -2745,7 +2745,18 @@ if __name__ == "__main__":
 
     add_industry(n, costs)
 
-    add_shipping(n, costs)
+    add_shipping(
+        n,
+        costs,
+        gadm_level,
+        geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        contended_flag,
+        gadm_input_file_args,
+        shapes_path,
+        gadm_clustering,
+    )
 
     # Add_aviation runs with dummy data
     add_aviation(
