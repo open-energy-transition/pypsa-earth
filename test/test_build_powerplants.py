@@ -101,7 +101,7 @@ def test_replace_natural_gas_technology():
 
 @pytest.mark.parametrize(
     "strategy,expected",
-    [("replace", (4, 19)), ("false", (31, 18)), ("merge", (35, 20))],
+    [("replace", (4, 19)), ("false", (34, 18)), ("merge", (38, 20))],
 )
 def test_add_power_plants(get_config_dict, strategy, expected):
     """
@@ -131,5 +131,5 @@ def test_add_power_plants(get_config_dict, strategy, expected):
     )
     # The number of powerplants returned by powerplantmatching
     # may vary depending on the version of powerplantmatching
-    # The numbers below refer to version 0.15.5
+    # The numbers below refer to version 0.6.0
     assert ppl.shape == expected
