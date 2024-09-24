@@ -944,7 +944,18 @@ def add_co2(n, costs):
     capital_cost = cost_onshore + cost_submarine
 
 
-def add_aviation(n):
+def add_aviation(
+    n,
+    costs,
+    gadm_level_val,
+    geo_crs_val,
+    file_prefix_val,
+    gadm_url_prefix_val,
+    contended_flag_val,
+    gadm_input_file_args_list,
+    shapes_path_val,
+    gadm_clustering_val,
+):
     all_aviation = ["total international aviation", "total domestic aviation"]
 
     aviation_demand = (
@@ -960,9 +971,14 @@ def add_aviation(n):
         lambda airport: locate_bus(
             airport[["x", "y"]],
             airport["country"],
-            gadm_level,
-            snakemake.input.shapes_path,
-            snakemake.config["cluster_options"]["alternative_clustering"],
+            gadm_level_val,
+            geo_crs_val,
+            file_prefix_val,
+            gadm_url_prefix_val,
+            gadm_input_file_args_list,
+            contended_flag_val,
+            path_to_gadm=shapes_path_val,
+            gadm_clustering=gadm_clustering_val,
         ),
         axis=1,
     )
@@ -1212,7 +1228,18 @@ def h2_hc_conversions(n, costs):
             )
 
 
-def add_shipping(n, costs):
+def add_shipping(
+    n,
+    costs,
+    gadm_level_val,
+    geo_crs_val,
+    file_prefix_val,
+    gadm_url_prefix_val,
+    contended_flag_val,
+    gadm_input_file_args_list,
+    shapes_path_val,
+    gadm_clustering_val,
+):
     ports = pd.read_csv(
         snakemake.input.ports, index_col=None, keep_default_na=False
     ).squeeze()
@@ -1239,9 +1266,14 @@ def add_shipping(n, costs):
         lambda port: locate_bus(
             port[["x", "y"]],
             port["country"],
-            gadm_level,
-            snakemake.input["shapes_path"],
-            snakemake.config["cluster_options"]["alternative_clustering"],
+            gadm_level_val,
+            geo_crs_val,
+            file_prefix_val,
+            gadm_url_prefix_val,
+            gadm_input_file_args_list,
+            contended_flag_val,
+            path_to_gadm=shapes_path_val,
+            gadm_clustering=gadm_clustering_val,
         ),
         axis=1,
     )
@@ -2580,6 +2612,14 @@ if __name__ == "__main__":
 
     # Load all sector wildcards
     options = snakemake.config["sector"]
+    gadm_level = options["gadm_level"]
+    shapes_path = (snakemake.input["shapes_path"],)
+    gadm_clustering = snakemake.config["cluster_options"]["alternative_clustering"]
+    geo_crs = snakemake.params.geo_crs
+    file_prefix = snakemake.params.gadm_file_prefix
+    gadm_url_prefix = snakemake.params.gadm_url_prefix
+    contended_flag = snakemake.params.contended_flag
+    gadm_input_file_args = ["data", "raw", "gadm"]
 
     # Load input network
     overrides = override_component_attrs(snakemake.input.overrides)
@@ -2708,7 +2748,18 @@ if __name__ == "__main__":
     add_shipping(n, costs)
 
     # Add_aviation runs with dummy data
-    add_aviation(n, costs)
+    add_aviation(
+        n,
+        costs,
+        gadm_level,
+        geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        contended_flag,
+        gadm_input_file_args,
+        shapes_path,
+        gadm_clustering,
+    )
 
     # prepare_transport_data(n)
 

@@ -18,7 +18,18 @@ logger = logging.getLogger(__name__)
 gpd_version = StrictVersion(gpd.__version__)
 
 
-def map_industry_to_buses(df, countries, gadm_level, shapes_path, gadm_clustering):
+def map_industry_to_buses(
+    df,
+    countries_list,
+    gadm_level_val,
+    geo_crs_val,
+    file_prefix_val,
+    gadm_url_prefix_val,
+    contended_flag_val,
+    gadm_input_file_args_list,
+    shapes_path_val,
+    gadm_clustering_val,
+):
     """
     Load hotmaps database of industrial sites and map onto bus regions. Build
     industrial demand... Change name and add other functions.
@@ -27,19 +38,24 @@ def map_industry_to_buses(df, countries, gadm_level, shapes_path, gadm_clusterin
     Only cement not steel - proof of concept.
     Change hotmaps to more descriptive name, etc.
     """
-    df = df[df.country.isin(countries)]
+    df = df[df.country.isin(countries_list)]
     df["gadm_{}".format(gadm_level)] = df[["x", "y", "country"]].apply(
         lambda site: locate_bus(
             site[["x", "y"]].astype("float"),
             site["country"],
-            gadm_level,
-            shapes_path,
-            gadm_clustering,
+            gadm_level_val,
+            geo_crs_val,
+            file_prefix_val,
+            gadm_url_prefix_val,
+            gadm_input_file_args_list,
+            contended_flag_val,
+            path_to_gadm=shapes_path_val,
+            gadm_clustering=gadm_clustering_val,
         ),
         axis=1,
     )
 
-    return df.set_index("gadm_" + str(gadm_level))
+    return df.set_index("gadm_" + str(gadm_level_val))
 
 
 def build_nodal_distribution_key(
@@ -125,12 +141,14 @@ if __name__ == "__main__":
 
     regions = gpd.read_file(snakemake.input.regions_onshore)
     shapes_path = snakemake.input.shapes_path
-
     gadm_level = snakemake.params.gadm_level
     countries = snakemake.params.countries
     gadm_clustering = snakemake.params.alternative_clustering
-
-    # countries = ["EG", "BH"]
+    geo_crs = snakemake.params.geo_crs
+    file_prefix = snakemake.params.gadm_file_prefix
+    gadm_url_prefix = snakemake.params.gadm_url_prefix
+    contended_flag = snakemake.params.contended_flag
+    gadm_input_file_args = ["data", "raw", "gadm"]
 
     if regions["name"][0][
         :3
@@ -174,6 +192,11 @@ if __name__ == "__main__":
         geo_locs[geo_locs.quality != "unavailable"],
         countries,
         gadm_level,
+        geo_crs,
+        file_prefix,
+        gadm_url_prefix,
+        contended_flag,
+        gadm_input_file_args,
         shapes_path,
         gadm_clustering,
     )

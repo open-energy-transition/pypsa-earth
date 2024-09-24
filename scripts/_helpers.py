@@ -1621,7 +1621,7 @@ def modify_commodity(commodity):
     return commodity.strip().casefold()
 
 
-def safe_divide(numerator, denominator):
+def safe_divide(numerator, denominator, default_value=np.nan):
     """
     Safe division function that returns NaN when the denominator is zero.
     """
@@ -1631,7 +1631,7 @@ def safe_divide(numerator, denominator):
         logging.warning(
             f"Division by zero: {numerator} / {denominator}, returning NaN."
         )
-        return np.nan
+        return default_value
 
 
 def normed(x):

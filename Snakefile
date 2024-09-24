@@ -1059,6 +1059,10 @@ if not config["custom_data"]["gas_network"]:
 rule prepare_sector_network:
     params:
         costs=config["costs"],
+        contended_flag=config["build_shape_options"]["contended_flag"],
+        gadm_file_prefix=config["build_shape_options"]["gadm_file_prefix"],
+        gadm_url_prefix=config["build_shape_options"]["gadm_url_prefix"],
+        geo_crs=config["crs"]["geo_crs"],
     input:
         network=RESDIR
         + "prenetworks/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}_{sopts}_{planning_horizons}_{discountrate}_{demand}_presec.nc",
@@ -1123,6 +1127,10 @@ rule add_export:
         export_profile=config["export"]["export_profile"],
         snapshots=config["snapshots"],
         costs=config["costs"],
+        contended_flag=config["build_shape_options"]["contended_flag"],
+        gadm_file_prefix=config["build_shape_options"]["gadm_file_prefix"],
+        gadm_url_prefix=config["build_shape_options"]["gadm_url_prefix"],
+        geo_crs=config["crs"]["geo_crs"],
     input:
         overrides="data/override_component_attrs",
         export_ports="data/export_ports.csv",
@@ -1645,6 +1653,10 @@ rule build_industrial_distribution_key:  #default data
         gadm_level=config["sector"]["gadm_level"],
         alternative_clustering=config["cluster_options"]["alternative_clustering"],
         industry_database=config["custom_data"]["industry_database"],
+        contended_flag=config["build_shape_options"]["contended_flag"],
+        gadm_file_prefix=config["build_shape_options"]["gadm_file_prefix"],
+        gadm_url_prefix=config["build_shape_options"]["gadm_url_prefix"],
+        geo_crs=config["crs"]["geo_crs"],
     input:
         regions_onshore="resources/"
         + RDIR
