@@ -464,14 +464,19 @@ def content_retrieve(url, data=None, headers=None, max_retries=3, backoff_factor
     if headers is None:
         ua = UserAgent()
         headers = {
-            "User-Agent": ua.random,
-            "Upgrade-Insecure-Requests": "1",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/png,image/svg+xml,*/*;q=0.8",
+            "Accept-Encoding": "gzip, deflate, br, zstd",
             "Accept-Language": "en-US,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "DNT": "1",
             "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "User-Agent": ua.random,
+            "DNT": "1",
             "Referer": "https://www.google.com/",
+            "Priority": "u=0, i",
         }
 
     session = requests.Session()
