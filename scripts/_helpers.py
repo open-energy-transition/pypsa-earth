@@ -25,7 +25,7 @@ import requests
 import snakemake as sm
 import yaml
 from fake_useragent import UserAgent
-from pypsa.clustering.spatial import _make_consense
+from pypsa.clustering.spatial import make_consense
 from pypsa.components import component_attrs, components
 from pypsa.descriptors import Dict
 from shapely.geometry import Point
@@ -506,7 +506,7 @@ def get_aggregation_strategies(aggregation_strategies):
     in the config.
     """
 
-    bus_strategies = dict(country=_make_consense("Bus", "country"))
+    bus_strategies = dict(country=make_consense("Bus", "country"))
     bus_strategies.update(aggregation_strategies.get("buses", {}))
 
     generator_strategies = {"build_year": lambda x: 0, "lifetime": lambda x: np.inf}
