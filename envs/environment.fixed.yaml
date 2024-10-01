@@ -440,6 +440,7 @@ dependencies:
 - pyshp=2.3.1
 - pysocks=1.7.1
 - pytables=3.10.1
+- pyscipopt=5.1.1
 - pytest=8.3.3
 - python=3.10.14
 - python-dateutil=2.9.0
