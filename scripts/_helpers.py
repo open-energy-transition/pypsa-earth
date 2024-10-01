@@ -498,23 +498,6 @@ def content_retrieve(url, data=None, headers=None, max_retries=3, backoff_factor
     raise Exception("Max retries exceeded")
 
 
-def get_aggregation_strategies(aggregation_strategies):
-    """
-    Default aggregation strategies that cannot be defined in .yaml format must
-    be specified within the function, otherwise (when defaults are passed in
-    the function's definition) they get lost when custom values are specified
-    in the config.
-    """
-
-    bus_strategies = dict(country=make_consense("Bus", "country"))
-    bus_strategies.update(aggregation_strategies.get("buses", {}))
-
-    generator_strategies = {"build_year": lambda x: 0, "lifetime": lambda x: np.inf}
-    generator_strategies.update(aggregation_strategies.get("generators", {}))
-
-    return bus_strategies, generator_strategies
-
-
 def mock_snakemake(rule_name, root_dir=None, submodule_dir=None, **wildcards):
     """
     This function is expected to be executed from the "scripts"-directory of "
