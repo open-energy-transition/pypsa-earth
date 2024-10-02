@@ -93,9 +93,7 @@ from _helpers import (
 )
 from linopy import merge
 from pypsa.descriptors import get_switchable_as_dense as get_as_dense
-from pypsa.linopt import define_constraints, get_var, join_exprs, linexpr
-from pypsa.optimization.abstract import optimize_transmission_expansion_iteratively
-from pypsa.optimization.optimize import optimize
+from pypsa.optimization.compat import define_constraints, get_var, join_exprs, linexpr
 from vresutils.benchmark import memory_logger
 
 logger = create_logger(__name__)
@@ -344,7 +342,6 @@ def add_safe_constraints(n, config):
     ext_gens_i = n.generators.query(
         "carrier in @conventional_carriers & p_nom_extendable"
     ).index
-    capacity_variable = n.model["Generator-p_nom"]
     p_nom = n.model["Generator-p_nom"].loc[ext_gens_i]
     lhs = p_nom.sum()
     exist_conv_caps = n.generators.query(
@@ -474,17 +471,14 @@ def add_battery_constraints(n):
     n.model.add_constraints(lhs == 0, name="link_charger_ratio")
 
 
-def add_res_constraints(n, res_share, config):
+def add_res_constraints(n, res_share):
     lgrouper = n.loads.bus.map(n.buses.country)
-    ggrouper = n.generators.bus.map(n.buses.country)
-    sgrouper = n.storage_units.bus.map(n.buses.country)
-    cgrouper = n.links.bus0.map(n.buses.country)
 
     logger.warning(
         "The add_RES_constraints() is still work in progress. "
         "Unexpected results might be incurred, particularly if "
         "temporal clustering is applied or if an unexpected change of technologies "
-        "is subject to the obpimisation."
+        "is subject to the optimisation."
     )
 
     load = (
@@ -494,95 +488,43 @@ def add_res_constraints(n, res_share, config):
 
     rhs = res_share * load
 
-    renew_techs = config["electricity"]["renewable_carriers"]
-    charger = ["H2 electrolysis", "battery charger"]
-    discharger = ["H2 fuel cell", "battery discharger"]
-
     gens_i = n.generators.query("carrier in @res_techs").index
     stores_i = n.storage_units.query("carrier in @res_techs").index
     charger_i = n.links.query("carrier in @charger").index
     discharger_i = n.links.query("carrier in @discharger").index
 
+    stores_t_weights = n.snapshot_weightings.stores
+
     # Generators
     lhs_gen = (
-        linexpr(
-            (n.snapshot_weightings.generators, get_var(n, "Generator", "p")[gens_i].T)
-        )
-        .T.groupby(ggrouper, axis=1)
-        .apply(join_exprs)
-    )
+        n.model["Generator-p"].loc[:, gens_i] * n.snapshot_weightings.generators
+    ).sum()
 
     # StorageUnits
-    lhs_dispatch = (
-        (
-            linexpr(
-                (
-                    n.snapshot_weightings.stores,
-                    get_var(n, "StorageUnit", "p_dispatch")[stores_i].T,
-                )
-            )
-            .T.groupby(sgrouper, axis=1)
-            .apply(join_exprs)
-        )
-        .reindex(lhs_gen.index)
-        .fillna("")
+    store_disp_expr = (
+        n.model["StorageUnit-p_dispatch"].loc[:, stores_i] * stores_t_weights
+    )
+    store_expr = n.model["StorageUnit-p_store"].loc[:, stores_i] * stores_t_weights
+    charge_expr = n.model["Link-p"].loc[:, charger_i] * stores_t_weights.apply(
+        lambda r: r * n.links.loc[charger_i].efficiency
+    )
+    discharge_expr = n.model["Link-p"].loc[:, discharger_i] * stores_t_weights.apply(
+        lambda r: r * n.links.loc[discharger_i].efficiency
     )
 
-    lhs_store = (
-        (
-            linexpr(
-                (
-                    -n.snapshot_weightings.stores,
-                    get_var(n, "StorageUnit", "p_store")[stores_i].T,
-                )
-            )
-            .T.groupby(sgrouper, axis=1)
-            .apply(join_exprs)
-        )
-        .reindex(lhs_gen.index)
-        .fillna("")
-    )
+    lhs_dispatch = store_disp_expr.sum()
+
+    lhs_store = store_expr.sum()
 
     # Stores (or their resp. Link components)
     # Note that the variables "p0" and "p1" currently do not exist.
     # Thus, p0 and p1 must be derived from "p" (which exists), taking into account the link efficiency.
-    lhs_charge = (
-        (
-            linexpr(
-                (
-                    -n.snapshot_weightings.stores,
-                    get_var(n, "Link", "p")[charger_i].T,
-                )
-            )
-            .T.groupby(cgrouper, axis=1)
-            .apply(join_exprs)
-        )
-        .reindex(lhs_gen.index)
-        .fillna("")
-    )
+    lhs_charge = charge_expr.sum()
 
-    lhs_discharge = (
-        (
-            linexpr(
-                (
-                    n.snapshot_weightings.stores.apply(
-                        lambda r: r * n.links.loc[discharger_i].efficiency
-                    ),
-                    get_var(n, "Link", "p")[discharger_i],
-                )
-            )
-            .groupby(cgrouper, axis=1)
-            .apply(join_exprs)
-        )
-        .reindex(lhs_gen.index)
-        .fillna("")
-    )
+    lhs_discharge = discharge_expr.sum()
 
-    # signs of resp. terms are coded in the linexpr.
-    # todo: for links (lhs_charge and lhs_discharge), account for snapshot weightings
-    lhs = lhs_gen + lhs_dispatch + lhs_store + lhs_charge + lhs_discharge
-
-    define_constraints(n, lhs, "=", rhs, "RES share")
+    lhs = lhs_gen + lhs_dispatch - lhs_store - lhs_charge + lhs_discharge
+    n.model.add_constraints(lhs == rhs, name="res_share")
 
 
 def add_land_use_constraint(n):
@@ -658,7 +600,7 @@ def add_h2_network_cap(n, cap):
     define_constraints(n, lhs, "<=", rhs, "h2_network_cap")
 
 
-def H2_export_yearly_constraint(n):
+def h2_export_yearly_constraint(n):
     res = [
         "csp",
         "rooftop-solar",
@@ -939,9 +881,6 @@ def add_existing(n):
 
         h2_index = n.links[n.links.carrier == "H2 Electrolysis"].index
         n.links.loc[h2_index, "p_nom_min"] = existing_electrolyzers
-
-        # n_name = snakemake.input.network.split("/")[-1].replace(str(snakemake.config["scenario"]["clusters"][0]), "").\
-        #     replace(".nc", ".csv").replace(str(snakemake.config["costs"]["discountrate"][0]), "")
         df = pd.read_csv(directory + "/res_caps_" + n_name, index_col=0)
 
         for tech in snakemake.config["custom_data"]["renewables"]:
@@ -989,7 +928,7 @@ def extra_functionality(n, snapshots):
                 "additionality is currently not supported for yearly constraints, proceeding without additionality"
             )
         logger.info("setting h2 export to yearly greenness constraint")
-        H2_export_yearly_constraint(n)
+        h2_export_yearly_constraint(n)
 
     elif (
         snakemake.config["policy_config"]["hydrogen"]["temporal_matching"]
@@ -1033,6 +972,7 @@ def solve_network(n, config, solving={}, **kwargs):
         solving["solver_options"][set_of_options] if set_of_options else {}
     )
     kwargs["solver_name"] = solving["solver"]["name"]
+    kwargs["extra_functionality"] = extra_functionality
     skip_iterations = cf_solving.get("skip_iterations", False)
     if not n.lines.s_nom_extendable.any():
         skip_iterations = True
@@ -1116,13 +1056,17 @@ if __name__ == "__main__":
 
     n = prepare_network(n, solving["options"])
 
-    n = solve_network(
-        n,
-        config=snakemake.config,
-        solving=solving,
-        solver_dir=tmpdir,
-        solver_logfile=snakemake.log.solver,
-    )
+    with memory_logger(
+        filename=getattr(snakemake.log, "memory", None), interval=30.0
+    ) as mem:
+        n = solve_network(
+            n,
+            config=snakemake.config,
+            solving=solving,
+            solver_dir=tmpdir,
+            solver_logfile=snakemake.log.solver,
+        )
+    logger.info(f"Maximum memory usage: {mem.mem_usage}")
     n.meta = dict(snakemake.config, **dict(wildcards=dict(snakemake.wildcards)))
     n.export_to_netcdf(snakemake.output[0])
     logger.info(f"Objective function: {n.objective}")
