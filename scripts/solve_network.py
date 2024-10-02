@@ -972,7 +972,7 @@ def solve_network(n, config, solving={}, **kwargs):
         solving["solver_options"][set_of_options] if set_of_options else {}
     )
     kwargs["solver_name"] = solving["solver"]["name"]
-    kwargs["extra_functionality"] = extra_functionality
+    # kwargs["extra_functionality"] = extra_functionality
 
     logger.info("kwargs", kwargs)
     print("kwargs {}".format(kwargs))
