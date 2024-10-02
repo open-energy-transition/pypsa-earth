@@ -975,6 +975,7 @@ def solve_network(n, config, solving={}, **kwargs):
     kwargs["extra_functionality"] = extra_functionality
 
     logger.info("kwargs", kwargs)
+    print("kwargs {}".format(kwargs))
 
     skip_iterations = cf_solving.get("skip_iterations", False)
     if not n.lines.s_nom_extendable.any():
