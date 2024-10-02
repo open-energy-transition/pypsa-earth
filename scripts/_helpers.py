@@ -25,7 +25,6 @@ import requests
 import snakemake as sm
 import yaml
 from fake_useragent import UserAgent
-from pypsa.clustering.spatial import make_consense
 from pypsa.components import component_attrs, components
 from pypsa.descriptors import Dict
 from shapely.geometry import Point
