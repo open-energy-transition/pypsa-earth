@@ -25,7 +25,6 @@ import requests
 import snakemake as sm
 import yaml
 from fake_useragent import UserAgent
-from pypsa.clustering.spatial import _make_consense
 from pypsa.components import component_attrs, components
 from pypsa.descriptors import Dict
 from shapely.geometry import Point
@@ -498,23 +497,6 @@ def content_retrieve(url, data=None, headers=None, max_retries=3, backoff_factor
     raise Exception("Max retries exceeded")
 
 
-def get_aggregation_strategies(aggregation_strategies):
-    """
-    Default aggregation strategies that cannot be defined in .yaml format must
-    be specified within the function, otherwise (when defaults are passed in
-    the function's definition) they get lost when custom values are specified
-    in the config.
-    """
-
-    bus_strategies = dict(country=_make_consense("Bus", "country"))
-    bus_strategies.update(aggregation_strategies.get("buses", {}))
-
-    generator_strategies = {"build_year": lambda x: 0, "lifetime": lambda x: np.inf}
-    generator_strategies.update(aggregation_strategies.get("generators", {}))
-
-    return bus_strategies, generator_strategies
-
-
 def mock_snakemake(rule_name, root_dir=None, submodule_dir=None, **wildcards):
     """
     This function is expected to be executed from the "scripts"-directory of "
@@ -895,6 +877,16 @@ def get_last_commit_message(path):
 
     os.chdir(backup_cwd)
     return last_commit_message
+
+
+def update_config_dictionary(
+    config_dict,
+    parameter_key_to_fill="lines",
+    dict_to_use={"geometry": "first", "bounds": "first"},
+):
+    config_dict.setdefault(parameter_key_to_fill, {})
+    config_dict[parameter_key_to_fill].update(dict_to_use)
+    return config_dict
 
 
 def get_path(*args):
