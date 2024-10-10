@@ -756,6 +756,25 @@ rule add_extra_components:
         "scripts/add_extra_components.py"
 
 
+rule build_egs_potentials:
+    params:
+        enhanced_geothermal=config["renewable"]["enhanced_geothermal"],
+    input:
+        egs_potential="dummy/egs_dummy_data.csv",
+        regions_onshore="resources/"
+        + RDIR
+        + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
+    output:
+        egs_potentials="resources/" + RDIR + "egs_potential_s{simpl}_{clusters}.csv",
+    threads: 2
+    resources:
+        mem_mb=10000,
+    benchmark:
+        (RDIR + "/benchmarks/build_egs_potentials/egs_potential_s{simpl}_{clusters}")
+    script:
+        "scripts/build_egs_potentials.py"
+
+
 rule prepare_network:
     params:
         links=config["links"],
@@ -763,9 +782,12 @@ rule prepare_network:
         s_max_pu=config["lines"]["s_max_pu"],
         electricity=config["electricity"],
         costs=config["costs"],
+        renewable=config["renewable"],
     input:
         "networks/" + RDIR + "elec_s{simpl}_{clusters}_ec.nc",
         tech_costs=COSTS,
+        egs_potentials="resources/" + RDIR + "egs_potential_s{simpl}_{clusters}.csv",
+    threads: 2
     output:
         "networks/" + RDIR + "elec_s{simpl}_{clusters}_ec_l{ll}_{opts}.nc",
     log:
