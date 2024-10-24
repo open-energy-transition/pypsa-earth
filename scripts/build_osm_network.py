@@ -557,45 +557,6 @@ def merge_stations_lines_by_station_id_and_voltage(
     return lines, buses
 
 
-def create_station_at_equal_bus_locations(lines, buses, distance_crs_val, tol=2000):
-    # V1. Create station_id at same bus location
-    # - We saw that buses are not connected exactly at one point, they are
-    #   usually connected to a substation "area" (analysed on maps)
-    # - Create station_id at exactly the same location might therefore be not
-    #   always correct
-    # - Though as you can see below, it might be still sometime the case.
-    #   Examples are **station 4** (2 lines with the same voltage connect at the
-    #   same point) and **station 23** (4 lines with two different voltages connect
-    #   at the same point)
-    # TODO: Filter out the generator lines - defined as going from generator to
-    #       the next station which is connected to a load. Excluding generator
-    #       lines make probably sense because they are not transmission expansion
-    #       relevant. For now we simplify and include generator lines.
-
-    # If same location/geometry make station
-    bus_all = buses
-
-    # set substation ids
-    set_substations_ids(buses, distance_crs_val, tol=tol)
-
-    # set the bus ids to the line dataset
-    lines, buses = set_lines_ids(lines, buses, distance_crs_val)
-
-    # update line endings
-    lines = line_endings_to_bus_conversion(lines)
-
-    # For each station number with multiple buses make lowest voltage `substation_lv = TRUE`
-    set_lv_substations(bus_all)
-
-    # TRY: Keep only buses that are not duplicated & lv_substation = True
-    # TODO: Check if this is necessary. What effect do duplicates have?
-    bus_all = bus_all[bus_all["substation_lv"] == True]
-
-    lines = connect_stations_same_station_id(lines, buses)
-
-    return lines, buses
-
-
 def _split_linestring_by_point(linestring, points):
     """
     Function to split a linestring geometry by multiple inner points.
