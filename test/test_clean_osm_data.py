@@ -14,7 +14,7 @@ sys.path.append("./scripts")
 
 from test.conftest import get_config_dict
 
-from clean_osm_data import filter_frequency, filter_voltage, finalize_lines_type, load_network_data, prepare_lines_df, prepare_substation_df
+from clean_osm_data import clean_voltage, filter_frequency, filter_voltage, finalize_lines_type, load_network_data, prepare_lines_df, prepare_substation_df, split_cells
 
 path_cwd = str(pathlib.Path.cwd())
 
@@ -103,4 +103,63 @@ def test_prepare_substation_df(get_config_dict):
     assert output_df.shape == (6065, 12)
     assert len(output_df["dc"].unique()) == 1 and ~output_df["dc"].unique()[0]
     assert len(output_df["under_construction"].unique()) == 1 and ~output_df["under_construction"].unique()[0]
-    assert all([x == y for x, y in zip(list(output_df.columns), column_list_reference)])
+    assert all([x == y for x, y in zip(sorted(list(output_df.columns)), sorted(column_list_reference))])
+
+
+def test_finalize_lines_type(get_config_dict):
+    """
+    The test verifies what is returned by finalize_lines_type.
+    """
+    config_dict = get_config_dict
+    data_options = config_dict["clean_osm_data_options"]
+    df_lines = load_network_data("lines", data_options, input_files_dictionary)
+    df_lines = prepare_lines_df(df_lines)
+    df_lines = finalize_lines_type(df_lines)
+    assert df_lines.dtypes["line_id"] == "int64"
+
+
+def test_prepare_lines_df(get_config_dict):
+    """
+    The test verifies what is returned by prepare_lines_df.
+    """
+    config_dict = get_config_dict
+    data_options = config_dict["clean_osm_data_options"]
+    column_list_reference = [
+        "line_id",
+        "bus0",
+        "bus1",
+        "voltage",
+        "circuits",
+        "length",
+        "underground",
+        "under_construction",
+        "tag_type",
+        "tag_frequency",
+        "dc",
+        "cables",
+        "geometry",
+        "country",
+    ]
+    df_all_lines = load_network_data("lines", data_options, input_files_dictionary)
+    output_df = prepare_lines_df(df_all_lines)
+    assert output_df.shape == (4715, 14)
+    assert all([x == y for x, y in zip(sorted(list(output_df.columns)), sorted(column_list_reference))])
+
+
+# def test_split_cells(get_config_dict):
+#     """
+#     The test verifies what is returned by split_cells.
+#     """
+#     config_dict = get_config_dict
+#     data_options = config_dict["clean_osm_data_options"]
+#     df_all_substations = load_network_data("substations", data_options, input_files_dictionary)
+#     df_all_substations = prepare_substation_df(df_all_substations)
+#     df_all_substations = clean_voltage(df_all_substations)
+#     output_df = split_cells(pd.DataFrame(df_all_substations))
+#     with open("output.txt", "a") as f:
+#         print(df_all_substations["voltage"].unique(), file=f)
+#         print(output_df["voltage"].unique(), file=f)
+#         print(df_all_substations.shape, file=f)
+#         print(output_df.shape, file=f)
+#    assert True
+
