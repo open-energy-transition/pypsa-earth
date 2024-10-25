@@ -198,7 +198,7 @@ def split_cells(df, cols=["voltage"]):
     return x.explode(cols, ignore_index=True)
 
 
-def filter_voltage(df, threshold_voltage=35000):
+def filter_voltage(df, threshold_voltage_val=35000):
     """
     Filters df to contain only lines with voltage above threshold_voltage.
     """
@@ -211,7 +211,7 @@ def filter_voltage(df, threshold_voltage=35000):
 
     # drop lines with a voltage lower than threshold_voltage
     df.drop(
-        df[df.voltage < threshold_voltage].index,
+        df[df.voltage < threshold_voltage_val].index,
         axis=0,
         inplace=True,
         errors="ignore",
@@ -229,12 +229,18 @@ def filter_frequency(df, accepted_values=[50, 60, 0], threshold=0.1):
     )
     df.dropna(subset=["tag_frequency"], inplace=True)
 
+    print("first - inside code", df["tag_frequency"].unique())
+    print("second - inside shape", df.shape)
+
     accepted_rows = pd.concat(
         [(df["tag_frequency"] - f_val).abs() <= threshold for f_val in accepted_values],
         axis=1,
     ).any(axis="columns")
 
     df.drop(df[~accepted_rows].index, inplace=True)
+
+    print("third - inside code", df["tag_frequency"].unique())
+    print("fourth - inside shape", df.shape)
 
     df["dc"] = df["tag_frequency"].abs() <= threshold
 
@@ -925,7 +931,7 @@ def clean_data(
     if not df_all_lines.empty:
         # Add underground, under_construction, frequency and circuits columns to the dataframe
         # and drop corresponding unused columns
-        df_all_lines = integrate_lines_df(df_all_lines, distance_crs)
+        df_all_lines = integrate_lines_df(df_all_lines)
 
         logger.info("Filter lines by voltage, frequency, circuits and geometry")
 

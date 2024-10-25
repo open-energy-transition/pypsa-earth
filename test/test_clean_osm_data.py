@@ -5,6 +5,7 @@
 
 # -*- coding: utf-8 -*-
 
+import pandas as pd
 import pathlib
 import pytest
 import sys
@@ -13,7 +14,7 @@ sys.path.append("./scripts")
 
 from test.conftest import get_config_dict
 
-from clean_osm_data import filter_voltage, load_network_data, prepare_substation_df
+from clean_osm_data import filter_frequency, filter_voltage, finalize_lines_type, load_network_data, prepare_lines_df, prepare_substation_df
 
 path_cwd = str(pathlib.Path.cwd())
 
@@ -22,6 +23,24 @@ input_files_dictionary = {
     "lines": pathlib.Path(path_cwd, "test", "test_data", "sampled_raw_lines.geojson"),
     "substations": pathlib.Path(path_cwd, "test", "test_data", "sampled_raw_substations.geojson")
 }
+
+
+def test_filter_frequency(get_config_dict):
+    """
+    The test verifies what is returned by filter_frequency.
+    """
+    config_dict = get_config_dict
+    data_options = config_dict["clean_osm_data_options"]
+    df_lines = load_network_data("lines", data_options, input_files_dictionary)
+    df_lines = prepare_lines_df(df_lines)
+    df_lines = finalize_lines_type(df_lines)
+    df_cables = load_network_data("cables", data_options, input_files_dictionary)
+    df_cables = prepare_lines_df(df_cables)
+    df_cables = finalize_lines_type(df_cables)
+    df_all_lines = pd.concat([df_lines, df_cables], ignore_index=True)
+    filter_df = filter_frequency(df_all_lines)
+    assert filter_df.shape == (1996, 14)
+    assert all([x == y for x, y in zip(sorted(list(filter_df["tag_frequency"].unique())), [0.0, 50.0, 60.0])])
 
 
 def test_filter_voltage(get_config_dict):
