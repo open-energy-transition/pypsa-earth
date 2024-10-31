@@ -359,7 +359,7 @@ def clean_frequency(df, default_frequency="50"):
     return df
 
 
-def clean_voltage(df):
+def clean_voltage(df, repl_voltage_dict):
     """
     Function to clean the raw voltage column: manual fixing and drop nan values
     """
@@ -378,7 +378,7 @@ def clean_voltage(df):
     df["voltage"] = (
         df["voltage"]
         .astype(str)
-        .replace(repl_voltage)
+        .replace(repl_voltage_dict)
         .str.lower()
         .str.replace(" ", "")
         .str.replace("_", "")
@@ -472,7 +472,7 @@ def split_and_match_voltage_frequency_size(df):
        row 1: ['50'], ['220000']
        row 2: ['50','50','50'], ['220000','380000']
 
-    2. Then, it harmonize each row to match the length of the lists
+    2. Then, it harmonizes each row to match the length of the lists
        by filling the missing values with the last elements of each list.
        In agreement to the example of before, after the cleaning:
 
@@ -693,7 +693,7 @@ def explode_rows(df, cols):
     return df
 
 
-def integrate_lines_df(df_all_lines):
+def integrate_lines_df(df_all_lines, voltage_conversion_dictionary):
     """
     Function to add underground, under_construction, frequency and circuits.
     """
@@ -702,12 +702,14 @@ def integrate_lines_df(df_all_lines):
 
     # preliminary raw parsing of raw columns
     clean_frequency(df)
-    clean_voltage(df)
+    #clean_voltage(df, voltage_conversion_dictionary)
     clean_circuits(df)
     clean_cables(df)
 
     # analyse each row of voltage and frequency and match their content
     split_and_match_voltage_frequency_size(df)
+
+    clean_voltage(df, voltage_conversion_dictionary)
 
     # fill the circuits column for explode
     fill_circuits(df)

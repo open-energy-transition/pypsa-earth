@@ -43,17 +43,34 @@ def test_filter_frequency(get_config_dict):
     assert all([x == y for x, y in zip(sorted(list(filter_df["tag_frequency"].unique())), [0.0, 50.0, 60.0])])
 
 
-def test_filter_voltage(get_config_dict):
+@pytest.mark.parametrize(
+    "scenario, expected", [
+        ("pypsa-earth", 0),
+        ("test", 2),
+    ],)
+def test_filter_voltage(get_config_dict, scenario, expected):
     """
     The test verifies what is returned by filter_voltage.
     """
     config_dict = get_config_dict
     data_options = config_dict["clean_osm_data_options"]
     voltage_threshold = float(data_options["threshold_voltage"])
-    df_all_substations = load_network_data("substations", data_options, input_files_dictionary)
-    df_all_substations = prepare_substation_df(df_all_substations)
-    output_df = filter_voltage(df_all_substations, voltage_threshold)
-    assert output_df.loc[output_df["voltage"] < voltage_threshold].shape[0] == 0
+    if scenario == "pypsa-earth":
+        df_all_substations_one = load_network_data("substations", data_options, input_files_dictionary)
+        df_all_substations_two = prepare_substation_df(df_all_substations_one)
+        df_all_substations_three = df_all_substations_two.copy()
+        output_df = filter_voltage(df_all_substations_three, voltage_threshold)
+        assert output_df.loc[output_df["voltage"] < voltage_threshold].shape[0] == expected
+    elif scenario == "test":
+        test_df = pd.DataFrame(
+            {"voltage": ["34500;4800", "high;medium", "12000", "30000", "345000", "240000"],
+             "another_column": ["val1", "val2", "val3", "val4", "val5", "val6"]
+             }
+        )
+        output_df = filter_voltage(test_df, voltage_threshold)
+        assert output_df.loc[output_df["voltage"] > voltage_threshold].shape[0] == expected
+    else:
+        raise Exception("The test case {} is at the moment not covered".format(scenario))
 
 
 @pytest.mark.parametrize(
@@ -146,20 +163,55 @@ def test_prepare_lines_df(get_config_dict):
     assert all([x == y for x, y in zip(sorted(list(output_df.columns)), sorted(column_list_reference))])
 
 
-# def test_split_cells(get_config_dict):
-#     """
-#     The test verifies what is returned by split_cells.
-#     """
-#     config_dict = get_config_dict
-#     data_options = config_dict["clean_osm_data_options"]
-#     df_all_substations = load_network_data("substations", data_options, input_files_dictionary)
-#     df_all_substations = prepare_substation_df(df_all_substations)
-#     df_all_substations = clean_voltage(df_all_substations)
-#     output_df = split_cells(pd.DataFrame(df_all_substations))
-#     with open("output.txt", "a") as f:
-#         print(df_all_substations["voltage"].unique(), file=f)
-#         print(output_df["voltage"].unique(), file=f)
-#         print(df_all_substations.shape, file=f)
-#         print(output_df.shape, file=f)
-#    assert True
+@pytest.mark.parametrize(
+    "scenario, expected", [
+        ("pypsa-earth", (5176, 12)),
+        ("test", (8, 2))
+    ],)
+def test_split_cells(get_config_dict, scenario, expected):
+    """
+    The test verifies what is returned by split_cells.
+    """
+    config_dict = get_config_dict
+    data_options = config_dict["clean_osm_data_options"]
+    if scenario == "pypsa-earth":
+        df_all_substations = load_network_data("substations", data_options, input_files_dictionary)
+        df_all_substations = prepare_substation_df(df_all_substations)
+        df_all_substations = clean_voltage(df_all_substations)
+        output_df = split_cells(pd.DataFrame(df_all_substations))
+        assert expected[0] == df_all_substations.shape[0] + df_all_substations.voltage.str.count(";").sum()
+        assert output_df.shape == expected
+    elif scenario == "test":
+        test_df = pd.DataFrame(
+            {"voltage": ["34500;4800", "230000;138000;115000", "138000;34500", "12000"],
+             "another_column": ["val1", "val2", "val3", "val4"]
+             }
+        )
+        output_df = split_cells(test_df)
+        reference_df = pd.DataFrame(
+            {"voltage": ["34500", "4800", "230000", "138000", "115000", "138000", "34500", "12000"],
+             "another_column": ["val1", "val1", "val2", "val2", "val2", "val3", "val3", "val4"]
+             }
+        )
+        comparison_df = output_df.compare(reference_df)
+        assert comparison_df.empty
+        assert output_df.shape == expected
+    else:
+        raise Exception("The test case {} is at the moment not covered".format(scenario))
 
+
+def test_clean_voltage(get_config_dict):
+    """
+    The test verifies what is returned by clean_voltage.
+    """
+    config_dict = get_config_dict
+    data_options = config_dict["clean_osm_data_options"]
+    df_test = pd.DataFrame(
+            {"voltage": ["34500;4800", "high", "12000_", "12000 ", "345kv", "240 VAC", "2*220000", "KV30"],
+             "another_column": ["val1", "val2", "val3", "val4", "val5", "val6", "val7", "val8"]
+             }
+        )
+    #output_df = clean_voltage(df_test)
+    #output_df.to_csv("clean_voltage_output_test.csv")
+    output_df = filter_voltage(df_test)
+    output_df.to_csv("filter_voltage_output_test.csv")
