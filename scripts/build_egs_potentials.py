@@ -5,11 +5,14 @@ heat content by overlaying subsurface potential with geospatial demand data."""
 
 import os
 
+import rasterio
 import numpy as np
 import xarray as xr
 import pandas as pd
 from tqdm import tqdm
 import geopandas as gpd
+from rasterio.transform import xy
+from shapely.geometry import Point
 
 
 
@@ -19,6 +22,47 @@ def get_demands(df, x, y):
 
 def get_demand_geometries(demand):
     raise NotImplementedError('implement me')
+
+
+def get_raster_file(tif_file):
+
+    with rasterio.open(tif_file) as src:
+
+        band1 = src.read(1)
+        transform = src.transform
+        rows, cols = band1.shape
+
+        row_indices, col_indices = np.meshgrid(np.arange(rows), np.arange(cols), indexing='ij')
+        row_indices = row_indices.flatten()
+        col_indices = col_indices.flatten()
+        band1 = band1.flatten()
+
+        nodata = src.nodata
+        valid_mask = band1 != nodata
+        band1 = band1[valid_mask]
+        row_indices = row_indices[valid_mask]
+        col_indices = col_indices[valid_mask]
+
+        xs, ys = xy(transform, row_indices, col_indices)
+        
+        df = pd.DataFrame({
+            'value': band1,
+            'x': xs,
+            'y': ys
+        })
+
+        geometry = [Point(xy) for xy in zip(df['x'], df['y'])]
+
+        return gpd.GeoDataFrame(df, geometry=geometry, crs=src.crs)
+
+
+def myround(x):
+    if x % 10 == 0:
+        return int(x)
+    elif x % 10 < 5:
+        return int(x - x % 10)
+    else:
+        return int(x + 10 - x % 10)
 
 
 if __name__ == "__main__":
@@ -33,14 +77,38 @@ if __name__ == "__main__":
         )
 
     regions = gpd.read_file(snakemake.input.regions_onshore).set_index("name")
-    egs_potentials = pd.read_csv(snakemake.input["egs_potential"], index_col=[0,1,2])
 
-    gdf = gpd.GeoDataFrame(
-        egs_potentials,
-        geometry=gpd.points_from_xy(
-            egs_potentials.index.get_level_values('lon'),
-            egs_potentials.index.get_level_values('lat')
-            )).set_crs(epsg=4326)
+    capex_gdf = (
+        get_raster_file(snakemake.input.egs_capex)
+        .set_index(['x', 'y'])
+        .rename(columns={'value': 'capex'})
+    )
+    gen_gdf = (
+        get_raster_file(snakemake.input.egs_gen)
+        .set_index(['x', 'y'])
+        .rename(columns={'value': 'gen'})
+    )
+    opex_gdf = (
+        get_raster_file(snakemake.input.egs_opex)
+        .set_index(['x', 'y'])
+        .rename(columns={'value': 'opex'})
+    )
+
+    gdf = capex_gdf[['capex', 'geometry']].join(gen_gdf[['gen']], how='inner')
+    gdf = gdf.join(opex_gdf[['opex']], how='inner')
+
+    gdf['plant_capacity'] = gdf['gen'].div(8760)
+    gdf['capex($/kWel)'] = gdf['capex'].div(gdf['plant_capacity']).mul(1e3)
+    gdf['plant_capacity(MWel)'] = gdf['plant_capacity']
+    gdf['opex[$/kWh]'] = gdf['opex'].mul(1e-2)
+
+    gdf.rename(
+        columns={
+            'capex($/kWel)': 'capex[$/kW]',
+            'plant_capacity(MWel)': 'available_capacity[MW]'
+            }, inplace=True)
+    
+    gdf = gdf[['capex[$/kW]', 'opex[$/kWh]', 'available_capacity[MW]', 'geometry']]
 
     nodal_egs_potentials = pd.DataFrame(
         np.nan,
@@ -52,8 +120,8 @@ if __name__ == "__main__":
 
     regional_potentials = []
 
-    for name, geom in regions.geometry.items():
-
+    for name, geom in tqdm(regions.geometry.items()):
+        
         ss = gdf.loc[gdf.geometry.within(geom)]
         if ss.empty:
             continue
@@ -84,6 +152,7 @@ if __name__ == "__main__":
             .groupby('level')[['available_capacity[MW]', 'opex[$/kWh]']]
             .agg({'available_capacity[MW]': 'sum', 'opex[$/kWh]': 'mean'})
         )
+        ss.index = list(map(myround, ss.index))
         ss.index = (
             pd.MultiIndex.from_product(
                 [[name], ss.index],

@@ -760,7 +760,9 @@ rule build_egs_potentials:
     params:
         enhanced_geothermal=config["renewable"]["enhanced_geothermal"],
     input:
-        egs_potential="dummy/egs_dummy_data.csv",
+        egs_capex="data/p100_h0/Total_CAPEX_USDmm.tif",
+        egs_opex="data/p100_h0/Average_OPEX_cUSDkW-h.tif",
+        egs_gen="data/p100_h0/Average_Electric_Energy_Output_MWhyear.tif",
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
@@ -1314,10 +1316,10 @@ rule build_solar_thermal_profiles:
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         solar_thermal_total="resources/demand/heat/solar_thermal_total_elec_s{simpl}_{clusters}_{planning_horizons}.nc",
@@ -1337,10 +1339,10 @@ rule build_population_layouts:
     input:
         nuts3_shapes="resources/" + RDIR + "shapes/gadm_shapes.geojson",
         urban_percent="data/urban_percent.csv",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         pop_layout_total="resources/population_shares/pop_layout_total_{planning_horizons}.nc",
@@ -1374,10 +1376,10 @@ rule build_clustered_population_layouts:
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         clustered_pop_layout="resources/population_shares/pop_layout_elec_s{simpl}_{clusters}_{planning_horizons}.csv",
@@ -1400,10 +1402,10 @@ rule build_heat_demand:
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         heat_demand_urban="resources/demand/heat/heat_demand_urban_elec_s{simpl}_{clusters}_{planning_horizons}.nc",
@@ -1427,10 +1429,10 @@ rule build_temperature_profiles:
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         temp_soil_total="resources/temperatures/temp_soil_total_elec_s{simpl}_{clusters}_{planning_horizons}.nc",
