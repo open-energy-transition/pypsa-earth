@@ -104,13 +104,6 @@ if __name__ == "__main__":
 
         snakemake = mock_snakemake("prepare_transport_data_input")
 
-    # configure_logging(snakemake)
-
-    # run = snakemake.config.get("run", {})
-    # RDIR = run["name"] + "/" if run.get("name") else ""
-    # store_path_data = Path.joinpath(Path().cwd(), "data")
-    # country_list = country_list_to_geofk(snakemake.config["countries"])'
-
     # Downloaded and prepare vehicles_csv:
     vehicles_csv = download_number_of_vehicles().copy()
 
