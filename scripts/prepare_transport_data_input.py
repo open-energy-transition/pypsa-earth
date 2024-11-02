@@ -28,9 +28,9 @@ def download_number_of_vehicles():
         Nbr_vehicles_csv = pd.read_csv(
             fn, storage_options=storage_options, encoding="utf8"
         )
-        logger.info("File read successfully.")
+        logger.info("File at {} read successfully.".format(fn))
     except Exception as e:
-        logger.error("Failed to read the file:", e)
+        logger.error("Failed to read the file from {} with exception:".format(fn), e)
         return pd.DataFrame()
 
     Nbr_vehicles_csv = Nbr_vehicles_csv.rename(
@@ -61,9 +61,9 @@ def download_number_of_vehicles():
     return Nbr_vehicles_csv
 
 
-def download_CO2_emissions():
+def download_co2_emissions():
     """
-    Downloads the CO2_emissions from vehicles as .csv File.
+    Downloads the co2_emissions from vehicles as .csv File.
 
     The dataset is downloaded from the following link: https://data.worldbank.org/indicator/EN.CO2.TRAN.ZS?view=map
     It is until the year 2014. # TODO: Maybe search for more recent years.
@@ -74,31 +74,34 @@ def download_CO2_emissions():
 
     # Read the 'Data' sheet directly from the Excel file at the provided URL
     try:
-        CO2_emissions = pd.read_excel(url, sheet_name="Data", skiprows=[0, 1, 2])
-        logger.info("File read successfully.")
+        co2_emissions = pd.read_excel(url, sheet_name="Data", skiprows=[0, 1, 2])
+        logger.info("File at {} read successfully.".format(url))
     except Exception as e:
         logger.error("Failed to read the file:", e)
         return pd.DataFrame()
 
-    CO2_emissions = CO2_emissions[
+    co2_emissions = co2_emissions[
         ["Country Name", "Country Code", "Indicator Name", "2014"]
     ]
 
     # Calculate efficiency based on CO2 emissions from transport (% of total fuel combustion)
-    CO2_emissions["average fuel efficiency"] = (100 - CO2_emissions["2014"]) / 100
+    co2_emissions["average fuel efficiency"] = (100 - co2_emissions["2014"]) / 100
 
     # Add ISO2 country code for each country
-    CO2_emissions = CO2_emissions.rename(columns={"Country Name": "Country"})
+    co2_emissions = co2_emissions.rename(columns={"Country Name": "Country"})
     cc = coco.CountryConverter()
-    Country = pd.Series(CO2_emissions["Country"])
-    CO2_emissions["country"] = cc.pandas_convert(
+    Country = pd.Series(co2_emissions["Country"])
+    co2_emissions["country"] = cc.pandas_convert(
         series=Country, to="ISO2", not_found="not found"
     )
 
     # Drop region names that have no ISO2:
-    CO2_emissions = CO2_emissions[CO2_emissions.country != "not found"]
+    co2_emissions = co2_emissions[co2_emissions.country != "not found"]
 
-    return CO2_emissions
+    # Drop region names for which the country column is a list
+    co2_emissions = co2_emissions[co2_emissions.apply(lambda x: False if isinstance(x.country, list) else True, axis=1)]
+
+    return co2_emissions
 
 
 if __name__ == "__main__":
@@ -112,9 +115,9 @@ if __name__ == "__main__":
     vehicles_csv = download_number_of_vehicles().copy()
 
     # Downloaded and prepare CO2_emissions_csv:
-    CO2_emissions_csv = download_CO2_emissions().copy()
+    co2_emissions_csv = download_co2_emissions().copy()
 
-    if vehicles_csv.empty or CO2_emissions_csv.empty:
+    if vehicles_csv.empty or co2_emissions_csv.empty:
         # In case one of the urls is not working, we can use the hard-coded data
         src = get_path(
             get_current_directory_path(), "data", "temp_hard_coded", "transport_data.csv"
@@ -123,7 +126,7 @@ if __name__ == "__main__":
         shutil.copy(src, dest)
     else:
         # Join the DataFrames by the 'country' column
-        merged_df = pd.merge(vehicles_csv, CO2_emissions_csv, on="country")
+        merged_df = pd.merge(vehicles_csv, co2_emissions_csv, on="country")
         merged_df = merged_df[["country", "number cars", "average fuel efficiency"]]
 
         # Drop rows with NaN values in 'average fuel efficiency'
