@@ -120,7 +120,7 @@ if __name__ == "__main__":
     if vehicles_csv.empty or CO2_emissions_csv.empty:
         # In case one of the urls is not working, we can use the hard-coded data
         src = get_path(
-            get_current_directory_path(), "data/temp_hard_coded/transport_data.csv"
+            get_current_directory_path(), "data", "temp_hard_coded", "transport_data.csv"
         )
         dest = snakemake.output.transport_data_input
         shutil.copy(src, dest)
