@@ -7,7 +7,9 @@ import shutil
 import country_converter as coco
 import numpy as np
 import pandas as pd
-from _helpers import get_current_directory_path, get_path, mock_snakemake
+from _helpers import configure_logging, create_logger, get_current_directory_path, get_path, mock_snakemake
+
+logger = create_logger(__name__)
 
 
 def download_number_of_vehicles():
@@ -26,9 +28,9 @@ def download_number_of_vehicles():
         Nbr_vehicles_csv = pd.read_csv(
             fn, storage_options=storage_options, encoding="utf8"
         )
-        print("File read successfully.")
+        logger.info("File read successfully.")
     except Exception as e:
-        print("Failed to read the file:", e)
+        logger.error("Failed to read the file:", e)
         return pd.DataFrame()
 
     Nbr_vehicles_csv = Nbr_vehicles_csv.rename(
@@ -73,9 +75,9 @@ def download_CO2_emissions():
     # Read the 'Data' sheet directly from the Excel file at the provided URL
     try:
         CO2_emissions = pd.read_excel(url, sheet_name="Data", skiprows=[0, 1, 2])
-        print("File read successfully.")
+        logger.info("File read successfully.")
     except Exception as e:
-        print("Failed to read the file:", e)
+        logger.error("Failed to read the file:", e)
         return pd.DataFrame()
 
     CO2_emissions = CO2_emissions[
@@ -103,6 +105,8 @@ if __name__ == "__main__":
     if "snakemake" not in globals():
 
         snakemake = mock_snakemake("prepare_transport_data_input")
+
+    configure_logging(snakemake)
 
     # Downloaded and prepare vehicles_csv:
     vehicles_csv = download_number_of_vehicles().copy()

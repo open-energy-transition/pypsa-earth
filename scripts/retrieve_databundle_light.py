@@ -94,7 +94,6 @@ from _helpers import (
     create_country_list,
     create_logger,
     get_path,
-    get_relative_path,
     mock_snakemake,
     progress_retrieve,
 )
