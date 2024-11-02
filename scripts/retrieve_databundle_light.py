@@ -804,7 +804,7 @@ def merge_hydrobasins_shape(config_hydrobasin, hydrobasins_level):
         for suffix in config_hydrobasin["urls"]["hydrobasins"]["suffixes"]
     ]
     gpdf_list = [None] * len(files_to_merge)
-    logger.info("Merging hydrobasins files into: " + output_fl)
+    logger.info("Merging hydrobasins files into: " + str(output_fl))
     for i, f_name in tqdm(enumerate(files_to_merge)):
         gpdf_list[i] = gpd.read_file(get_path(basins_path, f_name))
     fl_merged = gpd.GeoDataFrame(pd.concat(gpdf_list)).drop_duplicates(
