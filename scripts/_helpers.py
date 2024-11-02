@@ -1566,7 +1566,9 @@ def aggregate_fuels(sector):
     ]
 
     oil_fuels = [
-        "additives and oxygenates" "aviation gasoline" "bitumen",
+        "additives and oxygenates",
+        "aviation gasoline",
+        "bitumen",
         "conventional crude oil",
         "crude petroleum",
         "ethane",
@@ -1580,7 +1582,7 @@ def aggregate_fuels(sector):
         "naphtha",
         "natural gas liquids",
         "other kerosene",
-        "paraffin waxes" "patent fuel",
+        "paraffin waxes",
         "petroleum coke",
         "refinery gas",
     ]
