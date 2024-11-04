@@ -351,9 +351,8 @@ def add_enhanced_geothermal(n):
         nodes = f"{bus} " + pd.Index(range(len(ss)), dtype=str)
 
         p_nom_max = ss["available_capacity[MW]"].values
-        capex = ss.index.values
+        capex = ss.index.values * 1000 # from $/kW to $/MW
         opex = ss["opex[$/kWh]"].values
-        # eta = ss["efficiency"].values
 
         n.madd(
             "Bus",
