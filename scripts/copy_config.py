@@ -2,16 +2,16 @@
 # SPDX-FileCopyrightText:  PyPSA-Earth and PyPSA-Eur Authors
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
-
+import pathlib
 from shutil import copy
 
-from _helpers import mock_snakemake
+from _helpers import BASE_DIR, mock_snakemake
 
 files_to_copy = {
-    "./config.yaml": "config.yaml",
-    "./Snakefile": "Snakefile",
-    "./scripts/solve_network.py": "solve_network.py",
-    "./scripts/prepare_sector_network.py": "prepare_sector_network.py",
+    pathlib.Path(BASE_DIR, "./config.yaml"): "config.yaml",
+    pathlib.Path(BASE_DIR, "./Snakefile"): "Snakefile",
+    pathlib.Path(BASE_DIR, "./scripts/solve_network.py"): "solve_network.py",
+    pathlib.Path(BASE_DIR, "./scripts/prepare_sector_network.py"): "prepare_sector_network.py",
 }
 
 if __name__ == "__main__":

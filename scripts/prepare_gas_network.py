@@ -15,7 +15,7 @@ import zipfile
 
 import geopandas as gpd
 import pandas as pd
-from _helpers import content_retrieve, mock_snakemake, progress_retrieve
+from _helpers import BASE_DIR, content_retrieve, mock_snakemake, progress_retrieve
 from build_shapes import get_gadm_shapes
 from pyproj import CRS
 from pypsa.geo import haversine_pts
@@ -43,8 +43,8 @@ def download_IGGIELGN_gas_network():
     url = "https://zenodo.org/record/4767098/files/IGGIELGN.zip"
 
     # Save locations
-    zip_fn = pathlib.Path("IGGIELGN.zip")
-    to_fn = pathlib.Path("data/gas_network/scigrid-gas")
+    zip_fn = pathlib.Path(BASE_DIR, "IGGIELGN.zip")
+    to_fn = pathlib.Path(BASE_DIR, "data/gas_network/scigrid-gas")
 
     logger.info(f"Downloading databundle from '{url}'.")
     progress_retrieve(url, zip_fn)
@@ -516,7 +516,7 @@ if not snakemake.params.custom_gas_network:
     elif snakemake.params.gas_config["network_data"] == "IGGIELGN":
         download_IGGIELGN_gas_network()
 
-        gas_network = "data/gas_network/scigrid-gas/data/IGGIELGN_PipeSegments.geojson"
+        gas_network = pathlib.Path(BASE_DIR, "data/gas_network/scigrid-gas/data/IGGIELGN_PipeSegments.geojson")
 
         pipelines = load_IGGIELGN_data(gas_network)
         pipelines = prepare_IGGIELGN_data(pipelines)

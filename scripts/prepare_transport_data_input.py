@@ -7,7 +7,7 @@ import shutil
 import country_converter as coco
 import numpy as np
 import pandas as pd
-from _helpers import configure_logging, create_logger, get_current_directory_path, get_path, mock_snakemake
+from _helpers import BASE_DIR, configure_logging, create_logger, get_current_directory_path, get_path, mock_snakemake
 
 logger = create_logger(__name__)
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     if vehicles_csv.empty or co2_emissions_csv.empty:
         # In case one of the urls is not working, we can use the hard-coded data
         src = get_path(
-            get_current_directory_path(), "data", "temp_hard_coded", "transport_data.csv"
+            BASE_DIR, "data", "temp_hard_coded", "transport_data.csv"
         )
         dest = snakemake.output.transport_data_input
         shutil.copy(src, dest)

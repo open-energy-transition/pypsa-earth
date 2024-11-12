@@ -14,7 +14,7 @@ from zipfile import ZipFile
 import country_converter as coco
 import numpy as np
 import pandas as pd
-from _helpers import aggregate_fuels, get_conv_factors, mock_snakemake, modify_commodity
+from _helpers import BASE_DIR, aggregate_fuels, get_conv_factors, mock_snakemake, modify_commodity
 
 _logger = logging.getLogger(__name__)
 
@@ -368,7 +368,7 @@ if __name__ == "__main__":
     if snakemake.params.update_data:
         # Delete and existing files to avoid duplication and double counting
 
-        files = glob.glob("data/demand/unsd/data/*.txt")
+        files = glob.glob(pathlib.Path(BASE_DIR, "data/demand/unsd/data/*.txt"))
         for f in files:
             pathlib.Path(f).unlink(missing_ok=True)
 
@@ -378,12 +378,12 @@ if __name__ == "__main__":
 
             with urlopen(zipurl) as zipresp:
                 with ZipFile(BytesIO(zipresp.read())) as zfile:
-                    zfile.extractall("data/demand/unsd/data")
+                    zfile.extractall(pathlib.Path(BASE_DIR, "data/demand/unsd/data"))
 
-                    path = "data/demand/unsd/data"
+                    path = pathlib.Path(BASE_DIR, "data/demand/unsd/data")
 
     # Get the files from the path provided in the OP
-    all_files = list(pathlib.Path("data/demand/unsd/data").glob("*.txt"))
+    all_files = list(pathlib.Path(BASE_DIR, "data/demand/unsd/data").glob("*.txt"))
 
     # Create a dataframe from all downloaded files
     df = pd.concat(
@@ -429,7 +429,7 @@ if __name__ == "__main__":
     df_yr = df_yr[df_yr.country.isin(countries)]
 
     # Create an empty dataframe for energy_totals_base
-    energy_totals_cols = pd.read_csv("data/energy_totals_DF_2030.csv").columns
+    energy_totals_cols = pd.read_csv(pathlib.Path(BASE_DIR, "data/energy_totals_DF_2030.csv")).columns
     energy_totals_base = pd.DataFrame(columns=energy_totals_cols, index=countries)
 
     # Lists that combine the different fuels in the dataset to the model's carriers
