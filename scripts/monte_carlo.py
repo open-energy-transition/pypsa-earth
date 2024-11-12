@@ -142,7 +142,7 @@ def monte_carlo_sampling_chaospy(
     lh = rescale_distribution(lh, uncertainties_values)
     discrepancy = qmc.discrepancy(lh)
     logger.info(
-        "Discrepancy is:", discrepancy, " more details in function documentation."
+        "Discrepancy is:", str(discrepancy), " more details in function documentation."
     )
 
     return lh
@@ -185,7 +185,7 @@ def monte_carlo_sampling_scipy(
     lh = rescale_distribution(lh, uncertainties_values)
     discrepancy = qmc.discrepancy(lh)
     logger.info(
-        "Discrepancy is:", discrepancy, " more details in function documentation."
+        "Discrepancy is:", str(discrepancy), " more details in function documentation."
     )
 
     return lh
