@@ -19,7 +19,6 @@ Relevant Settings
 -----------------
 """
 import pathlib
-
 import zenodopy
 
 ######################
@@ -65,7 +64,7 @@ if NEW_PROJECT == True:
         metadata=METADATA,
     )
     for path in UPLOAD_PATHS:
-        path = pathlib.Path.joinpath(pathlib.Path(ROOT), path)
+        path = pathlib.Path(ROOT, path)
         zeno.upload_zip(source_dir=str(path))
 
 
