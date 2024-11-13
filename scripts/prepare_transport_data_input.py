@@ -7,7 +7,7 @@ import shutil
 import country_converter as coco
 import numpy as np
 import pandas as pd
-from _helpers import BASE_DIR, configure_logging, create_logger, get_current_directory_path, get_path, mock_snakemake
+from _helpers import BASE_DIR, configure_logging, create_logger, get_path, mock_snakemake
 
 logger = create_logger(__name__)
 
@@ -90,16 +90,15 @@ def download_co2_emissions():
     # Add ISO2 country code for each country
     co2_emissions = co2_emissions.rename(columns={"Country Name": "Country"})
     cc = coco.CountryConverter()
-    Country = pd.Series(co2_emissions["Country"])
-    co2_emissions["country"] = cc.pandas_convert(
-        series=Country, to="ISO2", not_found="not found"
+    co2_emissions.loc[:, "country"] = cc.pandas_convert(
+        series=co2_emissions["Country"], to="ISO2", not_found="not found"
     )
 
     # Drop region names that have no ISO2:
     co2_emissions = co2_emissions[co2_emissions.country != "not found"]
 
     # Drop region names for which the country column is a list
-    co2_emissions = co2_emissions[co2_emissions.apply(lambda x: False if isinstance(x.country, list) else True, axis=1)]
+    co2_emissions = co2_emissions[co2_emissions.country.apply(lambda x: isinstance(x, str))]
 
     return co2_emissions
 

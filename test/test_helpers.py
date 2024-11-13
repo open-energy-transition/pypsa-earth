@@ -14,6 +14,7 @@ from test.conftest import (
     _name_temp_file,
     _sub_temp_content_dir,
     _temp_content_dir,
+    get_config_dict,
     get_temp_file,
 )
 
@@ -38,6 +39,7 @@ from _helpers import (
     get_path,
     get_path_size,
     get_relative_path,
+    locate_bus,
     modify_commodity,
     normed,
     safe_divide,
@@ -512,6 +514,44 @@ def test_aggregate_fuels():
     Verify what is returned by aggregate_fuels.
     """
     assert np.isnan(aggregate_fuels("non-industry"))
+
+
+def test_locate_bus(get_config_dict):
+    config_dict = get_config_dict
+    gadm_level = config_dict["sector"]["gadm_level"]
+    geo_crs = config_dict["crs"]["geo_crs"]
+    file_prefix = config_dict["build_shape_options"]["gadm_file_prefix"]
+    gadm_url_prefix = config_dict["build_shape_options"]["gadm_url_prefix"]
+    contended_flag = config_dict["build_shape_options"]["contended_flag"]
+    gadm_input_file_args = ["data", "raw", "gadm"]
+    shapes_path = pathlib.Path("/Users/fabriziofinozzi/Desktop/OpenEnergyTransition/repo/geothermal-modelling/workflow/pypsa-earth/resources/US_2021/bus_regions/regions_onshore_elec_s_10.geojson")
+    gadm_clustering = config_dict["cluster_options"]["alternative_clustering"]
+
+    input_dataframe = pd.DataFrame({
+        "name": ["Port of Nador", "Port of Tanger Med", "Port of Kenitra", "Port of Tan-tan", "Port of Kenitra", "AS Suways", "Damietta", "Port Said"],
+        "country": ["US", "US", "US", "US", "US", "US", "US", "US"],
+        "fraction": [0.2, 0.2, 0.1, 0.4, 0.1, 1, 1, 3],
+        "x": [35.2748795, 35.5324, 34.26101, 28.47384, 33.1267, 29.966667, 31.483333, 31.266667],
+        "y": [-2.92229843, -5.3036, -6.5802, -11.3453, 55.2708, 32.55, 31.75, 32.3],
+    }).squeeze()
+
+    input_dataframe["gadm_{}".format(gadm_level)] = input_dataframe[["x", "y", "country"]].apply(
+        lambda port: locate_bus(
+            port[["x", "y"]],
+            port["country"],
+            gadm_level,
+            geo_crs,
+            file_prefix,
+            gadm_url_prefix,
+            gadm_input_file_args,
+            contended_flag,
+            path_to_gadm=shapes_path,
+            gadm_clustering=gadm_clustering,
+        ),
+        axis=1,
+    )
+    print("end", input_dataframe)
+    assert False
 
 
 def test_get_gadm_filename():

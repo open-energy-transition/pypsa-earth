@@ -8,8 +8,6 @@
 
 import sys
 
-from pandas import Timestamp
-
 sys.path.append("./scripts")
 
 from prepare_transport_data_input import download_co2_emissions, download_number_of_vehicles
