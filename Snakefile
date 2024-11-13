@@ -7,7 +7,6 @@ import pathlib
 
 sys.path.append("./scripts")
 
-from os.path import normpath
 from shutil import copyfile, move
 
 from snakemake.remote.HTTP import RemoteProvider as HTTPRemoteProvider
@@ -21,6 +20,8 @@ from _helpers import (
 from build_demand_profiles import get_load_paths_gegis
 from retrieve_databundle_light import datafiles_retrivedatabundle
 
+import re
+import os
 
 HTTP = HTTPRemoteProvider()
 
@@ -819,7 +820,7 @@ if config["monte_carlo"]["options"].get("add_to_snakefile", False) == False:
         output:
             "results/" + RDIR + "networks/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}.nc",
         log:
-            solver=normpath(
+            solver=os.path.normpath(
                 "logs/"
                 + RDIR
                 + "solve_network/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}_solver.log"
@@ -889,7 +890,7 @@ if config["monte_carlo"]["options"].get("add_to_snakefile", False) == True:
             + RDIR
             + "networks/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}_{unc}.nc",
         log:
-            solver=normpath(
+            solver=os.path.normpath(
                 "logs/"
                 + RDIR
                 + "solve_network/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}_{unc}_solver.log"
@@ -1468,7 +1469,9 @@ rule build_clustered_population_layouts:
         pop_layout_rural="resources/"
         + SECDIR
         + "population_shares/pop_layout_rural_{planning_horizons}.nc",
-        gdp_layout="resources/" + SECDIR + "gdp_shares/gdp_layout_{planning_horizons}.nc",
+        gdp_layout="resources/"
+        + SECDIR
+        + "gdp_shares/gdp_layout_{planning_horizons}.nc",
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
