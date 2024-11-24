@@ -76,7 +76,7 @@ if __name__ == "__main__":
             clusters=50,
         )
 
-    regions = gpd.read_file(snakemake.input.regions_onshore).set_index("name")
+    regions = gpd.read_file(snakemake.input.shapes).set_index("GADM_ID")
 
     capex_gdf = (
         get_raster_file(snakemake.input.egs_capex)

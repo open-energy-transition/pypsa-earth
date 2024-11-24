@@ -354,6 +354,9 @@ def add_enhanced_geothermal(n):
         capex = ss.index.values * 1000 # from $/kW to $/MW
         opex = ss["opex[$/kWh]"].values
 
+        # annuitize capex
+        capex = capex * 0.07 / (1 - (1 + 0.07) ** - 25)  # 7% interest rate, 25 years
+
         n.madd(
             "Bus",
             nodes,
