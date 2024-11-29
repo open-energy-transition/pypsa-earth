@@ -92,7 +92,6 @@ rule clean:
         shell("snakemake -j 1 run_all_scenarios --delete-all-output")
 
 
-'''
 rule solve_all_networks:
     input:
         expand(
@@ -511,7 +510,6 @@ rule build_powerplants:
         mem_mb=500,
     script:
         "scripts/build_powerplants.py"
-'''
 
 
 rule build_egs_potentials:
