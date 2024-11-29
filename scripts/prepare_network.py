@@ -321,81 +321,6 @@ def set_line_nom_max(n, s_nom_max_set=np.inf, p_nom_max_set=np.inf):
     n.links.p_nom_max = n.links.p_nom_max.clip(upper=p_nom_max_set)
 
 
-def add_enhanced_geothermal(n):
-
-    egs_potential = pd.read_csv(snakemake.input["egs_potentials"], index_col=[0, 1])
-
-    idx = pd.IndexSlice
-
-    n.add(
-        "Bus",
-        "EGS",
-        carrier="geothermal heat",
-        unit="MWh_th",
-    )
-
-    n.add(
-        "Generator",
-        "EGS",
-        bus="EGS",
-        carrier="geothermal heat",
-        p_nom_extendable=True,
-    )
-
-    eta = 0.15  # preliminary
-
-    for bus in egs_potential.index.get_level_values(0).unique():
-
-        ss = egs_potential.loc[idx[bus, :]]
-
-        nodes = f"{bus} " + pd.Index(range(len(ss)), dtype=str)
-
-        p_nom_max = ss["available_capacity[MW]"].values
-        capex = ss.index.values * 1000 # from $/kW to $/MW
-        opex = ss["opex[$/kWh]"].values
-
-        # annuitize capex
-        capex = capex * 0.07 / (1 - (1 + 0.07) ** - 25)  # 7% interest rate, 25 years
-
-        n.madd(
-            "Bus",
-            nodes,
-            suffix=" EGS surface",
-            carrier="geothermal heat",
-        )
-
-        n.madd(
-            "Link",
-            nodes,
-            suffix=" EGS well",
-            bus0="EGS",
-            bus1=nodes + " EGS surface",
-            p_nom_max=p_nom_max / eta,
-            capital_cost=capex * eta,
-            p_nom_extendable=True,
-        )
-
-        n.madd(
-            "StorageUnit",
-            nodes,
-            suffix=" EGS reservoir",
-            bus=nodes + " EGS surface",
-            max_hours=100,  # should be agreed on, constraint to be implemented
-        )
-
-        n.madd(
-            "Link",
-            nodes,
-            suffix=" EGS surface",
-            bus0=nodes + " EGS surface",
-            bus1=bus,
-            carrier="orc",
-            efficiency=eta,
-            marginal_cost=opex,
-            p_nom_extendable=True,
-        )
-
-
 if __name__ == "__main__":
     if "snakemake" not in globals():
         snakemake = mock_snakemake(
@@ -420,9 +345,6 @@ if __name__ == "__main__":
     s_max_pu = snakemake.params.lines["s_max_pu"]
 
     set_line_s_max_pu(n, s_max_pu)
-
-    if snakemake.params.renewable["enhanced_geothermal"]["enable"]:
-        add_enhanced_geothermal(n)
 
     for o in opts:
         m = re.match(r"^\d+h$", o, re.IGNORECASE)
