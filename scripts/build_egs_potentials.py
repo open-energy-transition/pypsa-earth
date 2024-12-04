@@ -144,7 +144,19 @@ if __name__ == "__main__":
 
         labels = bins.rolling(2).mean().dropna().tolist()
 
-        ss['level'] = pd.cut(ss['capex[$/kW]'], bins=bins, labels=labels)
+        if ss.empty:
+            continue
+
+        if len(ss) > 1:
+            ss['level'] = pd.cut(
+                ss['capex[$/kW]'],
+                bins=bins,
+                labels=labels,
+                duplicates='drop'
+                )
+        else:
+            ss['level'] = ss['capex[$/kW]'].iloc[0]
+
         ss = ss.dropna()
 
         ss = (
