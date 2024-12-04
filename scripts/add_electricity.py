@@ -97,6 +97,7 @@ from _helpers import (
     read_csv_nafix,
     update_p_nom_max,
 )
+from tqdm import tqdm
 from powerplantmatching.export import map_country_bus
 
 idx = pd.IndexSlice
@@ -835,10 +836,12 @@ def attach_enhanced_geothermal(n):
 
     eta = 0.15  # preliminary
 
-    for bus in egs_potential.index.get_level_values(0).unique():
+    for bus in tqdm(
+        egs_potential.index.get_level_values(0).unique(),
+        desc="Adding enhanced geothermal",
+        ):
 
         ss = egs_potential.loc[idx[bus, :]]
-
         nodes = f"{bus} " + pd.Index(range(len(ss)), dtype=str)
 
         p_nom_max = ss["available_capacity[MW]"].values
@@ -846,7 +849,9 @@ def attach_enhanced_geothermal(n):
         opex = ss["opex[$/kWh]"].values
 
         # annuitize capex
-        capex = capex * 0.07 / (1 - (1 + 0.07) ** - 25)  # 7% interest rate, 25 years
+        capex = (
+            capex * 0.07 / (1 - (1 + 0.07) ** - 25)  # 7% interest rate, 25 years lifetime
+        )
 
         n.madd(
             "Bus",
@@ -949,7 +954,7 @@ if __name__ == "__main__":
         extendable_carriers,
         snakemake.params.length_factor,
     )
-    attach_hydro(n, costs, ppl)
+    # attach_hydro(n, costs, ppl)
 
     if snakemake.params.renewable["enhanced_geothermal"]["enable"]:
         attach_enhanced_geothermal(n)

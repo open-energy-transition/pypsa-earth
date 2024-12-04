@@ -3,6 +3,10 @@
 heat content by overlaying subsurface potential with geospatial demand data."""
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 import os
 
 import rasterio
@@ -14,6 +18,7 @@ import geopandas as gpd
 from rasterio.transform import xy
 from shapely.geometry import Point
 
+from _helpers import configure_logging
 
 
 def get_demands(df, x, y):
@@ -75,8 +80,10 @@ if __name__ == "__main__":
             simpl="",
             clusters=50,
         )
+    
+    configure_logging(snakemake)
 
-    regions = gpd.read_file(snakemake.input.shapes).set_index("GADM_ID")
+    regions = gpd.read_file(snakemake.input.shapes).set_index("name")
 
     capex_gdf = (
         get_raster_file(snakemake.input.egs_capex)
@@ -120,8 +127,12 @@ if __name__ == "__main__":
 
     regional_potentials = []
 
-    for name, geom in tqdm(regions.geometry.items()):
-        
+    for name, geom in tqdm(
+        regions.geometry.items(),
+        desc='Matching EGS potentials to network regions',
+        ascii=True
+        ):
+
         ss = gdf.loc[gdf.geometry.within(geom)]
         if ss.empty:
             continue
@@ -161,7 +172,8 @@ if __name__ == "__main__":
 
         ss = (
             ss
-            .groupby('level')[['available_capacity[MW]', 'opex[$/kWh]']]
+            .groupby('level', observed=False)
+            [['available_capacity[MW]', 'opex[$/kWh]']]
             .agg({'available_capacity[MW]': 'sum', 'opex[$/kWh]': 'mean'})
         )
         ss.index = list(map(myround, ss.index))

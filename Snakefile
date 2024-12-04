@@ -519,7 +519,7 @@ rule build_egs_potentials:
         egs_capex="data/p100_h0/Total_CAPEX_USDmm.tif",
         egs_opex="data/p100_h0/Average_OPEX_cUSDkW-h.tif",
         egs_gen="data/p100_h0/Average_Electric_Energy_Output_MWhyear.tif",
-        shapes="resources/" + RDIR + "gadm_shapes.geojson",
+        shapes="resources/" + RDIR + "bus_regions/regions_onshore.geojson",
     output:
         egs_potentials="resources/" + RDIR + "egs_potential.csv",
     threads: 2
