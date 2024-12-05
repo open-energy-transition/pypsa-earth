@@ -59,7 +59,8 @@ load_data_paths = get_load_paths_gegis("data", config)
 if config["enable"].get("retrieve_cost_data", True):
     COSTS = "resources/" + RDIR + "costs.csv"
 else:
-    COSTS = "data/costs.csv"
+    COSTS = "data/costs_2030.csv"
+    # COSTS = "data/costs.csv"
 ATLITE_NPROCESSES = config["atlite"].get("nprocesses", 4)
 
 
@@ -803,6 +804,20 @@ rule prepare_network:
         mem_mb=4000,
     script:
         "scripts/prepare_network.py"
+
+
+rule build_industrial_heating_costs:
+    input:
+        costs=COSTS,
+    output:
+        "resources/" + RDIR + "industrial_heating_costs.csv",
+    threads: 1
+    log:
+        "logs/" + RDIR + "build_industrial_heating_costs.log",
+    resources:
+        mem_mb=2000,
+    script:
+        "scripts/build_industrial_heating_costs.py"
 
 
 def memory(w):
