@@ -807,6 +807,8 @@ rule prepare_network:
 
 
 rule build_industrial_heating_costs:
+    params:
+        cost_year=config["costs"]["year"],
     input:
         costs=COSTS,
     output:
