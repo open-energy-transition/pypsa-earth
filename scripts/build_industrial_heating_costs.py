@@ -118,7 +118,7 @@ if __name__ == '__main__':
             idx[['industrial heat pump high temperature', 'industrial heat pump medium temperature'],:]
         ]
         ])
-    
+
     # add solar thermal costs
     manual_costs = pd.concat([
         manual_costs,
