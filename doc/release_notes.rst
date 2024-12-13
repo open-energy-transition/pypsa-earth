@@ -33,6 +33,14 @@ E.g. if a new rule becomes available describe how to use it `make test` and in o
 
 * Enable sector rules import in subworkflow `PR #1178 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1178>`__
 
+* Include option of endogenous export, which optimizes the export quantity based on price signals `PR #1201 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1201>`__
+
+* Remove elec-based H2 and battery technologies before addition in `prepare_sector_network.py` script and fix bus names for links that models H2 repuspose network `PR #1198 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1198>`__
+
+* Drop vrestil depenedncy `PR #1220 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1220>`__
+
+* Add electricity distribution grid with solar rooftop and home battery technologies `PR #1221 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1221>`__
+
 **Minor Changes and bug-fixing**
 
 * The default configuration for `electricity:estimate_renewable_capacities:year` was updated from 2020 to 2023. `PR #1106 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1106>`__
@@ -55,7 +63,15 @@ E.g. if a new rule becomes available describe how to use it `make test` and in o
 
 * Adds code security scans via `CodeQL <https://codeql.github.com/>`__ to CI. `PR #1185 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1185>`__
 
-* Adds CI to update keep pinned environment files up to date. `PR #1183 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1183>`__
+* Adds CI to update keep pinned environment files up to date. `PR #1183 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1183>`__ and  `PR #1210 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1210>`__
+
+* Revise ports data for export in `add_export.py` related to sector model `PR #1175 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1175>`_
+
+* Restore string values of tech_colors in config file `PR #1205 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1205>`_
+
+* Remove duplicate entries from hydrogen export ports `PR #1233 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1233>`_
+
+* Fix the environment placing a version limit to numpoly `PR #1237 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1237>`_
 
 PyPSA-Earth 0.4.1
 =================

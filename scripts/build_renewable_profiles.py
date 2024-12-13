@@ -191,6 +191,7 @@ node (`p_nom_max`): ``simple`` and ``conservative``:
   reached.
 """
 import functools
+import os
 import time
 from math import isnan
 
@@ -201,7 +202,7 @@ import numpy as np
 import pandas as pd
 import progressbar as pgb
 import xarray as xr
-from _helpers import BASE_DIR, configure_logging, create_logger, get_path, mock_snakemake
+from _helpers import BASE_DIR, configure_logging, create_logger
 from add_electricity import load_powerplants
 from dask.distributed import Client
 from pypsa.geo import haversine
@@ -216,7 +217,7 @@ COPERNICUS_CRS = "EPSG:4326"
 GEBCO_CRS = "EPSG:4326"
 
 
-def check_cutout_match(cutout):
+def check_cutout_match(cutout, geodf):
     cutout_box = box(*cutout.bounds)
     region_box = box(*regions.total_bounds)
 
@@ -279,7 +280,7 @@ def get_hydro_capacities_annual_hydro_generation(fn, countries, year):
     return hydro_prod_by_country
 
 
-def check_cutout_completeness(cf):
+def check_cutout_completness(cf):
     """
     Check if a cutout contains missed values.
 
@@ -346,7 +347,7 @@ def rescale_hydro(plants, runoff, normalize_using_yearly, normalization_year):
     runoff : xarray object
         Runoff at each bus
     normalize_using_yearly : DataFrame
-        DataFrame that specifies for every country the total hydro production
+        Dataframe that specifies for every country the total hydro production
     year : int
         Year used for normalization
     """
@@ -482,8 +483,9 @@ def rescale_hydro(plants, runoff, normalize_using_yearly, normalization_year):
 
 if __name__ == "__main__":
     if "snakemake" not in globals():
-        snakemake = mock_snakemake("build_renewable_profiles", technology="solar")
+        from _helpers import mock_snakemake
 
+        snakemake = mock_snakemake("build_renewable_profiles", technology="solar")
     configure_logging(snakemake)
 
     pgb.streams.wrap_stderr()
@@ -522,7 +524,7 @@ if __name__ == "__main__":
 
     cutout = atlite.Cutout(paths["cutout"])
 
-    check_cutout_match(cutout=cutout)
+    check_cutout_match(cutout=cutout, geodf=regions)
 
     if not snakemake.wildcards.technology.startswith("hydro"):
         # the region should be restricted for non-hydro technologies, as the hydro potential is calculated across hydrobasins which may span beyond the region of the country
@@ -536,7 +538,9 @@ if __name__ == "__main__":
     # filter plants for hydro
     if snakemake.wildcards.technology.startswith("hydro"):
         country_shapes = gpd.read_file(paths.country_shapes)
-        hydrobasins = gpd.read_file(get_path(BASE_DIR, resource["hydrobasins"]))
+        hydrobasins_path = os.path.join(BASE_DIR, resource["hydrobasins"])
+        resource["hydrobasins"] = hydrobasins_path
+        hydrobasins = gpd.read_file(hydrobasins_path)
         ppls = load_powerplants(snakemake.input.powerplants)
 
         hydro_ppls = ppls[ppls.carrier == "hydro"]
@@ -711,7 +715,7 @@ if __name__ == "__main__":
         capacity_factor = correction_factor * func(capacity_factor=True, **resource)
         layout = capacity_factor * area * capacity_per_sqkm
 
-        n_cells_lost = check_cutout_completeness(capacity_factor)
+        n_cells_lost = check_cutout_completness(capacity_factor)
 
         profile, capacities = func(
             matrix=availability.stack(spatial=["y", "x"]),
