@@ -63,7 +63,8 @@ load_data_paths = get_load_paths_gegis("data", config)
 if config["enable"].get("retrieve_cost_data", True):
     COSTS = "resources/" + RDIR + "costs.csv"
 else:
-    COSTS = "data/costs.csv"
+    COSTS = "data/costs_2030.csv"
+    # COSTS = "data/costs.csv"
 ATLITE_NPROCESSES = config["atlite"].get("nprocesses", 4)
 
 
@@ -471,10 +472,10 @@ rule build_renewable_profiles:
             if w.technology in ("onwind", "solar", "hydro", "csp")
             else "resources/" + RDIR + "bus_regions/regions_offshore.geojson"
         ),
-        cutout=lambda w: "cutouts/"
-        + CDIR
-        + config["renewable"][w.technology]["cutout"]
-        + ".nc",
+        # cutout=lambda w: "cutouts/"
+        # + CDIR
+        # + config["renewable"][w.technology]["cutout"]
+        # + ".nc",
     output:
         profile="resources/" + RDIR + "renewable_profiles/profile_{technology}.nc",
     log:
@@ -516,6 +517,25 @@ rule build_powerplants:
         "scripts/build_powerplants.py"
 
 
+rule build_egs_potentials:
+    params:
+        enhanced_geothermal=config["renewable"]["enhanced_geothermal"],
+    input:
+        egs_capex="data/p100_h0/Total_CAPEX_USDmm.tif",
+        egs_opex="data/p100_h0/Average_OPEX_cUSDkW-h.tif",
+        egs_gen="data/p100_h0/Average_Electric_Energy_Output_MWhyear.tif",
+        shapes="resources/" + RDIR + "bus_regions/regions_onshore.geojson",
+    output:
+        egs_potentials="resources/" + RDIR + "egs_potential.csv",
+    threads: 2
+    resources:
+        mem_mb=10000,
+    benchmark:
+        RDIR + "/benchmarks/build_egs_potentials/egs_potential"
+    script:
+        "scripts/build_egs_potentials.py"
+
+
 rule add_electricity:
     params:
         countries=config["countries"],
@@ -546,9 +566,10 @@ rule add_electricity:
         #using this line instead of the following will test updated gadm shapes for MA.
         #To use: download file from the google drive and place it in resources/" + RDIR + "shapes/
         #Link: https://drive.google.com/drive/u/1/folders/1dkW1wKBWvSY4i-XEuQFFBj242p0VdUlM
-        gadm_shapes="resources/" + RDIR + "shapes/gadm_shapes.geojson",
+        gadm_shapes="resources/" + RDIR + "gadm_shapes.geojson",
         hydro_capacities="data/hydro_capacities.csv",
-        demand_profiles="resources/" + RDIR + "demand_profiles.csv",
+        demand_profiles="resources/" + RDIR + "demand_profiles_ac.csv",
+        egs_potentials="resources/" + RDIR + "egs_potential.csv",
     output:
         "networks/" + RDIR + "elec.nc",
     log:
@@ -767,9 +788,11 @@ rule prepare_network:
         s_max_pu=config["lines"]["s_max_pu"],
         electricity=config["electricity"],
         costs=config["costs"],
+        renewable=config["renewable"],
     input:
         "networks/" + RDIR + "elec_s{simpl}_{clusters}_ec.nc",
         tech_costs=COSTS,
+    threads: 2
     output:
         "networks/" + RDIR + "elec_s{simpl}_{clusters}_ec_l{ll}_{opts}.nc",
     log:
@@ -785,6 +808,22 @@ rule prepare_network:
         mem_mb=4000,
     script:
         "scripts/prepare_network.py"
+
+
+rule build_industrial_heating_costs:
+    params:
+        cost_year=config["costs"]["year"],
+    input:
+        costs=COSTS,
+    output:
+        "resources/" + RDIR + "industrial_heating_costs.csv",
+    threads: 1
+    log:
+        "logs/" + RDIR + "build_industrial_heating_costs.log",
+    resources:
+        mem_mb=2000,
+    script:
+        "scripts/build_industrial_heating_costs.py"
 
 
 def memory(w):
@@ -1397,10 +1436,10 @@ rule build_solar_thermal_profiles:
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         solar_thermal_total="resources/"
@@ -1430,10 +1469,10 @@ rule build_population_layouts:
     input:
         nuts3_shapes="resources/" + RDIR + "shapes/gadm_shapes.geojson",
         urban_percent="data/urban_percent.csv",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         pop_layout_total="resources/"
@@ -1483,10 +1522,10 @@ rule build_clustered_population_layouts:
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         clustered_pop_layout="resources/"
@@ -1523,10 +1562,10 @@ rule build_heat_demand:
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         heat_demand_urban="resources/"
@@ -1566,10 +1605,10 @@ rule build_temperature_profiles:
         regions_onshore="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
-        cutout="cutouts/"
-        + CDIR
-        + [c["cutout"] for _, c in config["renewable"].items()][0]
-        + ".nc",
+        # cutout="cutouts/"
+        # + CDIR
+        # + [c["cutout"] for _, c in config["renewable"].items()][0]
+        # + ".nc",
         # default to first cutout found
     output:
         temp_soil_total="resources/"

@@ -97,6 +97,7 @@ from _helpers import (
     read_csv_nafix,
     update_p_nom_max,
 )
+from tqdm import tqdm
 from powerplantmatching.export import map_country_bus
 
 idx = pd.IndexSlice
@@ -815,6 +816,85 @@ def add_nice_carrier_names(n, config):
     n.carriers["color"] = colors
 
 
+def attach_enhanced_geothermal(n):
+
+    egs_potential = pd.read_csv(snakemake.input["egs_potentials"], index_col=[0, 1])
+
+    idx = pd.IndexSlice
+
+    n.add(
+        "Bus",
+        "EGS",
+        carrier="geothermal heat",
+        unit="MWh_th",
+    )
+
+    n.add(
+        "Generator",
+        "EGS",
+        bus="EGS",
+        carrier="geothermal heat",
+        p_nom_extendable=True,
+    )
+
+    eta = 0.15  # preliminary
+
+    for bus in tqdm(
+        egs_potential.index.get_level_values(0).unique(),
+        desc="Adding enhanced geothermal",
+        ):
+
+        ss = egs_potential.loc[idx[bus, :]]
+        nodes = f"{bus} " + pd.Index(range(len(ss)), dtype=str)
+
+        p_nom_max = ss["available_capacity[MW]"].values
+        capex = ss.index.values * 1000 # from $/kW to $/MW
+        opex = ss["opex[$/kWh]"].values
+
+        # annuitize capex
+        capex = (
+            capex * 0.07 / (1 - (1 + 0.07) ** - 25)  # 7% interest rate, 25 years lifetime
+        )
+
+        n.madd(
+            "Bus",
+            nodes,
+            suffix=" EGS surface",
+            carrier="geothermal heat",
+        )
+
+        n.madd(
+            "Link",
+            nodes,
+            suffix=" EGS well",
+            bus0="EGS",
+            bus1=nodes + " EGS surface",
+            p_nom_max=p_nom_max / eta,
+            capital_cost=capex * eta,
+            p_nom_extendable=True,
+        )
+
+        n.madd(
+            "StorageUnit",
+            nodes,
+            suffix=" EGS reservoir",
+            bus=nodes + " EGS surface",
+            max_hours=100,  # should be agreed on, constraint to be implemented
+        )
+
+        n.madd(
+            "Link",
+            nodes,
+            suffix=" EGS surface",
+            bus0=nodes + " EGS surface",
+            bus1=bus,
+            carrier="orc",
+            efficiency=eta,
+            marginal_cost=opex,
+            p_nom_extendable=True,
+        )
+
+
 if __name__ == "__main__":
     if "snakemake" not in globals():
         snakemake = mock_snakemake("add_electricity")
@@ -877,7 +957,10 @@ if __name__ == "__main__":
         extendable_carriers,
         snakemake.params.length_factor,
     )
-    attach_hydro(n, costs, ppl)
+    # attach_hydro(n, costs, ppl)
+
+    if snakemake.params.renewable["enhanced_geothermal"]["enable"]:
+        attach_enhanced_geothermal(n)
 
     if snakemake.params.electricity.get("estimate_renewable_capacities"):
         estimate_renewable_capacities_irena(
