@@ -822,6 +822,29 @@ rule build_industrial_heating_costs:
         "scripts/build_industrial_heating_costs.py"
 
 
+rule build_industrial_heating_demands:
+    input:
+        demand_data="dummy/translated_to_us.geojson",
+        regions=(
+            "resources/"
+            + RDIR
+            + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson"
+        ),
+    output:
+        industrial_heating_demand=(
+            "resources/"
+            + RDIR
+            + "industrial_heating_demand_s{simpl}_{clusters}.csv"
+        ),
+    threads: 1
+    log:
+        "logs/" + RDIR + "build_industrial_heating_demand_s{simpl}_{clusters}.log",
+    resources:
+        mem_mb=2000,
+    script:
+        "scripts/build_industrial_heating_demand.py"
+
+
 def memory(w):
     factor = 3.0
     for o in w.opts.split("-"):
