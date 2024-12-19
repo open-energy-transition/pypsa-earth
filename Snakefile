@@ -812,7 +812,7 @@ rule build_industrial_heating_costs:
     input:
         costs=COSTS,
     output:
-        "resources/" + RDIR + "industrial_heating_costs.csv",
+        industry_heating_costs="resources/" + RDIR + "industrial_heating_costs.csv",
     threads: 1
     log:
         "logs/" + RDIR + "build_industrial_heating_costs.log",
@@ -831,10 +831,15 @@ rule build_industrial_heating_demands:
             + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson"
         ),
     output:
-        industrial_heating_demand=(
+        industrial_heating_egs_supply_curves=(
             "resources/"
             + RDIR
-            + "industrial_heating_demand_s{simpl}_{clusters}.csv"
+            + "industrial_heating_egs_supply_curves_s{simpl}_{clusters}.csv"
+        ),
+        industrial_heating_demands=(
+            "resources/"
+            + RDIR
+            + "industrial_heating_demands_s{simpl}_{clusters}.csv"
         ),
     threads: 1
     log:
@@ -1147,9 +1152,20 @@ rule prepare_sector_network:
         solar_thermal="resources/demand/heat/solar_thermal_{demand}_s{simpl}_{clusters}_{planning_horizons}.csv",
         district_heat_share="resources/demand/heat/district_heat_share_{demand}_s{simpl}_{clusters}_{planning_horizons}.csv",
         biomass_transport_costs="data/temp_hard_coded/biomass_transport_costs.csv",
+        industrial_heating_egs_supply_curves=(
+            "resources/"
+            + RDIR
+            + "industrial_heating_egs_supply_curves_s{simpl}_{clusters}.csv"
+        ),
+        industrial_heating_demands=(
+            "resources/"
+            + RDIR
+            + "industrial_heating_demands_s{simpl}_{clusters}.csv"
+        ),
         shapes_path="resources/"
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
+        industrial_heating_costs="resources/" + RDIR + "industrial_heating_costs.csv",
         pipelines=(
             "data/custom/pipelines.csv"
             if config["custom_data"]["gas_network"]

@@ -460,12 +460,22 @@ if __name__ == '__main__':
         index=pd.MultiIndex.from_product([regions.index, range(n_cost_steps)], names=['region', 'cost_step']),
         columns=['capex[$/MW]', 'avail_capacity[MW]', 'opex[$/MWh]']
         )
+    
+    final_demands = pd.DataFrame(
+        index=regions.index,
+        columns=['demand(50-150C)[MWh]', 'demand(150-250C)[MWh]']
+        )
 
     for region, geometry in regions['geometry'].items():
 
         regional_supply = pd.DataFrame(columns=final_costs.columns)
 
         ss = gdf.loc[gdf['geometry'].within(geometry)]
+
+        final_demands.loc[region, 'demand(50-150C)[MW]'] = ss.loc[ss['temperature'] <= 150, 'avg_demand'].sum()
+        final_demands.loc[region, 'demand(150-250C)[MW]'] = ss.loc[
+            (ss['temperature'] > 150) & (ss['temperature'] <= 250), 'avg_demand'
+            ].sum()
 
         if ss.empty:
             logger.warning(f"No data for {region}")
@@ -545,7 +555,7 @@ if __name__ == '__main__':
             cluster_supply['opex[$/MWh]'] = 0.0
 
             regional_supply = regional_supply.append(cluster_supply, ignore_index=True)
-    
+
         bins = pd.Series(
                 np.linspace(
                     ss['capex[$/kW]'].min(),
@@ -554,7 +564,13 @@ if __name__ == '__main__':
                     )
                 )
 
-        labels = bins.rolling(2).mean().dropna().tolist()
+        labels = (
+            bins
+            .rolling(2)
+            .mean()
+            .dropna()
+            .tolist()
+        )
 
         if regional_supply.empty:
             continue
@@ -580,4 +596,5 @@ if __name__ == '__main__':
 
     final_costs = pd.concat((final_costs, regional_supply))
 
-    final_costs.to_csv(snakeamke.output['industrial_heating_demand'])
+    final_costs.to_csv(snakemake.output['industrial_heating_egs_supply_curves'])
+    final_demands.to_csv(snakemake.output['industrial_heating_demands'])

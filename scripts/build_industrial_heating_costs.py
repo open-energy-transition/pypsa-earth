@@ -203,4 +203,4 @@ if __name__ == '__main__':
             ]
         ])
 
-    print(manual_costs)
+    manual_costs.to_csv(snakemake.output['industrial_heating_costs'])
