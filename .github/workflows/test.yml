@@ -6,9 +6,10 @@ on:
     branches:
     - geothermal-project
     - add_cooling
-  pull_request:
-    branches:
-    - main
+    - enable_ci
+  # pull_request:
+  #   branches:
+  #   - main
   schedule:
   - cron: "0 5 * * TUE"
 
