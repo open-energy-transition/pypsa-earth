@@ -2,6 +2,10 @@ name: Test workflows
 
 on:
   workflow_dispatch:
+    branches:
+    - geothermal-project
+    - add_cooling
+    - enable_ci
   push:
     branches:
     - geothermal-project
