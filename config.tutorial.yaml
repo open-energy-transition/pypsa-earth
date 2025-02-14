@@ -9,6 +9,7 @@ tutorial: true
 countries: ["NG", "BJ"]
 
 enable:
+  retrieve_databundle: true #  Recommended 'true', for the first run. Otherwise data might be missing.
   build_natura_raster: true
   progress_bar: false
 
