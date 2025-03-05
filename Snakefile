@@ -1980,8 +1980,7 @@ if config["foresight"] == "myopic":
             clustered_pop_layout="resources/"
             + SECDIR
             + "population_shares/pop_layout_elec_s{simpl}_{clusters}_{planning_horizons}.csv",
-            costs=CDIR
-            + "costs_{}.csv".format(config["scenario"]["planning_horizons"][0]),
+            costs="resources/" + RDIR + "costs_{planning_horizons}.csv",
             cop_soil_total="resources/"
             + SECDIR
             + "cops/cop_soil_total_elec_s{simpl}_{clusters}_{planning_horizons}.nc",
@@ -2085,11 +2084,12 @@ if config["foresight"] == "myopic":
             co2_sequestration_potential=config["scenario"].get(
                 "co2_sequestration_potential", 200
             ),
+            augmented_line_connection=config["augmented_line_connection"],
         input:
             overrides="data/override_component_attrs",
             network=RESDIR
             + "prenetworks-brownfield/elec_s{simpl}_{clusters}_l{ll}_{opts}_{sopts}_{planning_horizons}_{discountrate}_{demand}_{h2export}export.nc",
-            costs=CDIR + "costs_{planning_horizons}.csv",
+            costs="resources/" + RDIR + "costs_{planning_horizons}.csv",
             configs=SDIR + "configs/config.yaml",  # included to trigger copy_config rule
         output:
             network=RESDIR
