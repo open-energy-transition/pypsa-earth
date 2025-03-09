@@ -2943,7 +2943,6 @@ if __name__ == "__main__":
     # countries = list(n.buses.country.unique())
     countries = snakemake.config["countries"]
     # Locate all the AC buses
-    # breakpoint()
     nodes = n.buses[
         n.buses.carrier == "AC"
     ].index  # TODO if you take nodes from the index of buses of n it's more than pop_layout
@@ -2953,7 +2952,6 @@ if __name__ == "__main__":
     n.buses.location = n.buses.index
 
     # Set carrier of AC loads
-    # breakpoint()
     n.loads.loc[nodes, "carrier"] = "AC"
 
     Nyears = n.snapshot_weightings.generators.sum() / 8760
