@@ -29,6 +29,8 @@ This part of documentation collects descriptive release notes to capture the mai
 
 * Fix lossy bidirectional links, especially H2 pipelines, which would sometimes gain H2 instead of losing it.  `PR #1192 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1192>`__
 
+* Fix the scaling factor for time-varying loads of the sector model `PR #1372 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1372>`__
+
 PyPSA-Earth 0.6.0
 =================
 
