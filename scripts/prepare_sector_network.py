@@ -2825,7 +2825,7 @@ def add_rail_transport(n, costs):
         spatial.nodes,
         suffix=" rail transport oil",
         bus=spatial.oil.nodes,
-        carrier=" rail transport oil",
+        carrier="rail transport oil",
         p_set=p_set_oil * 1e6 / 8760,
     )
 
@@ -2834,7 +2834,7 @@ def add_rail_transport(n, costs):
         spatial.nodes,
         suffix=" rail transport electricity",
         bus=spatial.nodes,
-        carrier=" rail transport electricity",
+        carrier="rail transport electricity",
         p_set=p_set_elec * 1e6 / 8760,
     )
 
