@@ -864,6 +864,7 @@ def extra_functionality(n, snapshots):
     """
     opts = n.opts
     config = n.config
+
     if "BAU" in opts and n.generators.p_nom_extendable.any():
         add_BAU_constraints(n, config)
     if "SAFE" in opts and n.generators.p_nom_extendable.any():
