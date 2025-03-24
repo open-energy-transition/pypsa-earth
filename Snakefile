@@ -516,9 +516,9 @@ rule build_egs_potentials:
         costs=config["costs"],
         enhanced_geothermal=config["renewable"]["enhanced_geothermal"],
     input:
-        egs_capex="data/p{power_share}_h{heat_share}/Total_CAPEX_USDmm.tif",
-        egs_opex="data/p{power_share}_h{heat_share}/Average_OPEX_cUSDkW-h.tif",
-        egs_gen="data/p{power_share}_h{heat_share}/Average_Electric_Energy_Output_MWhyear.tif",
+        egs_capex=f"data/p{ps}_h{100 - int(ps)}/Total_CAPEX_USDmm.tif",
+        egs_opex=f"data/p{ps}_h{100 - int(ps)}/Average_OPEX_cUSDkW-h.tif",
+        egs_gen=f"data/p{ps}_h{100 - int(ps)}/Average_Electric_Energy_Output_MWhyear.tif",
         shapes=(
             "resources/"
             + RDIR
@@ -528,12 +528,12 @@ rule build_egs_potentials:
         egs_potentials=
             "resources/"
             + SECDIR
-            + "egs_potential_s{simpl}_{clusters}_p{power_share}_h{heat_share}.csv",
+            + f"egs_potential_s{simpl}_{clusters}_p{ps}_h{100 - int(ps)}.csv",
     threads: 2
     resources:
         mem_mb=10000,
     benchmark:
-        RDIR + "/benchmarks/build_egs_potentials/egs_potential_s{simpl}_{clusters}_p{power_share}_h{heat_share}"
+        RDIR + f"/benchmarks/build_egs_potentials/egs_potential_s{simpl}_{clusters}_p{ps}_h{100 - int(ps)}"
     script:
         "scripts/build_egs_potentials.py"
 
@@ -1239,19 +1239,22 @@ rule prepare_sector_network:
             + SECDIR
             + "industrial_heating_costs.csv"
         ),
+        heat_exchanger_capacity=(
+            "resources/"
+            + SECDIR
+            + "heat_exchanger_capacity_s{simpl}_{clusters}.csv"
+        ),
         egs_potentials=lambda wildcards: [
             "resources/"
             + SECDIR
-            + f"egs_potential_s{wildcards.simpl}_{wildcards.clusters}_p{ps}_h{hs}.csv"
-            for ps, hs in zip(
-                [100, 50], [0, 50]
-                # get_power_steps(
+            + f"egs_potential_s{wildcards.simpl}_{wildcards.clusters}_p{ps}_h{int(100-ps)}.csv"
+            for ps in [100, 50]
+            # get_power_steps(
                 #     config["enhanced_geothermal"]["power_heat_ratio_steps"]
                 # ),
                 # get_heat_steps(
                 #     config["enhanced_geothermal"]["power_heat_ratio_steps"]
                 # )
-            )
             ],
     output:
         RESDIR

@@ -2791,88 +2791,111 @@ def add_electricity_distribution_grid(n, costs):
 #         constant=co2_limit,
 #     )
 
-def add_industry_demand(n, demand):
+def add_industry_demand(n, demand, heat_exchanger_capacity):
+
+    print(demand)
 
     avail = spatial.nodes.intersection(demand.index)
 
-    carrier = "low temperature heat 50-100C for industry"
+    low_temp_carrier = "low temperature heat 50-80C for industry"
+    medium_temp_carrier = "medium temperature heat 80-150C for industry"
+    high_temp_carrier = "high temperature heat 150-250C for industry"
 
     n.madd(
         "Bus",
-        avail + " " + carrier,
-        carrier=carrier
+        avail + " " + low_temp_carrier,
+        carrier=low_temp_carrier
     )
 
     n.madd(
         "Load",
-        avail + " " + carrier,
-        bus=avail + " " + carrier,
-        carrier=carrier,
-        p_set=demand.loc[avail, "demand(50-100C)[MW]"]
+        avail + " " + low_temp_carrier,
+        bus=avail + " " + low_temp_carrier,
+        carrier=low_temp_carrier,
+        p_set=demand.loc[avail, "demand(50-80C)[MW]"]
     )
 
     # Add a store for low temperature heat that can absorb an infinite amount of heat but cannot discharge it
     n.madd(
         "StorageUnit",
-        avail + " " + carrier + " store",
-        bus=avail + " " + carrier,
+        avail + " " + low_temp_carrier + " store",
+        bus=avail + " " + low_temp_carrier,
         p_nom_extendable=True,
         p_max_pu=0.0,
         capital_cost=0.0,
     )
 
     # Medium temperature demand between 150C and 250C for industry
-    carrier = "medium temperature heat 100-200C for industry"
-
     n.madd(
         "Bus",
-        avail + " " + carrier,
-        carrier=carrier
+        avail + " " + medium_temp_carrier,
+        carrier=medium_temp_carrier
     )
 
     n.madd(
         "Load",
-        avail + " " + carrier,
-        bus=avail + " " + carrier,
-        carrier=carrier,
-        p_set=demand.loc[avail, "demand(100-200C)[MW]"]
+        avail + " " + medium_temp_carrier,
+        bus=avail + " " + medium_temp_carrier,
+        carrier=medium_temp_carrier,
+        p_set=demand.loc[avail, "demand(80-150C)[MW]"]
     )
 
     # Add a store for medium temperature heat that can absorb an infinite amount of heat but cannot discharge it
     n.madd(
         "StorageUnit",
-        avail + " " + carrier + " store",
-        bus=avail + " " + carrier,
+        avail + " " + medium_temp_carrier + " store",
+        bus=avail + " " + medium_temp_carrier,
         p_nom_extendable=True,
         p_max_pu=0.0,
         capital_cost=0.0,
     )
 
     # High temperature demand between 200C and 250C for industry
-    carrier = "high temperature heat 200-250C for industry"
-
     n.madd(
         "Bus",
-        avail + " " + carrier,
-        carrier=carrier
+        avail + " " + high_temp_carrier,
+        carrier=high_temp_carrier
     )
 
     n.madd(
         "Load",
-        avail + " " + carrier,
-        bus=avail + " " + carrier,
-        carrier=carrier,
-        p_set=demand.loc[avail, "demand(200-250C)[MW]"]
+        avail + " " + high_temp_carrier,
+        bus=avail + " " + high_temp_carrier,
+        carrier=high_temp_carrier,
+        p_set=demand.loc[avail, "demand(150-250C)[MW]"]
     )
 
     # Add a store for high temperature heat that can absorb an infinite amount of heat but cannot discharge it
     n.madd(
         "StorageUnit",
-        avail + " " + carrier + " store",
-        bus=avail + " " + carrier,
+        avail + " " + high_temp_carrier + " store",
+        bus=avail + " " + high_temp_carrier,
         p_nom_extendable=True,
         p_max_pu=0.0,
         capital_cost=0.0,
+    )
+
+    upper_heat_exchanger_capacity = heat_exchanger_capacity.T.loc[avail, 'high_temp_heat_exchanger_max_capacity']
+    lower_heat_exchanger_capacity = heat_exchanger_capacity.T.loc[avail, 'low_temp_heat_exchanger_max_capacity']
+
+    n.madd(
+        "Link",
+        avail + " " + "industry high temp heat exchanger",
+        bus0=avail + " " + high_temp_carrier,
+        bus1=avail + " " + medium_temp_carrier,
+        carrier="industry high temp heat exchanger",
+        p_nom_max=upper_heat_exchanger_capacity,
+        capital_cost=200_000, # TODO: get actual cost
+    )
+
+    n.madd(
+        "Link",
+        avail + " " + "industry low temp heat exchanger",
+        bus0=avail + " " + medium_temp_carrier,
+        bus1=avail + " " + low_temp_carrier,
+        carrier="industry low temp heat exchanger",
+        p_nom_max=lower_heat_exchanger_capacity,
+        capital_cost=200_000, # TODO: get actual cost
     )
 
 
@@ -2891,13 +2914,15 @@ def add_egs_industry_supply(n, supply_curve):
         ].iterrows():
 
         full_name = {
-            'low temperature industry': 'low temperature heat 50-150C for industry',
-            'medium temperature industry': 'medium temperature heat 150-250C for industry',
+            'low temperature industry': 'low temperature heat 50-80C for industry',
+            'medium temperature industry': 'medium temperature heat 80-150C for industry',
+            'high temperature industry': 'high temperature heat 150-250C for industry',
         }
 
         for carrier in [
             'low temperature industry',
             'medium temperature industry',
+            'high temperature industry',
         ]:
 
             bus1 = region + ' ' + full_name[carrier]
@@ -2939,12 +2964,13 @@ def add_industry_heating(n, costs):
     costs = pd.concat([costs, investment_costs])
     costs = costs['value'].unstack()
 
-    low_temp_buses = n.buses.loc[n.buses.carrier == 'low temperature heat 50-150C for industry'].index
-    medium_temp_buses = n.buses.loc[n.buses.carrier == 'medium temperature heat 150-250C for industry'].index
+    low_temp_buses = n.buses.loc[n.buses.carrier == 'low temperature heat 50-80C for industry'].index
+    medium_temp_buses = n.buses.loc[n.buses.carrier == 'medium temperature heat 80-150C for industry'].index
+    high_temp_buses = n.buses.loc[n.buses.carrier == 'high temperature heat 150-250C for industry'].index
 
     nodes_low = low_temp_buses.str.split(' ').str[0]
     nodes_medium = medium_temp_buses.str.split(' ').str[0]
-
+    nodes_high = high_temp_buses.str.split(' ').str[0]
     # Add carriers if not already present
     carriers = [
         "molten salt store",
@@ -3460,9 +3486,15 @@ if __name__ == "__main__":
     industry_demands = pd.read_csv(
         snakemake.input['industrial_heating_demands'], index_col=0
     )
+    heat_exchanger_capacity = pd.read_csv(
+        snakemake.input['heat_exchanger_capacity'], index_col=0
+    )
+    print(heat_exchanger_capacity.sum(axis=1))
 
     logger.info("Adding industrial heating demands.")
-    add_industry_demand(n, industry_demands)    
+    add_industry_demand(n, industry_demands, heat_exchanger_capacity)
+
+    import sys; sys.exit()
 
     for potential in snakemake.input["egs_potentials"]:
         attach_enhanced_geothermal(n, potential)
@@ -3470,7 +3502,7 @@ if __name__ == "__main__":
     industry_egs_supply = pd.read_csv(
         snakemake.input['industrial_heating_egs_supply_curves'], index_col=[0,1]
     )
-    
+
     logger.info("Adding EGS supply for industry.")
     add_egs_industry_supply(n, industry_egs_supply)
 

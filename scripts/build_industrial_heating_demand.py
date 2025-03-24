@@ -593,7 +593,7 @@ if __name__ == '__main__':
                     max_iterations=10,
                     size_threshold=egs_params['min_network_average_capacity']
                     )
-            
+
                 new_clusters = []
 
                 for label in sorted(pd.Series(new_clustering).value_counts().index):
@@ -612,7 +612,7 @@ if __name__ == '__main__':
                     fixed_clustering.append(fixed_c)
 
                 new_clusters = fixed_clustering
-            
+
             else:
                 new_clusters = clusters
 
