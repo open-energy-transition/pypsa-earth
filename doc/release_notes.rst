@@ -13,6 +13,8 @@ This part of documentation collects descriptive release notes to capture the mai
 
 **New Features and Major Changes**
 
+* Add Wikipedia as a source for the preparation of transport_data.csv  `PR #1410 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1410>`__
+
 * Drop duplication of retrieve_data and COST_DIR, add params and update technology-data version `PR #1249 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1249>`__
 
 * In alternative clustering, generate hydro inflows by shape and avoid hydro inflows duplication for plants installed in the same node `PR #1120 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1120>`
@@ -20,6 +22,8 @@ This part of documentation collects descriptive release notes to capture the mai
 * Add a function to calculate length-based efficiencies and apply it to the H2 pipelines. `PR #1192 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1192>`__
 
 **Minor Changes and bug-fixing**
+
+* Fix problem with a discontinued World Bank data source in prepare_transport_data_input `PR #1410 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1410>`__
 
 * Prevent computation of powerplantmatching if replace option is selected for custom_powerplants `PR #1281 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1281>`__
 
