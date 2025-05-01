@@ -313,6 +313,26 @@ if __name__ == "__main__":
             )
             industry_base_totals.drop(columns=other_cols, inplace=True)
 
+        # Set coal, electricity, and gas to 0 for cement and iron and steel industry (because it is explicitly modeled)
+        for country in countries:
+            if snakemake.config.get("custom_industry",{}).get("steel", False):
+                industry_base_totals.loc[(country, "coal"), "iron and steel"] = 0.0
+                industry_base_totals.loc[(country, "electricity"), "iron and steel"] = 0.0
+                industry_base_totals.loc[(country, "gas"), "iron and steel"] = 0.0
+                industry_base_totals.loc[(country, "process emissions"), "iron and steel"] = 0.0
+                _logger.info(
+                    "Custom steel industry demand enabled. Setting coal, electricity, and gas to 0 for iron and steel industry."
+                )
+
+            if snakemake.config.get("custom_industry",{}).get("cement", False):
+                industry_base_totals.loc[(country, "electricity"), "non-metallic minerals"] = 0.0
+                industry_base_totals.loc[(country, "gas"), "non-metallic minerals"] = 0.0
+                industry_base_totals.loc[(country, "process emissions"), "non-metallic minerals"] = 0.0
+                _logger.info(
+                    "Custom cement industry demand enabled. Setting coal, electricity, and gas to 0 for cement industry."
+                )
+
+
         nodal_df = pd.DataFrame()
 
         for country in countries:
