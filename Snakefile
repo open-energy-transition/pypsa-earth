@@ -1868,6 +1868,8 @@ rule build_base_industry_totals:  #default data
         base_year=config["demand_data"]["base_year"],
         countries=config["countries"],
         other_industries=config["demand_data"]["other_industries"],
+        add_cement=config.get("custom_industry", {}).get("cement", False),
+        add_steel=config.get("custom_industry", {}).get("steel", False),
     input:
         #os.path.dirname(snakemake.input["transactions_path"]) + "/demand/unsd/data/"
         #industrial_production_per_country="data/industrial_production_per_country.csv",
@@ -1887,6 +1889,9 @@ rule build_base_industry_totals:  #default data
             + SECDIR
             + "build_base_industry_totals_{planning_horizons}_{demand}"
         )
+    log:
+        RESDIR
+        + "logs/build_base_industry_totals/{planning_horizons}_{demand}_{params.add_cement}_{params.add_steel}.log",
     script:
         "scripts/build_base_industry_totals.py"
 
