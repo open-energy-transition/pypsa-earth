@@ -358,11 +358,15 @@ def add_battery_constraints(n):
     if nodes.empty or ("Link", "p_nom") not in n.variables.index:
         return
     link_p_nom = get_var(n, "Link", "p_nom")
+
+    chargers_bool = link_p_nom.index.str.contains("battery charger")
+    dischargers_bool = link_p_nom.index.str.contains("battery discharger")
+
     lhs = linexpr(
-        (1, link_p_nom[nodes + " charger"]),
+        (1, link_p_nom[chargers_bool]),
         (
-            -n.links.loc[nodes + " discharger", "efficiency"].values,
-            link_p_nom[nodes + " discharger"].values,
+            -n.links.loc[n.links.index.str.contains("battery discharger"), "efficiency"].values,
+            link_p_nom[dischargers_bool].values,
         ),
     )
     define_constraints(n, lhs, "=", 0, "Link", "charger_ratio")
@@ -1026,11 +1030,17 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
 
         snakemake = mock_snakemake(
-            "solve_network",
+            "solve_network_myopic",
             simpl="",
-            clusters="4",
-            ll="c1",
-            opts="Co2L-4H",
+            clusters="10",
+            ll="copt",
+            opts="24H",
+            sopts="24H",
+            planning_horizons="2030",
+            discountrate=0.071,
+            demand="AB",
+            h2export=10,
+            configfile="../../configs/scenarios/config.myopic.yaml",
         )
 
     configure_logging(snakemake)
