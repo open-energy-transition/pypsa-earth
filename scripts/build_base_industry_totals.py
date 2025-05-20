@@ -9,6 +9,7 @@ Created on Thu Jul 14 19:01:13 2022.
 """
 
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -17,7 +18,6 @@ import country_converter as coco
 import pandas as pd
 from _helpers import aggregate_fuels, get_conv_factors, read_csv_nafix
 from prepare_sector_network import get
-import logging
 
 # def calc_industry_base(df):
 
@@ -200,19 +200,25 @@ if __name__ == "__main__":
 
     # Set coal, electricity, and gas to 0 for cement and iron and steel industry (because it is explicitly modeled)
     for country in countries:
-        if snakemake.config.get("custom_industry",{}).get("steel", False):
+        if snakemake.config.get("custom_industry", {}).get("steel", False):
             industry_totals_base.loc[(country, "coal"), "iron and steel"] = 0.0
             industry_totals_base.loc[(country, "electricity"), "iron and steel"] = 0.0
             industry_totals_base.loc[(country, "gas"), "iron and steel"] = 0.0
-            industry_totals_base.loc[(country, "process emissions"), "iron and steel"] = 0.0
+            industry_totals_base.loc[
+                (country, "process emissions"), "iron and steel"
+            ] = 0.0
             logging.info(
                 "Custom steel industry demand enabled. Setting coal, electricity, and gas to 0 for iron and steel industry."
             )
 
-        if snakemake.config.get("custom_industry",{}).get("cement", False):
-            industry_totals_base.loc[(country, "electricity"), "non-metallic minerals"] = 0.0
+        if snakemake.config.get("custom_industry", {}).get("cement", False):
+            industry_totals_base.loc[
+                (country, "electricity"), "non-metallic minerals"
+            ] = 0.0
             industry_totals_base.loc[(country, "gas"), "non-metallic minerals"] = 0.0
-            industry_totals_base.loc[(country, "process emissions"), "non-metallic minerals"] = 0.0
+            industry_totals_base.loc[
+                (country, "process emissions"), "non-metallic minerals"
+            ] = 0.0
             logging.info(
                 "Custom cement industry demand enabled. Setting coal, electricity, and gas to 0 for cement industry."
             )
