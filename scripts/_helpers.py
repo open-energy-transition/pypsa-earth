@@ -949,6 +949,10 @@ def prepare_costs(
     costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
     costs.loc[costs.unit.str.contains("USD"), "value"] *= USD_to_EUR
 
+    # TODO: revise costs filtering
+    costs = costs[costs.scenario.isin(["Moderate", np.nan])]
+    costs = costs[costs.financial_case.isin(["Market", np.nan])]
+
     # min_count=1 is important to generate NaNs which are then filled by fillna
     costs = (
         costs.loc[:, "value"].unstack(level=1).groupby("technology").sum(min_count=1)

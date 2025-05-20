@@ -143,6 +143,10 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
     costs.unit = costs.unit.str.replace("/kW", "/MW")
     costs.loc[costs.unit.str.contains("USD"), "value"] *= config["USD2013_to_EUR2013"]
 
+    # TODO: revise costs filtering
+    costs = costs[costs.scenario.isin(["Moderate", np.nan])]
+    costs = costs[costs.financial_case.isin(["Market", np.nan])]
+
     costs = costs.value.unstack().fillna(config["fill_values"])
 
     for attr in ("investment", "lifetime", "FOM", "VOM", "efficiency", "fuel"):
