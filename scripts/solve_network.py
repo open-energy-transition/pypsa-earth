@@ -365,7 +365,9 @@ def add_battery_constraints(n):
     lhs = linexpr(
         (1, link_p_nom[chargers_bool]),
         (
-            -n.links.loc[n.links.index.str.contains("battery discharger"), "efficiency"].values,
+            -n.links.loc[
+                n.links.index.str.contains("battery discharger"), "efficiency"
+            ].values,
             link_p_nom[dischargers_bool].values,
         ),
     )
@@ -1030,17 +1032,11 @@ if __name__ == "__main__":
         from _helpers import mock_snakemake
 
         snakemake = mock_snakemake(
-            "solve_network_myopic",
+            "solve_network",
             simpl="",
-            clusters="10",
-            ll="copt",
-            opts="24H",
-            sopts="24H",
-            planning_horizons="2030",
-            discountrate=0.071,
-            demand="AB",
-            h2export=10,
-            configfile="../../configs/scenarios/config.myopic.yaml",
+            clusters="4",
+            ll="c1",
+            opts="Co2L-4H",
         )
 
     configure_logging(snakemake)
