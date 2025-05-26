@@ -358,11 +358,17 @@ def add_battery_constraints(n):
     if nodes.empty or ("Link", "p_nom") not in n.variables.index:
         return
     link_p_nom = get_var(n, "Link", "p_nom")
+
+    chargers_bool = link_p_nom.index.str.contains("battery charger")
+    dischargers_bool = link_p_nom.index.str.contains("battery discharger")
+
     lhs = linexpr(
-        (1, link_p_nom[nodes + " charger"]),
+        (1, link_p_nom[chargers_bool]),
         (
-            -n.links.loc[nodes + " discharger", "efficiency"].values,
-            link_p_nom[nodes + " discharger"].values,
+            -n.links.loc[
+                n.links.index.str.contains("battery discharger"), "efficiency"
+            ].values,
+            link_p_nom[dischargers_bool].values,
         ),
     )
     define_constraints(n, lhs, "=", 0, "Link", "charger_ratio")
