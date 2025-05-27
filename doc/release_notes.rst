@@ -39,6 +39,8 @@ This part of documentation collects descriptive release notes to capture the mai
 
 * Revise naming of Wikipedia data for vehicles `PR #1422 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1422>`__
 
+* Extending powerplant filter option to custom powerplants `PR #1465 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1465>`__
+
 PyPSA-Earth 0.6.0
 =================
 
