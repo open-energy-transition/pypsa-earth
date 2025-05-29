@@ -108,6 +108,10 @@ if __name__ == "__main__":
     no_years = int(snakemake.wildcards.planning_horizons) - int(
         snakemake.params.base_year
     )
+
+    if int(snakemake.wildcards.planning_horizons) == 2020:
+        no_years = 2023 - int(snakemake.params.base_year)
+
     include_other = snakemake.params.other_industries
 
     transaction = read_csv_nafix(
