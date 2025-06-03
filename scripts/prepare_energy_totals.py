@@ -66,6 +66,10 @@ if __name__ == "__main__":
     no_years = int(snakemake.wildcards.planning_horizons) - int(
         snakemake.params.base_year
     )
+
+    if int(snakemake.wildcards.planning_horizons) == 2020:
+        no_years = 2023 - int(snakemake.params.base_year)
+
     growth_factors = calculate_end_values(growth_factors_cagr)
     efficiency_gains = calculate_end_values(efficiency_gains_cagr)
 
