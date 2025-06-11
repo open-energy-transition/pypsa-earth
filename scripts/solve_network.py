@@ -1058,32 +1058,34 @@ def extra_functionality(n, snapshots):
     add_battery_constraints(n)
     add_lossy_bidirectional_link_constraints(n)
 
-    if (
-        snakemake.config["policy_config"]["hydrogen"]["temporal_matching"]
-        == "h2_yearly_matching"
-    ):
-        if snakemake.config["policy_config"]["hydrogen"]["additionality"] == True:
-            logger.info(
-                "additionality is currently not supported for yearly constraints, proceeding without additionality"
-            )
-        logger.info("setting h2 export to yearly greenness constraint")
-        H2_export_yearly_constraint(n)
+    additionality = snakemake.config["policy_config"]["hydrogen"]["additionality"]
+    ref_for_additionality = snakemake.config["policy_config"]["hydrogen"][
+        "is_reference"
+    ]
+    temportal_matching_period = snakemake.config["policy_config"]["hydrogen"][
+        "temporal_matching"
+    ]
+    
+    if temportal_matching_period == "no_temporal_matching":
+        logger.info("no h2 temporal constraint set")
 
-    elif (
-        snakemake.config["policy_config"]["hydrogen"]["temporal_matching"]
-        == "h2_monthly_matching"
-    ):
-        if not snakemake.config["policy_config"]["hydrogen"]["is_reference"]:
-            logger.info("setting h2 export to monthly greenness constraint")
-            monthly_constraints(n, n_ref)
-        else:
+    elif additionality:
+        if ref_for_additionality:
             logger.info("preparing reference case for additionality constraint")
-
-    elif (
-        snakemake.config["policy_config"]["hydrogen"]["temporal_matching"]
-        == "no_res_matching"
-    ):
-        logger.info("no h2 export constraint set")
+        else:
+            logger.info(
+                "setting h2 export to {}ly matching constraint with additionality".format(
+                    temportal_matching_period
+                )
+            )
+            hydrogen_temporal_constraint(n, n_ref, temportal_matching_period)
+    elif not additionality:
+        logger.info(
+            "setting h2 export to {}ly matching constraint without additionality".format(
+                temportal_matching_period
+            )
+        )
+        hydrogen_temporal_constraint(n, n_ref, temportal_matching_period)
 
     else:
         raise ValueError(
