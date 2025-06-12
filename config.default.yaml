@@ -357,7 +357,7 @@ renewable:
 # Costs Configuration
 costs:
   year: 2030
-  version: v0.10.0
+  version: v0.13.1
   discountrate: [0.071] #, 0.086, 0.111]
   # [EUR/USD] ECB: https://www.ecb.europa.eu/stats/exchange/eurofxref/html/eurofxref-graph-usd.en.html # noqa: E501
   USD2013_to_EUR2013: 0.7532 # [EUR/USD] ECB: https://www.ecb.europa.eu/stats/exchange/eurofxref/html/eurofxref-graph-usd.en.html
@@ -521,7 +521,7 @@ sector:
     set_color_shares: false
     blue_share: 0.40
     pink_share: 0.05
-    production: ["H2 Electrolysis", "SMR", "SMR CC"] # ["Alkaline electrolyzer", "PEM electrolyzer", "SOEC", "Solid biomass steam reforming", "Biomass gasification", "Biomass gasification CC", "Natural gas steam reforming", "Natural gas steam reforming CC", "Coal gasification", "Coal gasification CC", "Heavy oil partial oxidation"]
+    production: ["H2 Electrolysis", "SMR", "SMR CC"] # ["Alkaline electrolyzer large", "Alkaline electrolyzer medium", "PEM electrolyzer", "SOEC", "Solid biomass steam reforming", "Biomass gasification", "Biomass gasification CC", "Natural gas steam reforming", "Natural gas steam reforming CC", "Coal gasification", "Coal gasification CC", "Heavy oil partial oxidation"]
 
   coal:
     spatial_coal: true
