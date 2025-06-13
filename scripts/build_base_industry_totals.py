@@ -9,6 +9,7 @@ Created on Thu Jul 14 19:01:13 2022.
 """
 
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -94,7 +95,7 @@ if __name__ == "__main__":
         snakemake = mock_snakemake(
             "build_base_industry_totals",
             planning_horizons=2030,
-            demand="EG",
+            demand="AB",
         )
 
     # Loading config file and wild cards
@@ -107,6 +108,10 @@ if __name__ == "__main__":
     no_years = int(snakemake.wildcards.planning_horizons) - int(
         snakemake.params.base_year
     )
+
+    if int(snakemake.wildcards.planning_horizons) == 2020:
+        no_years = 2023 - int(snakemake.params.base_year)
+
     include_other = snakemake.params.other_industries
 
     transaction = read_csv_nafix(
@@ -117,9 +122,7 @@ if __name__ == "__main__":
     renaming_dit = transaction.set_index("Transaction")["clean_name"].to_dict()
     clean_industry_list = list(transaction.clean_name.unique())
 
-    unsd_path = (
-        os.path.dirname(snakemake.input["energy_totals_base"]) + "/demand/unsd/data/"
-    )
+    unsd_path = snakemake.input.unsd_export_path
 
     # Get the files from the path provided in the OP
     all_files = list(Path(unsd_path).glob("*.txt"))
@@ -198,6 +201,31 @@ if __name__ == "__main__":
 
     # Create the industry totals file
     industry_totals_base = create_industry_base_totals(df_yr)
+
+    # Set coal, electricity, and gas to 0 for cement and iron and steel industry (because it is explicitly modeled)
+    for country in countries:
+        if snakemake.config.get("custom_industry", {}).get("steel", False):
+            industry_totals_base.loc[(country, "coal"), "iron and steel"] = 0.0
+            industry_totals_base.loc[(country, "electricity"), "iron and steel"] = 0.0
+            industry_totals_base.loc[(country, "gas"), "iron and steel"] = 0.0
+            industry_totals_base.loc[
+                (country, "process emissions"), "iron and steel"
+            ] = 0.0
+            logging.info(
+                "Custom steel industry demand enabled. Setting coal, electricity, and gas to 0 for iron and steel industry."
+            )
+
+        if snakemake.config.get("custom_industry", {}).get("cement", False):
+            industry_totals_base.loc[
+                (country, "electricity"), "non-metallic minerals"
+            ] = 0.0
+            industry_totals_base.loc[(country, "gas"), "non-metallic minerals"] = 0.0
+            industry_totals_base.loc[
+                (country, "process emissions"), "non-metallic minerals"
+            ] = 0.0
+            logging.info(
+                "Custom cement industry demand enabled. Setting coal, electricity, and gas to 0 for cement industry."
+            )
 
     # Export the industry totals dataframe
     industry_totals_base.to_csv(snakemake.output["base_industry_totals"])
