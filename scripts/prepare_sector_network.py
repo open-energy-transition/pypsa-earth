@@ -3122,7 +3122,7 @@ def add_industry_heating(n, costs):
             p_nom_extendable=True,
             capital_cost=costs.at[storage_tech_name, "investment"],
             efficiency_store=costs.at[storage_tech_name, "efficiency"],
-            efficiency_dispatch=costs.at[storage_tech_name, "efficiency"] ** 0.5,
+            efficiency_dispatch=costs.at[storage_tech_name, "efficiency"],
             max_hours=costs.at[storage_tech_name, "max_hours"],
             marginal_cost=costs.at[storage_tech_name, "VOM"]
         )
