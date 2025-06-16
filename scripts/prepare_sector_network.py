@@ -3063,10 +3063,8 @@ def add_industry_heating(n, costs):
         "oil-based storage unit medium temperature",
         "solar thermal parabolic trough",
         "oil-based storage unit high temperature",
-
         "industrial heat pump low temperature",
         "industrial heat pump medium temperature",
-
         "hot water boiler cond low temperature",
         "hot water boiler cond medium temperature",
         "steam boiler cond high temperature",
@@ -3084,20 +3082,20 @@ def add_industry_heating(n, costs):
         [
             "glazed flat plate collector",
             "linear fresnel reflector",
-            "solar thermal parabolic trough"
+            "solar thermal parabolic trough",
         ],
         [
             "steel or concrete water tank",
             "oil-based storage unit medium",
-            "oil-based storage unit high"
+            "oil-based storage unit high",
         ],
         [
             "steel or concrete water tank",
             "oil-based storage unit medium temperature",
-            "oil-based storage unit high temperature"
-        ]
+            "oil-based storage unit high temperature",
+        ],
     ):
-        
+
         p_max_pu = solar_thermal_p_max_pu.rename(
             columns={name + " csp": name + " " + solar_tech for name in nodes_medium},
         )
@@ -3113,7 +3111,7 @@ def add_industry_heating(n, costs):
             marginal_cost=costs.at[solar_tech, "VOM"],
             p_max_pu=p_max_pu,
         )
-        
+
         n.madd(
             "StorageUnit",
             nod + " " + storage_tech_name,
@@ -3124,21 +3122,17 @@ def add_industry_heating(n, costs):
             efficiency_store=costs.at[storage_tech_name, "efficiency"],
             efficiency_dispatch=costs.at[storage_tech_name, "efficiency"],
             max_hours=costs.at[storage_tech_name, "max_hours"],
-            marginal_cost=costs.at[storage_tech_name, "VOM"]
+            marginal_cost=costs.at[storage_tech_name, "VOM"],
         )
 
     for nod, boiler_tech_name, boiler_tech_carrier_name in zip(
         [nodes_low, nodes_medium, nodes_high],
-        [
-            "hot water boiler cond",
-            "hot water boiler cond",
-            "steam boiler cond"
-        ],
+        ["hot water boiler cond", "hot water boiler cond", "steam boiler cond"],
         [
             "hot water boiler cond low temperature",
             "hot water boiler cond medium temperature",
-            "steam boiler cond high temperature"
-        ]
+            "steam boiler cond high temperature",
+        ],
     ):
         n.madd(
             "Generator",
@@ -3148,7 +3142,7 @@ def add_industry_heating(n, costs):
             p_nom_extendable=True,
             capital_cost=costs.at[boiler_tech_name, "investment"],
             efficiency=costs.at[boiler_tech_name, "efficiency"],
-            marginal_cost=costs.at[boiler_tech_name, "VOM"]
+            marginal_cost=costs.at[boiler_tech_name, "VOM"],
         )
 
     # Typically this would convert electricity (bus0) to heat (bus1). For simplicity, assume same bus.
@@ -3164,7 +3158,8 @@ def add_industry_heating(n, costs):
         bus1=low_temp_buses,
         carrier="industrial heat pump low temperature",
         p_nom_extendable=True,
-        capital_cost=costs.at["industrial heat pump medium temperature", "fixed"] * 1000,
+        capital_cost=costs.at["industrial heat pump medium temperature", "fixed"]
+        * 1000,
         lifetime=costs.at["industrial heat pump medium temperature", "lifetime"],
         efficiency=costs.at["industrial heat pump medium temperature", "efficiency"],
         marginal_cost=costs.at["industrial heat pump medium temperature", "VOM"],
@@ -3187,7 +3182,7 @@ def add_industry_heating(n, costs):
         marginal_cost=costs.at["industrial heat pump high temperature", "VOM"],
     )
 
-    '''
+    """
     # 6. CSP-tower (Generator)
     logger.warning("Yet to add capacity factor for CSP for industrial processes")
     # Typically CSP is solar thermal. Here, we assume it just generates heat at bus.
@@ -3269,7 +3264,7 @@ def add_industry_heating(n, costs):
         marginal_cost=costs.at["hot water boiler gas cond", "VOM"]
         + costs.at["biogas", "fuel cost"],
     )
-    '''
+    """
 
 
 def add_custom_water_cost(n):
@@ -3644,6 +3639,7 @@ if __name__ == "__main__":
     print(industry_heating_costs)
 
     import sys
+
     sys.exit()
 
     add_industry_heating(n, industry_heating_costs)
