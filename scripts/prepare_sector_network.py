@@ -3160,8 +3160,8 @@ def add_industry_heating(n, costs):
     n.madd(
         "Link",
         nodes_low + " industrial heat pump low temperature",
-        bus0=nodes,
-        bus1=nodes_low,
+        bus0=nodes_low,
+        bus1=low_temp_buses,
         carrier="industrial heat pump low temperature",
         p_nom_extendable=True,
         capital_cost=costs.at["industrial heat pump medium temperature", "fixed"] * 1000,
@@ -3177,8 +3177,8 @@ def add_industry_heating(n, costs):
     n.madd(
         "Link",
         nodes_medium + " industrial heat pump medium temperature",
-        bus0=nodes,
-        bus1=nodes_medium,
+        bus0=nodes_medium,
+        bus1=medium_temp_buses,
         carrier="industrial heat pump medium temperature",
         p_nom_extendable=True,
         capital_cost=costs.at["industrial heat pump high temperature", "fixed"] * 1000,
