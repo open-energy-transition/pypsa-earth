@@ -4,6 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import os
 import random
 from copy import deepcopy
 
