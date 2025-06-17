@@ -27,6 +27,8 @@ This part of documentation collects descriptive release notes to capture the mai
 
 **Minor Changes and bug-fixing**
 
+* Update code to reflect the Wikipedia source page for `prepare_transport_data_input`. `PR #1486 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1486>`__
+
 * Add efficiency gain and growth rates for other energy consumption and fill missing NaNs with 0. `PR #1468 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1468>`__
 
 * Fix problem with a discontinued World Bank data source in prepare_transport_data_input `PR #1410 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1410>`__
