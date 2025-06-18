@@ -947,6 +947,7 @@ def annuity(n, r):
     else:
         return 1 / n
 
+
 def get_yearly_currency_exchange_average(
     initial_currency: str,
     output_currency: str,
@@ -1004,12 +1005,13 @@ def convert_currency_and_unit(
     )
     return cost_dataframe
 
+
 def prepare_costs(
-        cost_file: str,
-        output_currency: str,
-        fill_values: dict,
-        Nyears: float | int = 1,
-        default_exchange_rate: float = None,
+    cost_file: str,
+    output_currency: str,
+    fill_values: dict,
+    Nyears: float | int = 1,
+    default_exchange_rate: float = None,
 ):
     # set all asset costs and other parameters
     costs = pd.read_csv(cost_file, index_col=[0, 1]).sort_index()
