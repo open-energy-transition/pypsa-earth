@@ -26,7 +26,7 @@ tables
 descartes
 
 rioxarray
-git+https://github.com/davide-f/google-drive-downloader@master  # if not included will create error in docs `make html`
+googledrivedownloader>=1.1
 
 gitpython
 
