@@ -88,3 +88,4 @@ dependencies:
   - tsam>=1.1.0
   - chaospy  # lastest version only available on pip
   - fake_useragent
+  - currencyconverter
