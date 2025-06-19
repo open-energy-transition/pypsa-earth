@@ -147,9 +147,24 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
     costs.unit = costs.unit.str.replace("/kW", "/MW")
     costs = convert_currency_and_unit(costs, config["output_currency"])
 
-    # TODO: revise costs filtering
-    costs = costs[costs.scenario.isin(["Moderate", np.nan])]
-    costs = costs[costs.financial_case.isin(["Market", np.nan])]
+    # apply filter on financial_case and scenario, if they are contained in the cost dataframe
+    wished_cost_scenario = config["cost_scenario"]
+    wished_financial_case = config["financial_case"]
+    for col in ["scenario", "financial_case"]:
+        if col in costs.columns:
+            costs[col] = costs[col].replace("", pd.NA)
+
+    if "scenario" in costs.columns:
+        costs = costs[
+            (costs["scenario"].str.casefold() == wished_cost_scenario.casefold())
+            | (costs["scenario"].isnull())
+        ]
+
+    if "financial_case" in costs.columns:
+        costs = costs[
+            (costs["financial_case"].str.casefold() == wished_financial_case.casefold())
+            | (costs["financial_case"].isnull())
+        ]
 
     costs = costs.value.unstack().fillna(config["fill_values"])
 
