@@ -1028,8 +1028,8 @@ def prepare_costs(
     )
 
     # TODO: revise costs filtering
-    costs = costs[costs.scenario.isin(["Moderate", np.nan])]
-    costs = costs[costs.financial_case.isin(["Market", np.nan])]
+    modified_costs = modified_costs[modified_costs.scenario.isin(["Moderate", np.nan])]
+    modified_costs = modified_costs[modified_costs.financial_case.isin(["Market", np.nan])]
 
     # min_count=1 is important to generate NaNs which are then filled by fillna
     modified_costs = (
