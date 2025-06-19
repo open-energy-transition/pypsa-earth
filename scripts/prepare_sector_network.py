@@ -2967,6 +2967,7 @@ if __name__ == "__main__":
         snakemake.params.costs["output_currency"],
         snakemake.params.costs["fill_values"],
         Nyears,
+        snakemake.params.costs["default_USD_to_EUR"],
     )
 
     # Define spatial for biomass and co2. They require the same spatial definition

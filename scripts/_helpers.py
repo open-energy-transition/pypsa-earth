@@ -1022,6 +1022,7 @@ def convert_currency_and_unit(
 
 def prepare_costs(
     cost_file: str,
+    config: dict,
     output_currency: str,
     fill_values: dict,
     Nyears: float | int = 1,
