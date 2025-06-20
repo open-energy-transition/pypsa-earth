@@ -60,7 +60,7 @@ def add_carrier_buses(n, carrier, nodes=None):
     if not isinstance(nodes, pd.Index):
         nodes = pd.Index(nodes)
 
-    n.add("Carrier", carrier, co2_emissions=costs.at[carrier, "CO2 intensity"])
+    n.add("Carrier", carrier) # , co2_emissions=costs.at[carrier, "CO2 intensity"])
 
     n.madd("Bus", nodes, location=location, carrier=carrier)
 
@@ -3061,6 +3061,10 @@ if __name__ == "__main__":
         n.buses.carrier == "AC"
     ].index  # TODO if you take nodes from the index of buses of n it's more than pop_layout
     # clustering of regions must be double checked.. refer to regions onshore
+
+    # Change the carrier "oil" so that it
+    n.carriers = n.carriers.rename({"oil": "Oil EOP"})
+    n.generators["carrier"].replace("oil", "Oil EOP", inplace=True)
 
     # Add location. TODO: move it into pypsa-earth
     n.buses.location = n.buses.index
