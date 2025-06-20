@@ -48,12 +48,12 @@ def prepare_demand_data(fn):
     )
 
     df_melted = df_melted[df_melted["Heating Demand (BBtu)"] != 0]
-
     df_melted["Temperature Range"] = df_melted["Temperature Range"].str.replace(
         "Heating (BBtu), ", "", regex=False
     )
 
     # df_melted['Heating Demand (MWh)'] = df_melted['Heating Demand (BBtu)'] * 293.07107
+    df_melted["Heating Demand (BBtu)"] = df_melted["Heating Demand (BBtu)"] * 1e9 # returns new data to old scaling
     df_melted["Heating Demand (MWh)"] = df_melted["Heating Demand (BBtu)"] * 2.9307e-7
 
     df_melted = df_melted.drop(columns=["Heating Demand (BBtu)"])
@@ -67,12 +67,12 @@ def prepare_demand_data(fn):
     df_melted = df_melted.reset_index(drop=True)
 
     temp_mapper = {
-        "0 to 49°C": 50,
-        "50 to 99°C": 100,
-        "100 to 149°C": 150,
-        "150 to 199°C": 200,
-        "200 to 249°C": 250,
-        "250 to 299°C": 300,
+        "0 to 49°C": 50,   # this dict implies choices about the temperature bands
+        "50 to 79°C": 79,  # only demands up to 249C are relevant
+        "80 to 149°C": 149,
+        "150 to 199°C": 199,
+        "200 to 249°C": 249,
+        "250 to 299°C": 299,
         "300 to 349°C": 350,
         "350 to 399°C": 400,
         "400 to 449°C": 450,
@@ -1106,6 +1106,8 @@ if __name__ == "__main__":
     #############     OVERLAYS DIFFERENT GEOTHERMAL TECHS TO HAVE FOR EACH REGION THE
     #############     COST-OPTIMAL TECH FOR EACH TEMPERATURE BAND OF DEMAND
 
+    demand_gdf = prepare_demand_data(snakemake.input["demand_data"])
+
     # these are the geothermal input files, as passed in the data transfer pypsa_inputs_draft_20250403
     tif_files = {
         name: fn for name, fn in snakemake.input.items() if fn.endswith(".tif")
@@ -1305,15 +1307,6 @@ if __name__ == "__main__":
                 )
 
     print("-" * 80)
-
-    print(gdf.columns.get_level_values(0).unique())
-
-    demand_gdf = prepare_demand_data(snakemake.input["demand_data"])
-    logger.warning(
-        "Inconsistency between temperature ranges in the data and this scripts."
-        "This script has 50-80, 80-150, 150-250."
-        "The data has 0-49, 50-99, 100-149, 150-199, 200-249, 250-299, 300-349, 350-399, 400-449, >450."
-    )
 
     regions = gpd.read_file(snakemake.input["regions"]).set_index("name")
 
