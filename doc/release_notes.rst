@@ -15,6 +15,8 @@ This part of documentation collects descriptive release notes to capture the mai
 
 * Revised bundle_cutouts_northamerica `PR #1479 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1479>`__
 
+* Introduce US-specific cost configurations and update to `technology_data_version` v0.13.2 `PR #1448 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1448>`__
+
 * Update the AL_production.csv data from another source with more countries. `PR #1428 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1428>`__
 
 * Add Wikipedia as a source for the preparation of transport_data.csv  `PR #1410 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1410>`__

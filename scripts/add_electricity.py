@@ -140,18 +140,79 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
     """
     Set all asset costs and other parameters.
     """
-    costs = pd.read_csv(tech_costs, index_col=["technology", "parameter"]).sort_index()
+    costs = pd.read_csv(tech_costs).sort_values(["technology", "parameter"])
 
     # correct units to MW and output_currency
     costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
     costs.unit = costs.unit.str.replace("/kW", "/MW")
     costs = convert_currency_and_unit(costs, config["output_currency"])
 
-    # TODO: revise costs filtering
-    costs = costs[costs.scenario.isin(["Moderate", np.nan])]
-    costs = costs[costs.financial_case.isin(["Market", np.nan])]
+    # apply filter on financial_case and scenario, if they are contained in the cost dataframe
+    wished_cost_scenario = config["cost_scenario"]
+    wished_financial_case = config["financial_case"]
+    for col in ["scenario", "financial_case"]:
+        if col in costs.columns:
+            costs[col] = costs[col].replace("", pd.NA)
 
-    costs = costs.value.unstack().fillna(config["fill_values"])
+    if "scenario" in costs.columns:
+        scenario_by_group = config.get("cost_scenario_by_technology_group", {})
+
+        # Define technology groups
+        technology_groups = {
+            "electricity": [
+                "solar",
+                "onwind",
+                "offwind",
+                "csp-tower",
+                "hydro",
+                "PHS",
+                "ror",
+                "nuclear",
+                "CCGT",
+                "OCGT",  # NOTE: currently different cost scenarios are not available
+                "coal",
+                "oil",  # NOTE: currently different cost scenarios are not available
+                "geothermal",
+                "biomass",
+                "solar-utility",
+                "battery storage",
+            ],
+            "H2_electrolysis": [
+                "Alkaline electrolyzer large size",
+                "Alkaline electrolyzer medium size",
+                "Alkaline electrolyzer small size" "PEM electrolyzer small size",
+                "SOEC",
+            ],
+            "dac": ["direct air capture"],
+        }
+
+        tech_to_group = {
+            tech: group for group, techs in technology_groups.items() for tech in techs
+        }
+
+        if "technology" not in costs.columns:
+            raise ValueError("Missing 'technology' column in costs DataFrame.")
+
+        costs["group"] = costs["technology"].map(tech_to_group)
+
+        def get_target_scenario(row):
+            return scenario_by_group.get(row["group"], wished_cost_scenario)
+
+        target_scenario = costs.apply(get_target_scenario, axis=1)
+
+        # Filter by scenario
+        costs = costs[
+            costs["scenario"].str.casefold().eq(target_scenario.str.casefold())
+            | costs["scenario"].isnull()
+        ]
+    if "financial_case" in costs.columns:
+        costs = costs[
+            (costs["financial_case"].str.casefold() == wished_financial_case.casefold())
+            | (costs["financial_case"].isnull())
+        ]
+
+    costs = costs.set_index(["technology", "parameter"]).sort_index()
+    costs = costs["value"].unstack().fillna(config["fill_values"])
 
     for attr in ("investment", "lifetime", "FOM", "VOM", "efficiency", "fuel"):
         overwrites = config.get(attr)

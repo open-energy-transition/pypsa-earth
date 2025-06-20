@@ -26,7 +26,6 @@ import yaml
 from currency_converter import CurrencyConverter
 from fake_useragent import UserAgent
 from pypsa.components import component_attrs, components
-from shapely.geometry import Point
 
 logger = logging.getLogger(__name__)
 
@@ -1023,6 +1022,7 @@ def convert_currency_and_unit(
 
 def prepare_costs(
     cost_file: str,
+    config: dict,
     output_currency: str,
     fill_values: dict,
     Nyears: float | int = 1,
@@ -1031,22 +1031,80 @@ def prepare_costs(
     # set all asset costs and other parameters
     costs = pd.read_csv(cost_file, index_col=[0, 1]).sort_index()
 
-    # correct units to MW and EUR
+    # correct units to MW
     costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
     if default_exchange_rate is not None:
         logger.warning(
             f"Using default exchange rate {default_exchange_rate} instead of actual rates for currency conversion to {output_currency}."
         )
 
-    modified_costs = convert_currency_and_unit(
-        costs, output_currency, default_exchange_rate
-    )
+    # apply filter on financial_case and scenario, if they are contained in the cost dataframe
+    wished_cost_scenario = config["cost_scenario"]
+    wished_financial_case = config["financial_case"]
+    for col in ["scenario", "financial_case"]:
+        if col in costs.columns:
+            costs[col] = costs[col].replace("", pd.NA)
 
-    # TODO: revise costs filtering
-    modified_costs = modified_costs[modified_costs.scenario.isin(["Moderate", np.nan])]
-    modified_costs = modified_costs[
-        modified_costs.financial_case.isin(["Market", np.nan])
-    ]
+    if "scenario" in costs.columns:
+        scenario_by_group = config.get("cost_scenario_by_technology_group", {})
+
+        # Define technology groups
+        technology_groups = {
+            "electricity": [
+                "solar",
+                "onwind",
+                "offwind",
+                "csp-tower",
+                "hydro",
+                "ror",
+                "PHS",
+                "nuclear",
+                "CCGT",
+                "OCGT",  # NOTE: currently different cost scenarios are not available
+                "coal",
+                "oil",  # NOTE: currently different cost scenarios are not available
+                "geothermal",
+                "biomass",
+                "solar-utility",
+                "battery storage",
+            ],
+            "H2_electrolysis": [
+                "Alkaline electrolyzer large size",
+                "Alkaline electrolyzer medium size",
+                "Alkaline electrolyzer small size" "PEM electrolyzer small size",
+                "SOEC",
+            ],
+            "dac": ["direct air capture"],
+        }
+
+        tech_to_group = {
+            tech: group for group, techs in technology_groups.items() for tech in techs
+        }
+
+        costs = costs.reset_index()
+
+        costs["group"] = costs["technology"].map(tech_to_group)
+
+        def get_target_scenario(row):
+            return scenario_by_group.get(row["group"], wished_cost_scenario)
+
+        target_scenario = costs.apply(get_target_scenario, axis=1)
+
+        # Filter by scenario
+        costs = costs[
+            costs["scenario"].str.casefold().eq(target_scenario.str.casefold())
+            | costs["scenario"].isnull()
+        ]
+
+    costs = costs.set_index(["technology", "parameter"]).sort_index()
+
+    if "financial_case" in costs.columns:
+        costs = costs[
+            (costs["financial_case"].str.casefold() == wished_financial_case.casefold())
+            | (costs["financial_case"].isnull())
+        ]
+
+    modified_costs = convert_currency_and_unit(costs, output_currency)
 
     # min_count=1 is important to generate NaNs which are then filled by fillna
     modified_costs = (
