@@ -26,6 +26,7 @@ import yaml
 from currency_converter import CurrencyConverter
 from fake_useragent import UserAgent
 from pypsa.components import component_attrs, components
+from shapely.geometry import Point
 
 logger = logging.getLogger(__name__)
 
