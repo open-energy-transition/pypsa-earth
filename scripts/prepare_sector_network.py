@@ -219,6 +219,7 @@ def add_hydrogen(n, costs):
             "bus1": spatial.nodes + " grid H2",
             "efficiency": 1
             / costs.at["Alkaline electrolyzer large size", "electricity-input"],
+            "p_min_pu": 0.6,
         },
         "Alkaline electrolyzer medium": {
             "cost_name": "Alkaline electrolyzer medium size",
@@ -226,6 +227,7 @@ def add_hydrogen(n, costs):
             "bus1": spatial.nodes + " grid H2",
             "efficiency": 1
             / costs.at["Alkaline electrolyzer medium size", "electricity-input"],
+            "p_min_pu": 0.6,
         },
         "Alkaline electrolyzer small": {
             "cost_name": "Alkaline electrolyzer small size",
@@ -233,6 +235,7 @@ def add_hydrogen(n, costs):
             "bus1": spatial.nodes + " grid H2",
             "efficiency": 1
             / costs.at["Alkaline electrolyzer small size", "electricity-input"],
+            "p_min_pu": 0.6,
         },
         "PEM electrolyzer": {
             "cost_name": "PEM electrolyzer small size",
@@ -240,12 +243,14 @@ def add_hydrogen(n, costs):
             "bus1": spatial.nodes + " grid H2",
             "efficiency": 1
             / costs.at["PEM electrolyzer small size", "electricity-input"],
+            "p_min_pu": 0.6,
         },
         "SOEC": {
             "cost_name": "SOEC",
             "bus0": spatial.nodes,
             "bus1": spatial.nodes + " grid H2",
             "efficiency": 1 / costs.at["SOEC", "electricity-input"],
+            "p_min_pu": 0.8,
         },
         "Solid biomass steam reforming": {
             "cost_name": "H2 production solid biomass steam reforming",
@@ -462,6 +467,7 @@ def add_hydrogen(n, costs):
             efficiency2=params.get("efficiency2", 1.0),
             efficiency3=params.get("efficiency3", 1.0),
             efficiency4=params.get("efficiency4", 1.0),
+            p_min_pu=params.get("p_min_pu", 0.0),
             capital_cost=costs.at[params["cost_name"], "fixed"],
             lifetime=costs.at[params["cost_name"], "lifetime"],
         )
