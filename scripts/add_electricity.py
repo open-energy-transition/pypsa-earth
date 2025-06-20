@@ -169,7 +169,7 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
                 "ror",
                 "nuclear",
                 "CCGT",
-                "OCGT", # NOTE: currently different cost scenarios are not available
+                "OCGT",  # NOTE: currently different cost scenarios are not available
                 "coal",
                 "oil",  # NOTE: currently different cost scenarios are not available
                 "geothermal",
@@ -180,8 +180,7 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
             "H2_electrolysis": [
                 "Alkaline electrolyzer large size",
                 "Alkaline electrolyzer medium size",
-                "Alkaline electrolyzer small size"
-                "PEM electrolyzer small size",
+                "Alkaline electrolyzer small size" "PEM electrolyzer small size",
                 "SOEC",
             ],
             "dac": ["direct air capture"],

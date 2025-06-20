@@ -1060,7 +1060,7 @@ def prepare_costs(
                 "PHS",
                 "nuclear",
                 "CCGT",
-                "OCGT", # NOTE: currently different cost scenarios are not available
+                "OCGT",  # NOTE: currently different cost scenarios are not available
                 "coal",
                 "oil",  # NOTE: currently different cost scenarios are not available
                 "geothermal",
@@ -1071,8 +1071,7 @@ def prepare_costs(
             "H2_electrolysis": [
                 "Alkaline electrolyzer large size",
                 "Alkaline electrolyzer medium size",
-                "Alkaline electrolyzer small size"
-                "PEM electrolyzer small size",
+                "Alkaline electrolyzer small size" "PEM electrolyzer small size",
                 "SOEC",
             ],
             "dac": ["direct air capture"],
@@ -1098,7 +1097,7 @@ def prepare_costs(
         ]
 
     costs = costs.set_index(["technology", "parameter"]).sort_index()
-    
+
     if "financial_case" in costs.columns:
         costs = costs[
             (costs["financial_case"].str.casefold() == wished_financial_case.casefold())
