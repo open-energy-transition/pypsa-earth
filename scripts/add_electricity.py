@@ -140,7 +140,7 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
     """
     Set all asset costs and other parameters.
     """
-    costs = pd.read_csv(tech_costs, index_col=["technology", "parameter"]).sort_index()
+    costs = pd.read_csv(tech_costs).sort_values(["technology", "parameter"])
 
     # correct units to MW and output_currency
     costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
@@ -163,20 +163,23 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
                 "solar",
                 "onwind",
                 "offwind",
+                "csp-tower",
                 "hydro",
+                "PHS"
                 "nuclear",
                 "CCGT",
                 "coal",
                 "geothermal",
                 "biomass",
-                "solar-rooftop",
+                "solar-utility",
+                "battery storage",
             ],
             "H2_electrolysis": [
                 "Alkaline electrolyzer large size",
                 "PEM electrolyzer small size",
                 "SOEC",
             ],
-            "dac": ["direct_air_capture"],
+            "dac": ["direct air capture"],
         }
 
         tech_to_group = {
@@ -204,7 +207,8 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
             | (costs["financial_case"].isnull())
         ]
 
-    costs = costs.value.unstack().fillna(config["fill_values"])
+    costs = costs.set_index(["technology", "parameter"]).sort_index()
+    costs = costs["value"].unstack().fillna(config["fill_values"])
 
     for attr in ("investment", "lifetime", "FOM", "VOM", "efficiency", "fuel"):
         overwrites = config.get(attr)

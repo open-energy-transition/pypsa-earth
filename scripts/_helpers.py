@@ -1058,28 +1058,30 @@ def prepare_costs(
                 "solar",
                 "onwind",
                 "offwind",
+                "csp-tower",
                 "hydro",
+                "PHS"
                 "nuclear",
                 "CCGT",
                 "coal",
                 "geothermal",
                 "biomass",
-                "solar-rooftop",
+                "solar-utility",
+                "battery storage",
             ],
             "H2_electrolysis": [
                 "Alkaline electrolyzer large size",
                 "PEM electrolyzer small size",
                 "SOEC",
             ],
-            "dac": ["direct_air_capture"],
+            "dac": ["direct air capture"],
         }
 
         tech_to_group = {
             tech: group for group, techs in technology_groups.items() for tech in techs
         }
 
-        if "technology" not in costs.columns:
-            raise ValueError("Missing 'technology' column in costs DataFrame.")
+        costs = costs.reset_index()
 
         costs["group"] = costs["technology"].map(tech_to_group)
 
@@ -1093,6 +1095,8 @@ def prepare_costs(
             costs["scenario"].str.casefold().eq(target_scenario.str.casefold())
             | costs["scenario"].isnull()
         ]
+
+    costs = costs.set_index(["technology", "parameter"]).sort_index()
 
     if "financial_case" in costs.columns:
         costs = costs[
