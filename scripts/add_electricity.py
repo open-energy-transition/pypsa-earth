@@ -165,9 +165,13 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
                 "offwind",
                 "csp-tower",
                 "hydro",
-                "PHS" "nuclear",
+                "PHS",
+                "ror",
+                "nuclear",
                 "CCGT",
+                "OCGT", # NOTE: currently different cost scenarios are not available
                 "coal",
+                "oil",  # NOTE: currently different cost scenarios are not available
                 "geothermal",
                 "biomass",
                 "solar-utility",
@@ -175,6 +179,8 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
             ],
             "H2_electrolysis": [
                 "Alkaline electrolyzer large size",
+                "Alkaline electrolyzer medium size",
+                "Alkaline electrolyzer small size"
                 "PEM electrolyzer small size",
                 "SOEC",
             ],
