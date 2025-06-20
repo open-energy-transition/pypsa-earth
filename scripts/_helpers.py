@@ -1028,23 +1028,8 @@ def prepare_costs(
     Nyears: float | int = 1,
     default_exchange_rate: float = None,
 ):
-    # --- DEBUG FUNCTION ---
-    def debug_costs(df, tag=""):
-        print(f"\n[DEBUG: {tag}]")
-        print("Index type:", type(df.index))
-        print("Is MultiIndex:", isinstance(df.index, pd.MultiIndex))
-        print("Columns:", df.columns.tolist())
-        print("Head:")
-        print(df.head())
-        debug_path = f"debug_prepare_costs_{tag.lower().replace(' ', '_')}.csv"
-        df.to_csv(debug_path)
-        print(f"Saved debug CSV to: {debug_path}")
-
     # set all asset costs and other parameters
     costs = pd.read_csv(cost_file, index_col=[0, 1]).sort_index()
-
-    # --- DEBUG before any processing ---
-    debug_costs(costs, tag="Raw input")
 
     # correct units to MW
     costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
@@ -1117,9 +1102,6 @@ def prepare_costs(
         ]
 
     costs = costs.set_index(["technology", "parameter"]).sort_index()
-
-    # --- DEBUG after filtering but before pivot ---
-    debug_costs(costs, tag="Filtered before pivot")
     
     if "financial_case" in costs.columns:
         costs = costs[
