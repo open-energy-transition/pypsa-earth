@@ -1060,8 +1060,7 @@ def prepare_costs(
                 "offwind",
                 "csp-tower",
                 "hydro",
-                "PHS"
-                "nuclear",
+                "PHS" "nuclear",
                 "CCGT",
                 "coal",
                 "geothermal",

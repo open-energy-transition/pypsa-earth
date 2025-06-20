@@ -165,8 +165,7 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
                 "offwind",
                 "csp-tower",
                 "hydro",
-                "PHS"
-                "nuclear",
+                "PHS" "nuclear",
                 "CCGT",
                 "coal",
                 "geothermal",
