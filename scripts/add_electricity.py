@@ -155,11 +155,36 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
             costs[col] = costs[col].replace("", pd.NA)
 
     if "scenario" in costs.columns:
-        costs = costs[
-            (costs["scenario"].str.casefold() == wished_cost_scenario.casefold())
-            | (costs["scenario"].isnull())
-        ]
+        scenario_by_group = config.get("cost_scenario_by_technology_group", {})
 
+        # Define technology groups
+        technology_groups = {
+            "electricity": ["solar", "onwind", "offwind", "hydro", "nuclear", "CCGT", "coal", "geothermal", "biomass", "solar-rooftop"],
+            "H2_electrolysis": ["Alkaline electrolyzer large size", "PEM electrolyzer small size", "SOEC"],
+            "dac": ["direct_air_capture"],
+        }
+
+        tech_to_group = {
+            tech: group
+            for group, techs in technology_groups.items()
+            for tech in techs
+        }
+
+        if "technology" not in costs.columns:
+            raise ValueError("Missing 'technology' column in costs DataFrame.")
+
+        costs["group"] = costs["technology"].map(tech_to_group)
+
+        def get_target_scenario(row):
+            return scenario_by_group.get(row["group"], wished_cost_scenario)
+
+        target_scenario = costs.apply(get_target_scenario, axis=1)
+
+        # Filter by scenario
+        costs = costs[
+            costs["scenario"].str.casefold().eq(target_scenario.str.casefold())
+            | costs["scenario"].isnull()
+            ]
     if "financial_case" in costs.columns:
         costs = costs[
             (costs["financial_case"].str.casefold() == wished_financial_case.casefold())
