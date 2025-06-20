@@ -19,6 +19,8 @@ This part of documentation collects descriptive release notes to capture the mai
 
 * Add Wikipedia as a source for the preparation of transport_data.csv  `PR #1410 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1410>`__
 
+* Introduce universal currency conversion to allow use of currencies other than EUR in input data and results `PR #1319 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1319>`__
+
 * Drop duplication of retrieve_data and COST_DIR, add params and update technology-data version `PR #1249 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1249>`__
 
 * In alternative clustering, generate hydro inflows by shape and avoid hydro inflows duplication for plants installed in the same node `PR #1120 <https://github.com/pypsa-meets-earth/pypsa-earth/pull/1120>`
