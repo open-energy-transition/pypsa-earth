@@ -1054,15 +1054,28 @@ def prepare_costs(
 
         # Define technology groups
         technology_groups = {
-            "electricity": ["solar", "onwind", "offwind", "hydro", "nuclear", "CCGT", "coal", "geothermal", "biomass", "solar-rooftop"],
-            "H2_electrolysis": ["Alkaline electrolyzer large size", "PEM electrolyzer small size", "SOEC"],
+            "electricity": [
+                "solar",
+                "onwind",
+                "offwind",
+                "hydro",
+                "nuclear",
+                "CCGT",
+                "coal",
+                "geothermal",
+                "biomass",
+                "solar-rooftop",
+            ],
+            "H2_electrolysis": [
+                "Alkaline electrolyzer large size",
+                "PEM electrolyzer small size",
+                "SOEC",
+            ],
             "dac": ["direct_air_capture"],
         }
 
         tech_to_group = {
-            tech: group
-            for group, techs in technology_groups.items()
-            for tech in techs
+            tech: group for group, techs in technology_groups.items() for tech in techs
         }
 
         if "technology" not in costs.columns:
@@ -1079,7 +1092,7 @@ def prepare_costs(
         costs = costs[
             costs["scenario"].str.casefold().eq(target_scenario.str.casefold())
             | costs["scenario"].isnull()
-            ]
+        ]
 
     if "financial_case" in costs.columns:
         costs = costs[
