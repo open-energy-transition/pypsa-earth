@@ -1038,10 +1038,6 @@ def prepare_costs(
             f"Using default exchange rate {default_exchange_rate} instead of actual rates for currency conversion to {output_currency}."
         )
 
-    modified_costs = convert_currency_and_unit(
-        costs, output_currency, default_exchange_rate
-    )
-
     # apply filter on financial_case and scenario, if they are contained in the cost dataframe
     wished_cost_scenario = config["cost_scenario"]
     wished_financial_case = config["financial_case"]
