@@ -22,8 +22,8 @@ Relevant Settings
         year:
         version:
         rooftop_share:
-        output_currency:
-        discountrate:
+        USD2013_to_EUR2013:
+        dicountrate:
         emission_prices:
 
     electricity:
@@ -233,8 +233,7 @@ def _compute_connection_costs_to_bus(
     return connection_costs_to_bus
 
 
-def _adjust_capital_costs_using_connection_costs(n, connection_costs_to_bus, output, config_costs):
-    currency = config_costs["output_currency"]
+def _adjust_capital_costs_using_connection_costs(n, connection_costs_to_bus, output):
     connection_costs = {}
     for tech in connection_costs_to_bus:
         tech_b = n.generators.carrier == tech
@@ -249,7 +248,7 @@ def _adjust_capital_costs_using_connection_costs(n, connection_costs_to_bus, out
                 "Displacing {} generator(s) and adding connection costs to capital_costs: {} ".format(
                     tech,
                     ", ".join(
-                        "{:.0f} {}/MW/a for `{}`".format(d, currency, b)
+                        "{:.0f} Eur/MW/a for `{}`".format(d, b)
                         for b, d in costs.items()
                     ),
                 )
@@ -263,7 +262,6 @@ def _aggregate_and_move_components(
     busmap,
     connection_costs_to_bus,
     output,
-    config_costs,
     aggregate_one_ports={"Load", "StorageUnit"},
     aggregation_strategies=dict(),
     exclude_carriers=None,
@@ -276,7 +274,7 @@ def _aggregate_and_move_components(
             if not df.empty:
                 import_series_from_dataframe(n, df, c, attr)
 
-    _adjust_capital_costs_using_connection_costs(n, connection_costs_to_bus, output, config_costs)
+    _adjust_capital_costs_using_connection_costs(n, connection_costs_to_bus, output)
 
     _, generator_strategies = get_aggregation_strategies(aggregation_strategies)
 
@@ -321,7 +319,6 @@ def simplify_links(
     output,
     exclude_carriers=[],
     aggregation_strategies=dict(),
-    config_costs=None,
 ):
     # Complex multi-node links are folded into end-points
     logger.info("Simplifying connected link components")
@@ -490,10 +487,8 @@ def simplify_links(
         busmap,
         connection_costs_to_bus,
         output,
-        config_costs,
         aggregation_strategies=aggregation_strategies,
         exclude_carriers=exclude_carriers,
-        output_currency=snakemake.params.costs["output_currency"],
     )
     return n, busmap
 
@@ -507,7 +502,6 @@ def remove_stubs(
     lines_length_factor,
     output,
     aggregation_strategies=dict(),
-    config_costs=None,
 ):
     logger.info("Removing stubs")
 
@@ -532,10 +526,8 @@ def remove_stubs(
         busmap,
         connection_costs_to_bus,
         output,
-        config_costs,
         aggregation_strategies=aggregation_strategies,
         exclude_carriers=exclude_carriers,
-        output_currency=snakemake.params.costs["output_currency"],
     )
 
     return n, busmap
@@ -1013,7 +1005,6 @@ if __name__ == "__main__":
         snakemake.output,
         exclude_carriers,
         aggregation_strategies,
-        config_costs=snakemake.params.costs
     )
 
     busmaps = [trafo_map, simplify_links_map]
