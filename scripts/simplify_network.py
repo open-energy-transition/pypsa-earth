@@ -233,7 +233,9 @@ def _compute_connection_costs_to_bus(
     return connection_costs_to_bus
 
 
-def _adjust_capital_costs_using_connection_costs(n, connection_costs_to_bus, output):
+def _adjust_capital_costs_using_connection_costs(
+    n, connection_costs_to_bus, output, currency
+):
     connection_costs = {}
     for tech in connection_costs_to_bus:
         tech_b = n.generators.carrier == tech
@@ -274,7 +276,12 @@ def _aggregate_and_move_components(
             if not df.empty:
                 import_series_from_dataframe(n, df, c, attr)
 
-    _adjust_capital_costs_using_connection_costs(n, connection_costs_to_bus, output)
+    _adjust_capital_costs_using_connection_costs(
+        n,
+        connection_costs_to_bus,
+        snakemake.output,
+        snakemake.params.costs["output_currency"],
+    )
 
     _, generator_strategies = get_aggregation_strategies(aggregation_strategies)
 
