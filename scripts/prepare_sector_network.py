@@ -3188,7 +3188,6 @@ def add_industry_heating(n, costs, market, scenario):
             max_hours=costs.at[storage_tech_name, "max_hours"],
             marginal_cost=costs.at[storage_tech_name, "VOM"],
         )
-    
 
     for nod, boiler_tech_name, boiler_tech_carrier_name in zip(
         [low_temp_buses, medium_temp_buses, high_temp_buses],
