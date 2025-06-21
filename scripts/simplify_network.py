@@ -250,7 +250,7 @@ def _adjust_capital_costs_using_connection_costs(
                 "Displacing {} generator(s) and adding connection costs to capital_costs: {} ".format(
                     tech,
                     ", ".join(
-                        "{:.0f} Eur/MW/a for `{}`".format(d, b)
+                        "{:.0f} {}/MW/a for `{}`".format(d, currency, b)
                         for b, d in costs.items()
                     ),
                 )
