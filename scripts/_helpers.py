@@ -958,10 +958,12 @@ def get_yearly_currency_exchange_average(
     if initial_currency not in currency_converter._rates:
         if default_exchange_rate is not None:
             logger.warning(
-                f"⚠️ No data for {initial_currency}, using default {default_exchange_rate}"
+                f"No data for {initial_currency}, using default {default_exchange_rate}"
             )
             return default_exchange_rate
-        raise RuntimeError(f"No data for currency {initial_currency} and no default rate provided.")
+        raise RuntimeError(
+            f"No data for currency {initial_currency} and no default rate provided."
+        )
 
     # Fetch all available data for initial_currency
     available_dates = sorted(currency_converter._rates[initial_currency].keys())
@@ -970,14 +972,14 @@ def get_yearly_currency_exchange_average(
     # If year required for conversion is a future year, limit to the latest available year in currency_converter
     effective_year = min(year, max_date.year)
 
-    dates_to_use = [
-        d for d in available_dates if d.year == effective_year
-    ]
+    dates_to_use = [d for d in available_dates if d.year == effective_year]
 
     rates = []
     for date in dates_to_use:
         try:
-            rate = currency_converter.convert(1, initial_currency, output_currency, date)
+            rate = currency_converter.convert(
+                1, initial_currency, output_currency, date
+            )
             rates.append(rate)
         except Exception:
             continue
@@ -994,6 +996,7 @@ def get_yearly_currency_exchange_average(
     raise RuntimeError(
         f"No exchange rate data found for {initial_currency}->{output_currency} in {effective_year}, and no default rate provided."
     )
+
 
 def convert_currency_and_unit(
     cost_dataframe, output_currency: str, default_exchange_rate: float = None
