@@ -1001,6 +1001,7 @@ def get_yearly_currency_exchange_average(
         f"No exchange rate data found for {initial_currency}->{output_currency} in {effective_year}, and no default rate provided."
     )
 
+
 def convert_currency_and_unit(
     cost_dataframe, output_currency: str, default_exchange_rate: float = None
 ):
