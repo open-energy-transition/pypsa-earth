@@ -948,54 +948,74 @@ def annuity(n, r):
         return 1 / n
 
 
+# Simple cache to avoid repeated computations and logging for same (currency, output_currency, year)
+_conversion_cache = {}
+
+
 def get_yearly_currency_exchange_average(
     initial_currency: str,
     output_currency: str,
     year: int,
     default_exchange_rate: float = None,
 ):
-    # Check if initial_currency exists in data from currency_converter
-    if initial_currency not in currency_converter._rates:
+    key = (initial_currency, output_currency, year)
+    if key in _conversion_cache:
+        return _conversion_cache[key]
+
+    successful_years = []
+    default_years = []
+
+    # Helper inner function to handle one year at a time
+    def _average_for_year(y):
+        if initial_currency == "EUR":
+            # EUR has no direct rates, use USD dates as reference
+            available_dates = sorted(currency_converter._rates["USD"].keys())
+        else:
+            if initial_currency not in currency_converter._rates:
+                if default_exchange_rate is not None:
+                    default_years.append(y)
+                    return default_exchange_rate
+                raise RuntimeError(
+                    f"No data for currency {initial_currency} and no default rate provided."
+                )
+            available_dates = sorted(currency_converter._rates[initial_currency].keys())
+
+        max_date = available_dates[-1]
+        effective_year = min(y, max_date.year)
+        dates_to_use = [d for d in available_dates if d.year == effective_year]
+
+        rates = []
+        for date in dates_to_use:
+            try:
+                rate = currency_converter.convert(
+                    1, initial_currency, output_currency, date
+                )
+                rates.append(rate)
+            except Exception:
+                continue
+
+        if rates:
+            successful_years.append(effective_year)
+            return sum(rates) / len(rates)
+
         if default_exchange_rate is not None:
-            logger.warning(
-                f"No data for {initial_currency}, using default {default_exchange_rate}"
-            )
+            default_years.append(effective_year)
             return default_exchange_rate
+
         raise RuntimeError(
-            f"No data for currency {initial_currency} and no default rate provided."
+            f"No exchange rate data found for {initial_currency}->{output_currency} in {effective_year}, and no default rate provided."
         )
 
-    # Fetch all available data for initial_currency
-    available_dates = sorted(currency_converter._rates[initial_currency].keys())
-    max_date = available_dates[-1]
+    avg_rate = _average_for_year(year)
 
-    # If year required for conversion is a future year, limit to the latest available year in currency_converter
-    effective_year = min(year, max_date.year)
+    # Log only once per call, avoiding multiple repeated messages
+    if successful_years:
+        logger.info(f"Currency conversion succeeded for years: {successful_years}")
+    if default_years:
+        logger.warning(f"Using default exchange rate for years: {default_years}")
 
-    dates_to_use = [d for d in available_dates if d.year == effective_year]
-
-    rates = []
-    for date in dates_to_use:
-        try:
-            rate = currency_converter.convert(
-                1, initial_currency, output_currency, date
-            )
-            rates.append(rate)
-        except Exception:
-            continue
-
-    if rates:
-        return sum(rates) / len(rates)
-
-    if default_exchange_rate is not None:
-        logger.warning(
-            f"No exchange rates found for {initial_currency}->{output_currency} in {effective_year}. Using default {default_exchange_rate}."
-        )
-        return default_exchange_rate
-
-    raise RuntimeError(
-        f"No exchange rate data found for {initial_currency}->{output_currency} in {effective_year}, and no default rate provided."
-    )
+    _conversion_cache[key] = avg_rate
+    return avg_rate
 
 
 def convert_currency_and_unit(
@@ -1040,10 +1060,6 @@ def prepare_costs(
 
     # correct units to MW
     costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
-    if default_exchange_rate is not None:
-        logger.warning(
-            f"Using default exchange rate {default_exchange_rate} instead of actual rates for currency conversion to {output_currency}."
-        )
 
     # apply filter on financial_case and scenario, if they are contained in the cost dataframe
     wished_cost_scenario = config["cost_scenario"]
