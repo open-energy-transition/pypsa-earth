@@ -955,9 +955,14 @@ def get_yearly_currency_exchange_average(
     default_exchange_rate: float = None,
 ):
     today = datetime.today()
-    effective_year = min(
-        year, today.year
-    )  # for future years, use the value corresponding to the latest available year
+
+    if initial_currency in currency_converter._rates:
+        available_dates = sorted(currency_converter._rates[initial_currency].keys())
+        max_date = available_dates[-1]
+        effective_year = min(year, today.year, max_date.year)
+    else:
+        # If initial_currency is not in the list, information on year and today date are carried only
+        effective_year = min(year, today.year)
 
     if calendar.isleap(effective_year):
         days_per_year = 366
@@ -969,6 +974,11 @@ def get_yearly_currency_exchange_average(
 
     for day_index in range(days_per_year):
         date_to_use = initial_date + timedelta(days=day_index)
+
+        if initial_currency in currency_converter._rates:
+            if date_to_use.date() > max_date:
+                break
+
         try:
             rate = currency_converter.convert(
                 1, initial_currency, output_currency, date_to_use
@@ -990,7 +1000,6 @@ def get_yearly_currency_exchange_average(
     raise RuntimeError(
         f"No exchange rate data found for {initial_currency}->{output_currency} in {effective_year}, and no default rate provided."
     )
-
 
 def convert_currency_and_unit(
     cost_dataframe, output_currency: str, default_exchange_rate: float = None
