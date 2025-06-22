@@ -954,42 +954,38 @@ def get_yearly_currency_exchange_average(
     year: int,
     default_exchange_rate: float = None,
 ):
-    today = datetime.today()
+    # Check if initial_currency exists in data from currency_converter
+    if initial_currency not in currency_converter._rates:
+        if default_exchange_rate is not None:
+            logger.warning(
+                f"No data for {initial_currency}, using default {default_exchange_rate}"
+            )
+            return default_exchange_rate
+        raise RuntimeError(
+            f"No data for currency {initial_currency} and no default rate provided."
+        )
 
-    if initial_currency in currency_converter._rates:
-        available_dates = sorted(currency_converter._rates[initial_currency].keys())
-        max_date = available_dates[-1]
-        effective_year = min(year, today.year, max_date.year)
-    else:
-        # If initial_currency is not in the list, information on year and today date are carried only
-        effective_year = min(year, today.year)
+    # Fetch all available data for initial_currency
+    available_dates = sorted(currency_converter._rates[initial_currency].keys())
+    max_date = available_dates[-1]
 
-    if calendar.isleap(effective_year):
-        days_per_year = 366
-    else:
-        days_per_year = 365
+    # If year required for conversion is a future year, limit to the latest available year in currency_converter
+    effective_year = min(year, max_date.year)
+
+    dates_to_use = [d for d in available_dates if d.year == effective_year]
 
     rates = []
-    initial_date = datetime(effective_year, 1, 1)
-
-    for day_index in range(days_per_year):
-        date_to_use = initial_date + timedelta(days=day_index)
-
-        if initial_currency in currency_converter._rates:
-            if date_to_use.date() > max_date:
-                break
-
+    for date in dates_to_use:
         try:
             rate = currency_converter.convert(
-                1, initial_currency, output_currency, date_to_use
+                1, initial_currency, output_currency, date
             )
             rates.append(rate)
         except Exception:
             continue
 
     if rates:
-        avg_rate = sum(rates) / len(rates)
-        return avg_rate
+        return sum(rates) / len(rates)
 
     if default_exchange_rate is not None:
         logger.warning(
