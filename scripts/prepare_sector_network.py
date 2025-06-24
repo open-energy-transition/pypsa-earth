@@ -3026,7 +3026,7 @@ def add_geothermal_industry_supply(n, supply_curve):
                 n.add(
                     "Link",
                     link_name,
-                    carrier=tech,
+                    carrier=tech.split(" ")[0],
                     capital_cost=capex_annualized,
                     marginal_cost=row["opex[USD/MWh]"],
                     p_nom_max=row["heat_demand[MW]"],
@@ -3083,241 +3083,195 @@ def add_industry_heating(n, costs, market, scenario):
         n.buses.carrier == "industry heat demand(150-250C)"
     ].index
 
-    nodes_low = low_temp_buses.str.split(" ").str[0]
-    nodes_medium = medium_temp_buses.str.split(" ").str[0]
-    nodes_high = high_temp_buses.str.split(" ").str[0]
+    nodes_low = (
+        low_temp_buses.str.split(" ").str[0]
+        + " "
+        + low_temp_buses.str.split(" ").str[1]
+    )
+    nodes_medium = (
+        medium_temp_buses.str.split(" ").str[0]
+        + " "
+        + medium_temp_buses.str.split(" ").str[1]
+    )
+    nodes_high = (
+        high_temp_buses.str.split(" ").str[0]
+        + " "
+        + high_temp_buses.str.split(" ").str[1]
+    )
 
-    # assert (nodes_low.isin(n.buses.index)).all()
-    # assert (nodes_medium.isin(n.buses.index)).all()
-    # assert (nodes_high.isin(n.buses.index)).all()
-
-    # assert (low_temp_buses.isin(n.buses.index)).all()
-    # assert (medium_temp_buses.isin(n.buses.index)).all()
-    # assert (high_temp_buses.isin(n.buses.index)).all()
-
-    # Add carriers if not already present
     carriers = [
-        "molten salt store",
-        "molten salt charger",
-        "molten salt discharger",
-        "solar heat for industrial processes",
-        "industrial heat pump high temperature",
-        "csp-tower",
-        "steam boiler gas cond",
-        "hot water boiler gas cond",
-        "hot water storage",
+        "glazed flat plate collector",
+        "steel or concrete water tank",
+        "solar linear fresnel reflector",
+        "oil-based storage unit medium temperature",
+        "solar thermal parabolic trough",
+        "oil-based storage unit high temperature",
+        "industrial heat pump low temperature",
+        "industrial heat pump medium temperature",
+        "hot water boiler cond low temperature",
+        "hot water boiler cond medium temperature",
+        "steam boiler cond high temperature",
     ]
     for carrier in carriers:
         if carrier not in n.carriers.index:
             n.add("Carrier", name=carrier)
 
-    # 1. Low-temp molten salt store (Store)
-    n.madd("Bus", nodes_high + " molten salt store", carrier="molten sand store")
+    csp_gens = n.generators.index[n.generators.carrier == "csp"]
+    solar_thermal_p_max_pu = n.generators_t.p_max_pu.loc[:, csp_gens]
 
-    n.madd(
-        "Store",
-        nodes_high + " molten salt store",
-        bus=nodes_high + " molten salt store",
-        carrier="molten salt store",
-        e_nom_extendable=True,
-        capital_cost=costs.at["low-temp molten salt store", "fixed"],
-        lifetime=costs.at["low-temp molten salt store", "lifetime"],
-        efficiency=costs.at["low-temp molten salt store", "efficiency"],
-    )
+    # based on the avg capacity factors of each tech in...
+    # http://article.sapub.org/10.5923.j.ijee.20221201.02.html
+    # https://pdf.sciencedirectassets.com/277910/1-s2.0-S1876610214X00068/1-s2.0-S1876610214002690/main.pdf
+    # ... we scale the concentrated_solar_power capacity factors to the avg capacity factors of each tech
 
-    # 2. Low-temp molten salt discharger (Link)
-    # Assumes the discharger converts stored heat in the same bus to usable heat at the same bus
-    logger.warning("Hot-fixing molten salt discharger; units appear to be wrong")
-    n.madd(
-        "Link",
-        nodes_high + " molten salt discharger",
-        bus0=nodes_high + " molten salt store",
-        bus1=high_temp_buses,
-        carrier="low-temp molten salt discharger",
-        p_nom_extendable=True,
-        capital_cost=costs.at["low-temp molten salt discharger", "fixed"] * 1000.0,
-        lifetime=costs.at["low-temp molten salt discharger", "lifetime"],
-        efficiency=costs.at["low-temp molten salt discharger", "efficiency"],
-        p_min_pu=0.0,
-    )
+    capacity_factors = {
+        "glazed flat plate collector": 0.3,
+        "linear fresnel reflector": 0.51,
+        "solar thermal parabolic trough": 0.45,
+    }
 
-    # 3. Low-temp molten salt charger (Link)
-    logger.warning("Hot-fixing molten salt charger; units appear to be wrong")
-    logger.warning("Yet to get techno-economic data for molten sand charger")
-    n.madd(
-        "Link",
-        nodes_high + " molten salt charger",
-        bus0=high_temp_buses,
-        bus1=nodes_high + " molten salt store",
-        carrier="low-temp molten salt charger",
-        p_nom_extendable=True,
-        # capital_cost=costs.at["low-temp molten salt charger", "fixed"],
-        # lifetime=costs.at["low-temp molten salt charger", "lifetime"],
-        # efficiency=costs.at["low-temp molten salt charger", "efficiency"],
-        capital_cost=costs.at["low-temp molten salt discharger", "fixed"] * 1000,
-        lifetime=costs.at["low-temp molten salt discharger", "lifetime"],
-        efficiency=costs.at["low-temp molten salt discharger", "efficiency"],
-        p_min_pu=0.0,
-    )
+    # solar thermal for each temperature band
+    for nod, solar_tech, storage_tech_name, storage_tech_carrier_name in zip(
+        [low_temp_buses, medium_temp_buses, high_temp_buses],
+        [
+            "glazed flat plate collector",
+            "linear fresnel reflector",
+            "solar thermal parabolic trough",
+        ],
+        [
+            "steel or concrete water tank",
+            "oil-based storage unit",
+            "oil-based storage unit",
+        ],
+        [
+            "steel or concrete water tank",
+            "oil-based storage unit medium temperature",
+            "oil-based storage unit high temperature",
+        ],
+    ):
 
-    # 4. Solar heat for industrial processes (Generator)
-    # This is assumed to produce heat directly at the bus. is assumed to produce heat directly at the bus.
-    logger.warning("Yet to add capacity factor for solar heat for industrial processes")
-    """
-    n.madd(
-        "Generator",
-        nodes,
-        suffix=" solar heat for industrial processes",
-        bus=low_temp_buses,
-        carrier="solar heat for industrial processes",
-        p_nom_extendable=True,
-        capital_cost=costs.at["solar heat for industrial processes", "fixed"],
-        lifetime=costs.at["solar heat for industrial processes", "lifetime"],
-        # or static 'p_max_pu' representing "efficiency" or capacity factor.
-        # If you wish to model resource availability (capacity factors), you need a time series
-        # or static 'p_max_pu' representing "efficiency" or capacity factor.
-    )
-    """
+        p_max_pu = solar_thermal_p_max_pu.rename(
+            columns={name + " csp": name + " " + solar_tech for name in nod},
+        )
 
-    # 5. Industrial heat pump high temperature (Link)
+        cf_scaling = capacity_factors[solar_tech] / p_max_pu.mean().mean()
+
+        n.madd(
+            "Generator",
+            nod + " " + solar_tech,
+            bus=nod,
+            carrier=solar_tech,
+            p_nom_extendable=True,
+            capital_cost=costs.at[solar_tech, "investment"],
+            efficiency=costs.at[solar_tech, "efficiency"],
+            marginal_cost=costs.at[solar_tech, "VOM"],
+            p_max_pu=p_max_pu * cf_scaling,
+        )
+
+        n.madd(
+            "StorageUnit",
+            nod + " " + storage_tech_name,
+            bus=nod,
+            carrier=storage_tech_carrier_name,
+            p_nom_extendable=True,
+            capital_cost=costs.at[storage_tech_name, "investment"],
+            efficiency_store=costs.at[storage_tech_name, "efficiency"],
+            efficiency_dispatch=costs.at[storage_tech_name, "efficiency"],
+            max_hours=costs.at[storage_tech_name, "max_hours"],
+            marginal_cost=costs.at[storage_tech_name, "VOM"],
+        )
+
+    # n.add('Bus', 'biogas', carrier='biogas')
+    # n.add(
+    #     'Generator',
+    #     'biogas',
+    #     bus='biogas',
+    #     carrier='biogas',
+    #     marginal_cost=costs.at['hot water boiler gas cond', "VOM"],
+    #     capital_cost=0.,
+    #     p_nom_extendable=True,
+    #     )
+
+    for nod, locs, boiler_tech_name, boiler_tech_carrier_name in zip(
+        [low_temp_buses, medium_temp_buses, high_temp_buses],
+        [nodes_low, nodes_medium, nodes_high],
+        [
+            "hot water boiler gas cond",
+            "hot water boiler gas cond",
+            "steam boiler gas cond",
+        ],
+        [
+            "hot water boiler cond low temperature",
+            "hot water boiler cond medium temperature",
+            "steam boiler cond high temperature",
+        ],
+    ):
+
+        for fuel in ["biogas", "gas"]:
+
+            if fuel == "biogas":
+                bus0 = [
+                    bus
+                    for bus in spatial.biomass.nodes
+                    if " ".join(bus.split(" ")[:2]) in locs
+                ]
+            else:
+                bus0 = [
+                    bus
+                    for bus in spatial.gas.nodes
+                    if " ".join(bus.split(" ")[:2]) in locs
+                ]
+
+            name = nod + " " + boiler_tech_name + " " + fuel + "-powered"
+
+            n.madd(
+                "Link",
+                name,
+                bus0=bus0,
+                bus1=nod,
+                carrier=boiler_tech_carrier_name + " " + fuel + "-powered",
+                p_nom_extendable=True,
+                capital_cost=costs.at[boiler_tech_name, "investment"],
+                efficiency=costs.at[boiler_tech_name, "efficiency"],
+            )
+
     # Typically this would convert electricity (bus0) to heat (bus1). For simplicity, assume same bus.
     logger.warning(
         "Currently manually adjusts units for industrial heat pump high temperature"
     )
+
+    # the HP is medium temperature relative to its normal operational window
+    # !!! the mixing of 'low' and 'medium' temperature is NOT an accident !!!
     n.madd(
         "Link",
-        nodes_low + " industrial heat pump high temperature",
+        nodes_low + " industrial heat pump low temperature",
         bus0=nodes_low,
         bus1=low_temp_buses,
-        carrier="industrial heat pump high temperature",
+        carrier="industrial heat pump low temperature",
         p_nom_extendable=True,
-        capital_cost=costs.at["industrial heat pump high temperature", "fixed"] * 1000,
-        lifetime=costs.at["industrial heat pump high temperature", "lifetime"],
-        efficiency=costs.at["industrial heat pump high temperature", "efficiency"],
-        marginal_cost=costs.at["industrial heat pump high temperature", "VOM"],
+        capital_cost=costs.at["industrial heat pump medium temperature", "fixed"]
+        * 1000,
+        lifetime=costs.at["industrial heat pump medium temperature", "lifetime"],
+        efficiency=costs.at["industrial heat pump medium temperature", "efficiency"],
+        marginal_cost=costs.at["industrial heat pump medium temperature", "VOM"],
     )
 
     logger.warning(
         "Currently manually adjusts units for industrial heat pump high temperature"
     )
+    # the HP is high temperature relative to its normal operational window
+    # !!! the mixing of 'medium' and 'high' temperature is NOT an accident !!!
     n.madd(
         "Link",
-        nodes_medium + " industrial heat pump high temperature",
+        nodes_medium + " industrial heat pump medium temperature",
         bus0=nodes_medium,
         bus1=medium_temp_buses,
-        carrier="industrial heat pump high temperature",
+        carrier="industrial heat pump medium temperature",
         p_nom_extendable=True,
         capital_cost=costs.at["industrial heat pump high temperature", "fixed"] * 1000,
         lifetime=costs.at["industrial heat pump high temperature", "lifetime"],
         efficiency=costs.at["industrial heat pump high temperature", "efficiency"],
         marginal_cost=costs.at["industrial heat pump high temperature", "VOM"],
-    )
-
-    # 6. CSP-tower (Generator)
-    logger.warning("Yet to add capacity factor for CSP for industrial processes")
-    # Typically CSP is solar thermal. Here, we assume it just generates heat at bus.
-    csp_gens = n.generators.index[n.generators.carrier == "csp"]
-    p_max_pu = n.generators_t.p_max_pu.loc[:, csp_gens]
-    p_max_pu.rename(
-        columns={name + " csp": name + " csp-tower" for name in nodes_medium},
-        inplace=True,
-    )
-
-    n.madd(
-        "Generator",
-        nodes_medium + " industry csp-tower medium temp",
-        bus=medium_temp_buses,
-        carrier="csp-tower",
-        p_nom_extendable=True,
-        capital_cost=costs.at["csp-tower", "fixed"],
-        lifetime=costs.at["csp-tower", "lifetime"],
-        p_max_pu=p_max_pu.rename(
-            columns={
-                name + " csp-tower": name + " industry csp-tower medium temp"
-                for name in nodes_medium
-            }
-        ),
-    )
-
-    n.madd(
-        "Generator",
-        nodes_high + " industry csp-tower high temp",
-        bus=high_temp_buses,
-        carrier="csp-tower",
-        p_nom_extendable=True,
-        capital_cost=costs.at["csp-tower", "fixed"],
-        lifetime=costs.at["csp-tower", "lifetime"],
-        p_max_pu=p_max_pu.rename(
-            columns={
-                name + " csp-tower": name + " industry csp-tower high temp"
-                for name in nodes_high
-            }
-        ),
-    )
-
-    # 7. Steam boiler gas cond (Generator)
-    n.madd(
-        "Generator",
-        nodes_medium + " steam boiler gas cond",
-        bus=medium_temp_buses,
-        carrier="steam boiler gas cond",
-        p_nom_extendable=True,
-        capital_cost=costs.at["steam boiler gas cond", "fixed"],
-        lifetime=costs.at["steam boiler gas cond", "lifetime"],
-        efficiency=costs.at["steam boiler gas cond", "efficiency"],
-        marginal_cost=costs.at["steam boiler gas cond", "VOM"]
-        + costs.at["biogas", "fuel cost"],
-    )
-
-    n.madd(
-        "Generator",
-        nodes_high + " steam boiler gas cond",
-        bus=high_temp_buses,
-        carrier="steam boiler gas cond",
-        p_nom_extendable=True,
-        capital_cost=costs.at["steam boiler gas cond", "fixed"],
-        lifetime=costs.at["steam boiler gas cond", "lifetime"],
-        efficiency=costs.at["steam boiler gas cond", "efficiency"],
-        marginal_cost=costs.at["steam boiler gas cond", "VOM"]
-        + costs.at["biogas", "fuel cost"],
-    )
-
-    n.madd(
-        "Generator",
-        nodes_low + " hot water boiler gas cond",
-        bus=low_temp_buses,
-        carrier="hot water boiler gas cond",
-        p_nom_extendable=True,
-        capital_cost=costs.at["hot water boiler gas cond", "fixed"],
-        lifetime=costs.at["hot water boiler gas cond", "lifetime"],
-        efficiency=costs.at["hot water boiler gas cond", "efficiency"],
-        marginal_cost=costs.at["hot water boiler gas cond", "VOM"]
-        + costs.at["biogas", "fuel cost"],
-    )
-
-    # 9. Hot water tank (Store)
-    logger.warning("Currently manually adjusts units for hot water tank")
-    n.madd(
-        "Store",
-        nodes_low + " hot water storage",
-        bus=low_temp_buses,
-        carrier="hot water storage",
-        e_nom_extendable=True,
-        capital_cost=costs.at["central water tank storage", "fixed"] * 1000,
-        lifetime=costs.at["central water tank storage", "lifetime"],
-        # If you want to incorporate energy_to_power_ratio or FOM, you can handle that in capital costs or elsewhere.
-    )
-
-    # Hot water tank for medium temperature (Store)
-    n.madd(
-        "Store",
-        nodes_medium + " hot water storage",
-        bus=medium_temp_buses,
-        carrier="hot water storage",
-        e_nom_extendable=True,
-        capital_cost=costs.at["central water tank storage", "fixed"] * 1000,
-        lifetime=costs.at["central water tank storage", "lifetime"],
-        # If you want to incorporate energy_to_power_ratio or FOM, you can handle that in capital costs or elsewhere.
     )
 
 
@@ -3515,6 +3469,47 @@ def attach_enhanced_geothermal(n, potential, mode):
             )
 
 
+def add_geothermal_district_heating_supply(n, egs_potential):
+
+    discount_rate = float(snakemake.wildcards.discountrate)
+    lifetime = 25  # years
+    annuity_factor = (
+        discount_rate
+        * (1 + discount_rate) ** lifetime
+        / ((1 + discount_rate) ** lifetime - 1)
+    )
+
+    network_cost_factor = (
+        1.28  # maximally simple estimate of heat network cost, taken from
+    )
+    # https://vb.nweurope.eu/media/21149/2022_04_dge_rollout_dt123_socio_economic_potential_mapping_for_dge_urg.pdf
+
+    egs_potential["capex[USD/MW]"] = (
+        egs_potential["capex[USD/MW]"] * annuity_factor * network_cost_factor
+    )
+
+    for (bus, supply_curve_step), row in egs_potential.iterrows():
+
+        supply_curve_step = supply_curve_step.split(" ")[1]
+
+        capacity = row["heat_demand[MW]"]
+        capital_cost = row["capex[USD/MW]"]
+        opex = row["opex[USD/MWh]"]
+
+        identifier = f"{bus} geothermal district heating {supply_curve_step}"
+
+        n.add(
+            "Generator",
+            name=identifier,
+            bus=bus + " residential urban decentral heat",
+            carrier=f"geothermal district heat",
+            p_nom_max=capacity,
+            capital_cost=capital_cost,
+            marginal_cost=opex,
+            p_nom_extendable=True,
+        )
+
+
 if __name__ == "__main__":
     if "snakemake" not in globals():
         # from helper import mock_snakemake #TODO remove func from here to helper script
@@ -3695,12 +3690,33 @@ if __name__ == "__main__":
         snakemake.input["industrial_heating_costs"], index_col=[0, 1]
     )
 
+    # quick fix unit conversion
+    eur_dollar_conversion = 1.15
+    industry_heating_costs.loc[
+        industry_heating_costs["unit"].str.contains("EUR"), "value"
+    ] *= eur_dollar_conversion
+
+    industry_heating_costs.loc[
+        industry_heating_costs["unit"].str.contains("EUR"), "unit"
+    ] = industry_heating_costs.loc[
+        industry_heating_costs["unit"].str.contains("EUR"), "unit"
+    ].str.replace(
+        "EUR", "$"
+    )
+
     add_industry_heating(
         n,
         industry_heating_costs,
         snakemake.params.costs["financial_case"],
         snakemake.params.costs["scenario"],
     )
+
+    district_heat_egs_supply = pd.read_csv(
+        snakemake.input["district_heating_geothermal_supply_curves"], index_col=[0, 1]
+    )
+
+    logger.info("Adding geothermal supply for district heating.")
+    add_geothermal_district_heating_supply(n, district_heat_egs_supply)
 
     """
     # industry_heating_costs = (
@@ -3739,7 +3755,7 @@ if __name__ == "__main__":
     )
 
     ##########################################################################
-    ############## Functions adding different carrires and sectors ###########
+    ############## Functions adding different carriers and sectors ###########
     ##########################################################################
 
     # TODO Add existing capacities of air conditioning
