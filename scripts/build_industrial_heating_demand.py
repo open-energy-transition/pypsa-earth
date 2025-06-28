@@ -4,7 +4,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-import os
 import random
 from copy import deepcopy
 
@@ -20,6 +19,7 @@ from scipy.sparse.csgraph import minimum_spanning_tree, shortest_path
 from scipy.spatial import distance, distance_matrix
 from shapely.geometry import Point
 from tqdm import tqdm
+import os
 
 
 def prepare_demand_data(fn):
@@ -1557,7 +1557,7 @@ if __name__ == "__main__":
 
         regional_supply_shapes.loc[region] = len(regional_supply)
 
-        os.makedirs("hold", exist_ok=True)
+        os.makedirs("hold",exist_ok=True)
 
         regional_supply.to_csv(f"hold/regional_supply_{region}.csv")
 
