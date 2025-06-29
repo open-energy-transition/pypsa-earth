@@ -977,23 +977,31 @@ def add_biomass(n, costs):
     )
 
     biomass_gen = "biomass EOP"
-    n.madd(
-        "Link",
-        spatial.nodes + " biomass EOP",
-        bus0=spatial.biomass.nodes,
-        bus1=spatial.nodes,
-        # bus2="co2 atmosphere",
-        marginal_cost=costs.at[biomass_gen, "efficiency"]
-        * costs.at[biomass_gen, "VOM"],  # NB: VOM is per MWel
-        # NB: fixed cost is per MWel
-        capital_cost=costs.at[biomass_gen, "efficiency"]
-        * costs.at[biomass_gen, "fixed"],
-        p_nom_extendable=True,
-        carrier=biomass_gen,
-        efficiency=costs.at[biomass_gen, "efficiency"],
-        # efficiency2=costs.at["solid biomass", "CO2 intensity"],
-        lifetime=costs.at[biomass_gen, "lifetime"],
-    )
+    if biomass_gen in snakemake.params.electricity["conventional_carriers"]:
+        n.madd(
+            "Link",
+            spatial.nodes + " biomass EOP",
+            bus0=spatial.biomass.nodes,
+            bus1=spatial.nodes,
+            # bus2="co2 atmosphere",
+            marginal_cost=costs.at[biomass_gen, "efficiency"]
+            * costs.at[biomass_gen, "VOM"],  # NB: VOM is per MWel
+            # NB: fixed cost is per MWel
+            capital_cost=costs.at[biomass_gen, "efficiency"]
+            * costs.at[biomass_gen, "fixed"],
+            p_nom_extendable=(
+                True
+                if biomass_gen
+                in snakemake.params.electricity.get("extendable_carriers", dict()).get(
+                    "Generator", list()
+                )
+                else False
+            ),
+            carrier=biomass_gen,
+            efficiency=costs.at[biomass_gen, "efficiency"],
+            # efficiency2=costs.at["solid biomass", "CO2 intensity"],
+            lifetime=costs.at[biomass_gen, "lifetime"],
+        )
     n.madd(
         "Link",
         spatial.gas.biogas_to_gas,
