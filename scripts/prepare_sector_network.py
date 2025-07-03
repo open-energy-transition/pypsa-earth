@@ -2767,6 +2767,12 @@ def add_residential(n, costs):
     n.loads_t.p_set.loc[:, buses] -= static_load
     n.loads_t.p_set.loc[:, buses] = n.loads_t.p_set.loc[:, buses].clip(lower=0)
 
+    # Assuming that all cooling load is supplied by air conditioners
+    cool_buses = (n.loads_t.p_set.filter(regex="cool").filter(like=country)).columns
+    # TODO account for COP
+    cool_load = n.loads_t.p_set[cool_buses].sum().sum()
+    n.loads_t.p_set.loc[:, buses] -= cool_load
+
     profile_pu = normalize_by_country(n.loads_t.p_set[buses]).fillna(0)
     n.loads_t.p_set.loc[:, buses] = p_set_from_scaling(
         "electricity residential", profile_pu, energy_totals, temporal_resolution
