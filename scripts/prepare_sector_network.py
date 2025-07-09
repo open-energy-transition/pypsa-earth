@@ -43,25 +43,9 @@ def add_lifetime_wind_solar(n, costs):
         gen_i = n.generators.index.str.contains(carrier)
         n.generators.loc[gen_i, "lifetime"] = costs.at[carrier, "lifetime"]
 
-def limit_nuclear_p_max_pu(n):
-    """
-    Limit nuclear generator dispatch according to p_max_pu_value.
-    Prints a message if any generators are affected.
-    """
     nuclear_generators = n.generators.index[n.generators.carrier == "nuclear"]
-
-    if nuclear_generators.empty:
-        print("No nuclear generators found – no p_max_pu limit applied.")
-        return
-
-    if not hasattr(n, "generators_t") or "p_max_pu" not in n.generators_t:
-        n.generators_t.p_max_pu = pd.DataFrame(
-            1.0, index=n.snapshots, columns=n.generators.index
-        )
-        print("Initialized n.generators_t.p_max_pu with default 1.0 values.")
-
     p_max_pu_value = 0.89
-    n.generators_t.p_max_pu.loc[:, nuclear_generators] = p_max_pu_value
+    n.generators.loc[nuclear_generators, "p_max_pu"] = p_max_pu_value
     print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators.")
 
 def add_carrier_buses(n, carrier, nodes=None):
@@ -3192,9 +3176,6 @@ if __name__ == "__main__":
     remove_elec_base_techs(n)
 
     add_generation(n, costs, existing_capacities, existing_efficiencies, existing_nodes)
-
-    # limit p_max_pu for nuclear
-    limit_nuclear_p_max_pu(n)
 
     # remove H2 and battery technologies added in elec-only model
     remove_carrier_related_components(n, carriers_to_drop=["H2", "battery"])
