@@ -46,7 +46,10 @@ def add_lifetime_wind_solar(n, costs):
     nuclear_generators = n.generators.index[n.generators.carrier == "nuclear"]
     p_max_pu_value = 0.89
     n.generators.loc[nuclear_generators, "p_max_pu"] = p_max_pu_value
-    print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators.")
+    print(
+        f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators."
+    )
+
 
 def add_carrier_buses(n, carrier, nodes=None):
     """
