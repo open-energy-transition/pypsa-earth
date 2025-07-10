@@ -45,24 +45,32 @@ def add_lifetime_wind_solar(n, costs):
 
 def limit_nuclear_p_max_pu(n):
     """
-    Limit nuclear generator dispatch according to p_max_pu_value.
-    Prints a message if any generators are affected.
+    Limit nuclear generator and link dispatch according to p_max_pu_value.
+    Works on static p_max_pu (not time-dependent).
     """
-    nuclear_generators = n.generators.index[n.generators.carrier == "nuclear"]
-
-    if nuclear_generators.empty:
-        print("No nuclear generators found – no p_max_pu limit applied.")
-        return
-
-    if not hasattr(n, "generators_t") or "p_max_pu" not in n.generators_t:
-        n.generators_t.p_max_pu = pd.DataFrame(
-            1.0, index=n.snapshots, columns=n.generators.index
-        )
-        print("Initialized n.generators_t.p_max_pu with default 1.0 values.")
-
     p_max_pu_value = 0.89
-    n.generators.loc[nuclear_generators, "p_max_pu"] = p_max_pu_value
-    print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators.")
+
+    # Nuclear generators
+    nuclear_generators = n.generators.index[n.generators.carrier == "nuclear"]
+    if not nuclear_generators.empty:
+        if "p_max_pu" not in n.generators.columns:
+            n.generators["p_max_pu"] = 1.0
+            print("Initialized n.generators.p_max_pu with default 1.0 values.")
+        n.generators.loc[nuclear_generators, "p_max_pu"] = p_max_pu_value
+        print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators.")
+    else:
+        print("No nuclear generators found – no p_max_pu limit applied.")
+
+    # Nuclear links
+    nuclear_links = n.links.index[n.links.carrier == "nuclear"]
+    if not nuclear_links.empty:
+        if "p_max_pu" not in n.links.columns:
+            n.links["p_max_pu"] = 1.0
+            print("Initialized n.links.p_max_pu with default 1.0 values.")
+        n.links.loc[nuclear_links, "p_max_pu"] = p_max_pu_value
+        print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_links)} nuclear links.")
+    else:
+        print("No nuclear links found – no p_max_pu limit applied.")
 
 def add_carrier_buses(n, carrier, nodes=None):
    """
