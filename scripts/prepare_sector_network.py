@@ -51,11 +51,7 @@ def limit_nuclear_p_max_pu(n):
     p_max_pu_value = 0.89
 
     # Nuclear generators
-    nuclear_generators = n.generators.index[n.generators.carrier == "nuclear"]
     if not nuclear_generators.empty:
-        if "p_max_pu" not in n.generators.columns:
-            n.generators["p_max_pu"] = 1.0
-            print("Initialized n.generators.p_max_pu with default 1.0 values.")
         n.generators.loc[nuclear_generators, "p_max_pu"] = p_max_pu_value
         print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators.")
     else:
@@ -64,9 +60,6 @@ def limit_nuclear_p_max_pu(n):
     # Nuclear links
     nuclear_links = n.links.index[n.links.carrier == "nuclear"]
     if not nuclear_links.empty:
-        if "p_max_pu" not in n.links.columns:
-            n.links["p_max_pu"] = 1.0
-            print("Initialized n.links.p_max_pu with default 1.0 values.")
         n.links.loc[nuclear_links, "p_max_pu"] = p_max_pu_value
         print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_links)} nuclear links.")
     else:
