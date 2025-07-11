@@ -51,6 +51,7 @@ def limit_nuclear_p_max_pu(n):
     p_max_pu_value = 0.89
 
     # Nuclear generators
+    nuclear_generators = n.generators.index[n.generators.carrier == "nuclear"]
     if not nuclear_generators.empty:
         n.generators.loc[nuclear_generators, "p_max_pu"] = p_max_pu_value
         print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators.")
