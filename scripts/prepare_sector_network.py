@@ -43,9 +43,31 @@ def add_lifetime_wind_solar(n, costs):
         gen_i = n.generators.index.str.contains(carrier)
         n.generators.loc[gen_i, "lifetime"] = costs.at[carrier, "lifetime"]
 
+def limit_nuclear_p_max_pu(n):
+    """
+    Limit nuclear generator and link dispatch according to p_max_pu_value.
+    Works on static p_max_pu (not time-dependent).
+    """
+    p_max_pu_value = 0.89
+
+    # Nuclear generators
+    nuclear_generators = n.generators.index[n.generators.carrier == "nuclear"]
+    if not nuclear_generators.empty:
+        n.generators.loc[nuclear_generators, "p_max_pu"] = p_max_pu_value
+        print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators.")
+    else:
+        print("No nuclear generators found – no p_max_pu limit applied.")
+
+    # Nuclear links
+    nuclear_links = n.links.index[n.links.carrier == "nuclear"]
+    if not nuclear_links.empty:
+        n.links.loc[nuclear_links, "p_max_pu"] = p_max_pu_value
+        print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_links)} nuclear links.")
+    else:
+        print("No nuclear links found – no p_max_pu limit applied.")
 
 def add_carrier_buses(n, carrier, nodes=None):
-    """
+   """
     Add buses to connect e.g. coal, nuclear and oil plants.
     """
 
@@ -3180,6 +3202,9 @@ if __name__ == "__main__":
     remove_elec_base_techs(n)
 
     add_generation(n, costs, existing_capacities, existing_efficiencies, existing_nodes)
+
+    # limit p_max_pu for nuclear
+    limit_nuclear_p_max_pu(n)
 
     # remove H2 and battery technologies added in elec-only model
     remove_carrier_related_components(n, carriers_to_drop=["H2", "battery"])
