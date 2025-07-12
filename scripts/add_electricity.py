@@ -775,6 +775,7 @@ def attach_extendable_generators(n, costs, ppl):
                 capital_cost=costs.at["nuclear", "capital_cost"],
                 marginal_cost=costs.at["nuclear", "marginal_cost"],
                 efficiency=costs.at["nuclear", "efficiency"],
+                p_max_pu=0.89,
             )
 
         else:
