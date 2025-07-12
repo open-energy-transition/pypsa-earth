@@ -43,6 +43,7 @@ def add_lifetime_wind_solar(n, costs):
         gen_i = n.generators.index.str.contains(carrier)
         n.generators.loc[gen_i, "lifetime"] = costs.at[carrier, "lifetime"]
 
+
 def limit_nuclear_p_max_pu(n):
     """
     Limit nuclear generator and link dispatch according to p_max_pu_value.
@@ -54,7 +55,9 @@ def limit_nuclear_p_max_pu(n):
     nuclear_generators = n.generators.index[n.generators.carrier == "nuclear"]
     if not nuclear_generators.empty:
         n.generators.loc[nuclear_generators, "p_max_pu"] = p_max_pu_value
-        print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators.")
+        print(
+            f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_generators)} nuclear generators."
+        )
     else:
         print("No nuclear generators found – no p_max_pu limit applied.")
 
@@ -62,9 +65,12 @@ def limit_nuclear_p_max_pu(n):
     nuclear_links = n.links.index[n.links.carrier == "nuclear"]
     if not nuclear_links.empty:
         n.links.loc[nuclear_links, "p_max_pu"] = p_max_pu_value
-        print(f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_links)} nuclear links.")
+        print(
+            f"Set p_max_pu = {p_max_pu_value} for {len(nuclear_links)} nuclear links."
+        )
     else:
         print("No nuclear links found – no p_max_pu limit applied.")
+
 
 def add_carrier_buses(n, carrier, nodes=None):
     """
