@@ -67,7 +67,7 @@ def limit_nuclear_p_max_pu(n):
         print("No nuclear links found – no p_max_pu limit applied.")
 
 def add_carrier_buses(n, carrier, nodes=None):
-   """
+    """
     Add buses to connect e.g. coal, nuclear and oil plants.
     """
 
