@@ -700,7 +700,6 @@ sector:
     OCGT: gas
     oil: oil
     coal: coal
-    lignite: lignite
     biomass: biomass
   keep_existing_capacities: true
 
