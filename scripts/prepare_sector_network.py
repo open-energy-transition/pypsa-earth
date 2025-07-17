@@ -3241,7 +3241,8 @@ def add_industry_heating(n, costs, market, scenario):
         ],
     ):
 
-        for fuel in ["biogas", "gas"]:
+        #for fuel in ["biogas", "gas"]:
+        for fuel in ["gas"]:
 
             if fuel == "biogas":
                 bus0 = [
@@ -3864,6 +3865,9 @@ if __name__ == "__main__":
     cooling_demand = pd.read_csv(
         snakemake.input.cooling_demand, index_col=0, header=[0, 1], parse_dates=True
     ).fillna(0)
+    #breakpoint()
+    #cooling_demand /= 3e9 #testing convergence by downscaling cooling demand
+    #cooling_demand.loc[:,:] = 0
 
     # Heatpump coefficient of performance when in cooling mode
     hp_cooling_cop = pd.read_csv(
@@ -3894,12 +3898,13 @@ if __name__ == "__main__":
 
     # import sys
     # sys.exit()
-
-    for potential, mode in [
-        (snakemake.input["egs_potentials_egs"], "egs"),
-        (snakemake.input["egs_potentials_hs"], "hs"),
-    ]:
-        attach_enhanced_geothermal(n, potential, mode)
+    #breakpoint()
+    if not "noEGS" in snakemake.wildcards.sopts:
+        for potential, mode in [
+            (snakemake.input["egs_potentials_egs"], "egs"),
+            (snakemake.input["egs_potentials_hs"], "hs"),
+        ]:
+            attach_enhanced_geothermal(n, potential, mode)
 
     industry_demands = pd.read_csv(
         snakemake.input["industrial_heating_demands"], index_col=0
@@ -3907,13 +3912,14 @@ if __name__ == "__main__":
 
     logger.info("Adding industrial heating demands.")
     add_industry_demand(n, industry_demands)
+    
+    if not "noEGS" in snakemake.wildcards.sopts:
+        industry_egs_supply = pd.read_csv(
+            snakemake.input["industrial_heating_egs_supply_curves"], index_col=[0, 1]
+        )
 
-    industry_egs_supply = pd.read_csv(
-        snakemake.input["industrial_heating_egs_supply_curves"], index_col=[0, 1]
-    )
-
-    logger.info("Adding geothermal supply for industry.")
-    add_geothermal_industry_supply(n, industry_egs_supply)
+        logger.info("Adding geothermal supply for industry.")
+        add_geothermal_industry_supply(n, industry_egs_supply)
 
     industry_heating_costs = pd.read_csv(
         snakemake.input["industrial_heating_costs"], index_col=[0, 1]
@@ -3939,20 +3945,25 @@ if __name__ == "__main__":
         snakemake.params.costs["financial_case"],
         snakemake.params.costs["scenario"],
     )
+    
+    if not "noEGS" in snakemake.wildcards.sopts:
+        district_heat_egs_supply = pd.read_csv(
+            snakemake.input["district_heating_geothermal_supply_curves"], index_col=[0, 1]
+        )
 
-    district_heat_geothermal_supply = pd.read_csv(
-        snakemake.input["district_heating_geothermal_supply_curves"], index_col=[0, 1]
-    )
+        district_heat_geothermal_supply = pd.read_csv(
+            snakemake.input["district_heating_geothermal_supply_curves"], index_col=[0, 1]
+        )
 
-    logger.info("Adding geothermal supply for district heating.")
-    add_geothermal_district_heating_supply(n, district_heat_geothermal_supply)
+        logger.info("Adding geothermal supply for district heating.")
+        add_geothermal_district_heating_supply(n, district_heat_geothermal_supply)
 
-    district_cooling_geothermal_supply = pd.read_csv(
-        snakemake.input["district_cooling_geothermal_supply_curves"], index_col=[0, 1]
-    )
+        district_cooling_geothermal_supply = pd.read_csv(
+            snakemake.input["district_cooling_geothermal_supply_curves"], index_col=[0, 1]
+        )
 
-    logger.info("Adding geothermal supply for district cooling.")
-    add_geothermal_district_cooling_supply(n, district_cooling_geothermal_supply)
+        logger.info("Adding geothermal supply for district cooling.")
+        add_geothermal_district_cooling_supply(n, district_cooling_geothermal_supply)
 
     """
     # industry_heating_costs = (
