@@ -44,6 +44,15 @@ def add_lifetime_wind_solar(n, costs):
         n.generators.loc[gen_i, "lifetime"] = costs.at[carrier, "lifetime"]
 
 
+def add_lifetime_nuclear(n):
+    """
+    Add lifetime for nuclear generators.
+    """
+    for carrier in ["nuclear"]:
+        gen_i = n.generators.index.str.contains(carrier)
+        n.generators.loc[gen_i, "lifetime"] = 60.0
+
+
 def limit_nuclear_p_max_pu(n):
     """
     Limit nuclear generator and link dispatch according to p_max_pu_value.
@@ -3125,6 +3134,7 @@ if __name__ == "__main__":
 
     if snakemake.config["foresight"] in ["myopic", "perfect"]:
         add_lifetime_wind_solar(n, costs)
+        add_lifetime_nuclear(n)
 
     # TODO logging
 
