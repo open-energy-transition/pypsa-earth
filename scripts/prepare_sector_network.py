@@ -1217,15 +1217,15 @@ def add_co2(n, costs):
     n.buses[n.buses.carrier == "co2 stored"].y = co2_stored_y.values
     """
 
-    n.madd(
-        "Link",
-        spatial.co2.vents,
-        bus0=spatial.co2.nodes,
-        bus1="co2 atmosphere",
-        carrier="co2 vent",
-        efficiency=1.0,
-        p_nom_extendable=True,
-    )
+#    n.madd(
+#        "Link",
+#        spatial.co2.vents,
+#        bus0=spatial.co2.nodes,
+#        bus1="co2 atmosphere",
+#        carrier="co2 vent",
+#        efficiency=1.0,
+#        p_nom_extendable=True,
+#    )
 
     # logger.info("Adding CO2 network.")
     co2_links = create_network_topology(n, "CO2 pipeline ")
