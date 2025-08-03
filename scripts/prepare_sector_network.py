@@ -1863,13 +1863,13 @@ def add_land_transport(n, costs):
         ):
             n.madd(
                 "Load",
-                nodes,
+                spatial.nodes,
                 suffix=" land transport fuel cell",
-                bus=nodes + " H2",
+                bus=spatial.nodes + " H2",
                 carrier="land transport fuel cell",
                 p_set=fuel_cell_share
                 / options["transport_fuel_cell_efficiency"]
-                * transport[nodes],
+                * transport[spatial.nodes],
             )
 
     if ice_share > 0:
@@ -3740,12 +3740,12 @@ if __name__ == "__main__":
         # from helper import mock_snakemake #TODO remove func from here to helper script
         snakemake = mock_snakemake(
             "prepare_sector_network",
-            simpl="",
+        simpl="",
             clusters="10",
             ll="copt",
             opts="Co2L-24H",
             planning_horizons="2030",
-            sopts="144H",
+            sopts="120h",
             discountrate=0.071,
             demand="AB",
         )
