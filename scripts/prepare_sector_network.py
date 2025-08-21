@@ -2756,6 +2756,19 @@ def add_residential(n, costs):
     n.loads_t.p_set.loc[:, buses] -= static_load
     n.loads_t.p_set.loc[:, buses] = n.loads_t.p_set.loc[:, buses].clip(lower=0)
 
+    # Assuming that all cooling load is supplied by air conditioners
+    links_aircon = n.links.query("carrier.str.contains('air condit')")
+    cop_aircon = n.links_t.efficiency[links_aircon.index]
+    cool_load = (
+        n.loads_t.p_set[links_aircon.bus1].rename(
+            dict(zip(links_aircon.bus1, links_aircon.bus0)), axis="columns"
+        )
+        / cop_aircon.rename(
+            dict(zip(links_aircon.index, links_aircon.bus0)), axis="columns"
+        )
+    ).rename(dict(zip(links_aircon.bus1, links_aircon.bus0)), axis="columns")
+    n.loads_t.p_set.loc[:, buses] -= cool_load
+
     profile_pu = normalize_by_country(n.loads_t.p_set[buses]).fillna(0)
     n.loads_t.p_set.loc[:, buses] = p_set_from_scaling(
         "electricity residential", profile_pu, energy_totals, temporal_resolution
