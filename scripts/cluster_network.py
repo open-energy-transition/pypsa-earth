@@ -739,8 +739,8 @@ if __name__ == "__main__":
             "custom_busmap", False
         )  # custom busmap is depreciated https://github.com/pypsa-meets-earth/pypsa-earth/pull/694
         if custom_busmap:
-            busmap = pd.read_csv(snakemake.input.custom_busmap, index_col=0).squeeze()
-            busmap.index = busmap.index.astype(str)
+            custom_busmap = pd.read_csv(snakemake.input.custom_busmap, index_col=0).squeeze()
+            custom_busmap.index = custom_busmap.index.astype(str)
             logger.info(f"Imported custom busmap from {snakemake.input.custom_busmap}")
         cluster_config = snakemake.config.get("cluster_options", {}).get(
             "cluster_network", {}
