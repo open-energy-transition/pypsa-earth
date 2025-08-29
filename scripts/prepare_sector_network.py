@@ -960,46 +960,21 @@ def add_co2(n, costs, co2_network):
         p_nom_extendable=True,
     )
 
-    # logger.info("Adding CO2 network.")
-#   co2_links = create_network_topology(n, "CO2 pipeline ")
 
-#   cost_onshore = (
-#       (1 - co2_links.underwater_fraction)
-#       * costs.at["CO2 pipeline", "fixed"]
-#       * co2_links.length
-#   )
-#   cost_submarine = (
-#       co2_links.underwater_fraction
-#       * costs.at["CO2 submarine pipeline", "fixed"]
-#       * co2_links.length
-#   )
-#    capital_cost = cost_onshore + cost_submarine
+    n.madd(
+        "Store",
+        spatial.co2.nodes,
+        e_nom_extendable=True,
+        e_nom_max=np.inf,
+        capital_cost=options["co2_sequestration_cost"],
+        carrier="co2 stored",
+        bus=spatial.co2.nodes,
+    )
 
-#   n.madd(
-#       "Link",
-#       co2_links.index,
-#       bus0=co2_links.bus0.values + " co2 stored",
-#       bus1=co2_links.bus1.values + " co2 stored",
-#       p_min_pu=-1,
-#       p_nom_extendable=True,
-#       length=co2_links.length.values,
-#       capital_cost=capital_cost.values,
-#       carrier="CO2 pipeline",
-#       lifetime=costs.at["CO2 pipeline", "lifetime"],
-#    )
     
     if co2_network:
-        n.madd(
-            "Store",
-            spatial.co2.nodes,
-            e_nom_extendable=True,
-            e_nom_max=np.inf,
-            capital_cost=options["co2_sequestration_cost"],
-            carrier="co2 stored",
-            bus=spatial.co2.nodes,
-        )
 
-        # logger.info("Adding CO2 network.")
+        logger.info("Adding CO2 network.")
         co2_links = create_network_topology(n, "CO2 pipeline ")
 
         cost_onshore = (
@@ -3838,7 +3813,9 @@ if __name__ == "__main__":
     )
     # Get the data required for land transport
     # TODO Leon, This contains transport demand, right? if so let's change it to transport_demand?
-    transport = pd.read_csv(snakemake.input.transport, index_col=0, parse_dates=True)
+    transport = pd.read_csv(
+        snakemake.input.transport, index_col=0, parse_dates=True
+    ).reindex(columns=spatial.nodes, fill_value=0.0)
 
     avail_profile = pd.read_csv(
         snakemake.input.avail_profile, index_col=0, parse_dates=True
