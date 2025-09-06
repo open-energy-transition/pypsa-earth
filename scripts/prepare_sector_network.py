@@ -3563,13 +3563,8 @@ def add_geothermal_district_heating_supply(n, egs_potential):
     )
     # annuity_factor = 1 / lifetime # cost of capital are already accounted for in the capital cost
 
-    network_cost_factor = (
-        1.28  # maximally simple estimate of heat network cost, taken from
-    )
-    # https://vb.nweurope.eu/media/21149/2022_04_dge_rollout_dt123_socio_economic_potential_mapping_for_dge_urg.pdf
-
     egs_potential["capex[USD/MW]"] = (
-        egs_potential["capex[USD/MW]"] * annuity_factor * network_cost_factor
+        egs_potential["capex[USD/MW]"] * annuity_factor
     )
 
     if f"geothermal district heat" not in n.buses.index:
@@ -3595,6 +3590,9 @@ def add_geothermal_district_heating_supply(n, egs_potential):
         capacity = row["heat_demand[MW]"]
         capital_cost = row["capex[USD/MW]"]
         opex = row["opex[USD/MWh]"]
+
+        if capacity < 10: # preventing adding very small generators
+            continue
 
         identifier = f"{bus} geothermal district heating {supply_curve_step}"
 
@@ -3655,13 +3653,8 @@ def add_geothermal_district_cooling_supply(n, egs_potential):
     )
     # annuity_factor = 1 / lifetime # cost of capital are already accounted for in the capital cost
 
-    network_cost_factor = (
-        1.28  # maximally simple estimate of heat network cost, taken from
-    )
-    # https://vb.nweurope.eu/media/21149/2022_04_dge_rollout_dt123_socio_economic_potential_mapping_for_dge_urg.pdf
-
     egs_potential["capex[USD/MW]"] = (
-        egs_potential["capex[USD/MW]"] * annuity_factor * network_cost_factor
+        egs_potential["capex[USD/MW]"] * annuity_factor
     )
 
     if f"geothermal district cooling" not in n.buses.index:
@@ -3687,6 +3680,9 @@ def add_geothermal_district_cooling_supply(n, egs_potential):
         capacity = row["cooling_demand[MW]"]
         capital_cost = row["capex[USD/MW]"]
         opex = row["opex[USD/MWh]"]
+
+        if capacity < 10: # preventing adding very small generators
+            continue
 
         identifier = f"{bus} geothermal district cooling {supply_curve_step}"
 
