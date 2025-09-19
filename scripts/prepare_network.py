@@ -70,8 +70,6 @@ from _helpers import (
     configure_logging,
     create_logger,
     read_csv_nafix,
-    sanitize_carriers,
-    sanitize_locations,
 )
 from add_electricity import (
     calculate_annuity,
