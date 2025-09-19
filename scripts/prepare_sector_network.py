@@ -1863,13 +1863,13 @@ def add_land_transport(n, costs):
         ):
             n.madd(
                 "Load",
-                nodes,
+                spatial.nodes,
                 suffix=" land transport fuel cell",
-                bus=nodes + " H2",
+                bus=spatial.nodes + " H2",
                 carrier="land transport fuel cell",
                 p_set=fuel_cell_share
                 / options["transport_fuel_cell_efficiency"]
-                * transport[nodes],
+                * transport[spatial.nodes],
             )
 
     if ice_share > 0:
@@ -2755,6 +2755,19 @@ def add_residential(n, costs):
     )
     n.loads_t.p_set.loc[:, buses] -= static_load
     n.loads_t.p_set.loc[:, buses] = n.loads_t.p_set.loc[:, buses].clip(lower=0)
+
+    # Assuming that all cooling load is supplied by air conditioners
+    links_aircon = n.links.query("carrier.str.contains('air condit')")
+    cop_aircon = n.links_t.efficiency[links_aircon.index]
+    cool_load = (
+        n.loads_t.p_set[links_aircon.bus1].rename(
+            dict(zip(links_aircon.bus1, links_aircon.bus0)), axis="columns"
+        )
+        / cop_aircon.rename(
+            dict(zip(links_aircon.index, links_aircon.bus0)), axis="columns"
+        )
+    ).rename(dict(zip(links_aircon.bus1, links_aircon.bus0)), axis="columns")
+    n.loads_t.p_set.loc[:, buses] -= cool_load
 
     profile_pu = normalize_by_country(n.loads_t.p_set[buses]).fillna(0)
     n.loads_t.p_set.loc[:, buses] = p_set_from_scaling(
@@ -3727,12 +3740,12 @@ if __name__ == "__main__":
         # from helper import mock_snakemake #TODO remove func from here to helper script
         snakemake = mock_snakemake(
             "prepare_sector_network",
-            simpl="",
+        simpl="",
             clusters="10",
             ll="copt",
             opts="Co2L-24H",
             planning_horizons="2030",
-            sopts="144H",
+            sopts="120h",
             discountrate=0.071,
             demand="AB",
         )
