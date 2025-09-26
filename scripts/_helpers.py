@@ -1094,7 +1094,8 @@ def prepare_costs(
             "H2_electrolysis": [
                 "Alkaline electrolyzer large size",
                 "Alkaline electrolyzer medium size",
-                "Alkaline electrolyzer small size" "PEM electrolyzer small size",
+                "Alkaline electrolyzer small size",
+                "PEM electrolyzer small size",
                 "SOEC",
             ],
             "dac": ["direct air capture"],
@@ -1138,7 +1139,7 @@ def prepare_costs(
     )
     modified_costs = modified_costs.fillna(fill_values)
 
-    for attr in ("investment", "lifetime", "FOM", "VOM", "efficiency", "fuel"):
+    for attr in ("investment", "lifetime", "FOM", "VOM", "efficiency", "fuel", "discount rate"):
         overwrites = config.get(attr)
         if overwrites is not None:
             overwrites = pd.Series(overwrites)
