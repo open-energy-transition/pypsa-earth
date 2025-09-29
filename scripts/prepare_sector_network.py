@@ -192,7 +192,7 @@ def H2_liquid_fossil_conversions(n, costs):
 def add_hydrogen(n, costs):
     "function to add hydrogen as an energy carrier with its conversion technologies from and to AC"
     logger.info("Adding hydrogen")
-
+    nodes=spatial.nodes
     n.add("Carrier", "H2")
 
     n.madd(
@@ -3244,15 +3244,17 @@ def add_industry_heating(n, costs, market, scenario):
         ],
     ):
 
-        #for fuel in ["biogas", "gas"]:
-        for fuel in ["gas"]:
+        for fuel in ["biogas", "gas"]:
 
             if fuel == "biogas":
-                bus0 = [
-                    bus
-                    for bus in spatial.biomass.nodes
-                    if " ".join(bus.split(" ")[:2]) in locs
-                ]
+                if len(spatial.biomass.nodes) == 1:
+                    bus0 = spatial.biomass.nodes[0]
+                else:
+                    bus0 = [
+                        bus
+                        for bus in spatial.biomass.nodes
+                        if " ".join(bus.split(" ")[:2]) in locs
+                    ]
                 kwargs = dict()
             else:
                 bus0 = [
