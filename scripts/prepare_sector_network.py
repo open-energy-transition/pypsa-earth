@@ -3867,6 +3867,8 @@ if __name__ == "__main__":
     cooling_demand = pd.read_csv(
         snakemake.input.cooling_demand, index_col=0, header=[0, 1], parse_dates=True
     ).fillna(0)
+    # Hard-coding cooling demand to 0, this needs to be properly implemented if cooling demand needs to be by-passed in the upstream
+    cooling_demand.loc[:,:] = 0
 
     # Heatpump coefficient of performance when in cooling mode
     hp_cooling_cop = pd.read_csv(
