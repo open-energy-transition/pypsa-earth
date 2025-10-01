@@ -215,7 +215,15 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
     costs = costs.set_index(["technology", "parameter"]).sort_index()
     costs = costs["value"].unstack().fillna(config["fill_values"])
 
-    for attr in ("investment", "lifetime", "FOM", "VOM", "efficiency", "fuel", "discount rate"):
+    for attr in (
+        "investment",
+        "lifetime",
+        "FOM",
+        "VOM",
+        "efficiency",
+        "fuel",
+        "discount rate",
+    ):
         overwrites = config.get(attr)
         if overwrites is not None:
             overwrites = pd.Series(overwrites)
