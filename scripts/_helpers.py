@@ -1139,7 +1139,15 @@ def prepare_costs(
     )
     modified_costs = modified_costs.fillna(fill_values)
 
-    for attr in ("investment", "lifetime", "FOM", "VOM", "efficiency", "fuel", "discount rate"):
+    for attr in (
+        "investment",
+        "lifetime",
+        "FOM",
+        "VOM",
+        "efficiency",
+        "fuel",
+        "discount rate",
+    ):
         overwrites = config.get(attr)
         if overwrites is not None:
             overwrites = pd.Series(overwrites)

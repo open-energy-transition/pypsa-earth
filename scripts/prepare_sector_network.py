@@ -662,9 +662,6 @@ def add_hydrogen(n, costs):
             )
 
     # hydrogen stored overground (where not already underground)
-    h2_capital_cost = costs.at[
-        "hydrogen storage tank type 1 including compressor", "fixed"
-    ]
     nodes_overground = nodes
     n.madd(
         "Store",
@@ -673,7 +670,8 @@ def add_hydrogen(n, costs):
         e_nom_extendable=True,
         e_cyclic=True,
         carrier="H2 Store Tank",
-        capital_cost=h2_capital_cost,
+        capital_cost=costs.at["hydrogen storage tank type 1", "fixed"],
+        lifetime=costs.at["hydrogen storage tank type 1", "lifetime"],
     )
 
     # Hydrogen network:
