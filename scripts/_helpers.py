@@ -1060,6 +1060,7 @@ def prepare_costs(
     fill_values: dict,
     Nyears: float | int = 1,
     default_exchange_rate: float = None,
+    reference_year: int | None = None,
 ):
     # set all asset costs and other parameters
     costs = pd.read_csv(cost_file, index_col=[0, 1]).sort_index()
