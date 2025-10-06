@@ -1019,7 +1019,10 @@ def get_yearly_currency_exchange_average(
 
 
 def convert_currency_and_unit(
-    cost_dataframe, output_currency: str, default_exchange_rate: float = None, reference_year: int = 2020
+    cost_dataframe,
+    output_currency: str,
+    default_exchange_rate: float = None,
+    reference_year: int = 2020,
 ):
     """
     Convert all cost values to the specified output_currency using a fixed reference_year.
@@ -1140,7 +1143,7 @@ def prepare_costs(
         costs,
         output_currency,
         default_exchange_rate=config.get("default_exchange_rate"),
-        reference_year=config.get("reference_year", 2020)
+        reference_year=config.get("reference_year", 2020),
     )
 
     # min_count=1 is important to generate NaNs which are then filled by fillna
