@@ -1019,8 +1019,14 @@ def get_yearly_currency_exchange_average(
 
 
 def convert_currency_and_unit(
-    cost_dataframe, output_currency: str, default_exchange_rate: float = None
+    cost_dataframe, output_currency: str, default_exchange_rate: float = None, reference_year: int = 2020
 ):
+    """
+    Convert all cost values to the specified output_currency using a fixed reference_year.
+
+    This ignores the individual `currency_year` of each row and ensures all costs are
+    expressed in the same year of the output currency.
+    """
     currency_list = currency_converter.currencies
     cost_dataframe["value"] = cost_dataframe.apply(
         lambda x: (
@@ -1028,7 +1034,7 @@ def convert_currency_and_unit(
             * get_yearly_currency_exchange_average(
                 x["unit"][0:3],
                 output_currency,
-                int(x["currency_year"]),
+                reference_year,
                 default_exchange_rate,
             )
             if x["unit"][0:3] in currency_list
@@ -1038,7 +1044,7 @@ def convert_currency_and_unit(
     )
     cost_dataframe["unit"] = cost_dataframe.apply(
         lambda x: (
-            x["unit"].replace(x["unit"][0:3], output_currency)
+            x["unit"].replace(x["unit"][:3], output_currency)
             if x["unit"][0:3] in currency_list
             else x["unit"]
         ),
@@ -1128,7 +1134,13 @@ def prepare_costs(
             | (costs["financial_case"].isnull())
         ]
 
-    modified_costs = convert_currency_and_unit(costs, output_currency)
+    # Convert currency and units using reference_year from config
+    modified_costs = convert_currency_and_unit(
+        costs,
+        output_currency,
+        default_exchange_rate=config.get("default_exchange_rate"),
+        reference_year=config.get("reference_year", 2020)
+    )
 
     # min_count=1 is important to generate NaNs which are then filled by fillna
     modified_costs = (
