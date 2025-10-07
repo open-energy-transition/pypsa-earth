@@ -18,7 +18,8 @@ Relevant Settings
         version:
         rooftop_share:
         output_currency:
-        dicountrate:
+        reference_year:
+        discountrate:
         emission_prices:
 
     electricity:
@@ -145,7 +146,12 @@ def load_costs(tech_costs, config, elec_config, Nyears=1):
     # correct units to MW and output_currency
     costs.loc[costs.unit.str.contains("/kW"), "value"] *= 1e3
     costs.unit = costs.unit.str.replace("/kW", "/MW")
-    costs = convert_currency_and_unit(costs, config["output_currency"])
+    costs = convert_currency_and_unit(
+        costs,
+        output_currency=config["output_currency"],
+        default_exchange_rate=config.get("default_exchange_rate"),
+        reference_year=config.get("reference_year", 2020),
+    )
 
     # apply filter on financial_case and scenario, if they are contained in the cost dataframe
     wished_cost_scenario = config["cost_scenario"]

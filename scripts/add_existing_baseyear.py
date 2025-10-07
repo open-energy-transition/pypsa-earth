@@ -617,6 +617,7 @@ if __name__ == "__main__":
         snakemake.params.costs["fill_values"],
         Nyears,
         snakemake.params.costs["default_USD_to_EUR"],
+        reference_year=snakemake.config["costs"].get("reference_year", 2020),
     )
 
     grouping_years_power = snakemake.params.existing_capacities["grouping_years_power"]
