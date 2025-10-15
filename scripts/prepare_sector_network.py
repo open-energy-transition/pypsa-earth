@@ -33,6 +33,7 @@ from prepare_transport_data import prepare_transport_data
 logger = logging.getLogger(__name__)
 
 spatial = SimpleNamespace()
+grouping_years_power = snakemake.params.existing_capacities["grouping_years_power"]
 
 
 def add_lifetime_wind_solar(n, costs):
