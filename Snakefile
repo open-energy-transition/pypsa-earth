@@ -1076,6 +1076,7 @@ rule prepare_sector_network:
     params:
         costs=config["costs"],
         electricity=config["electricity"],
+        planning_horizons=config["scenario"]["planning_horizons"][0],
     input:
         network=RESDIR
         + "prenetworks/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}_{sopts}_{planning_horizons}_{discountrate}_{demand}_presec.nc",
