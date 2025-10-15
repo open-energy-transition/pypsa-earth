@@ -1416,6 +1416,8 @@ def add_storage(n, costs):
 
             df_batteries["cluster_bus"] = df_batteries.bus.map(clustermaps)
 
+            existing_capacity = df_batteries.groupby("cluster_bus")["Capacity"].sum()
+
             df_batteries["grouping_year"] = np.take(
                 grouping_years_power,
                 np.digitize(df_batteries.DateIn, grouping_years_power, right=True)
