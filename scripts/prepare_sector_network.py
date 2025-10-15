@@ -1366,12 +1366,62 @@ def add_storage(n, costs):
         y=n.buses.loc[list(spatial.nodes)].y.values,
     )
 
+    # Load existing battery capacities from powerplants.csv
+    existing_battery_capacity = {}
+    try:
+        df_powerplants = pd.read_csv(snakemake.input.powerplants, index_col=0)
+
+        baseyear = (snakemake.params.planning_horizons
+                    if isinstance(snakemake.params.planning_horizons, int)
+                    else snakemake.params.planning_horizons[0])
+        df_batteries = df_powerplants[
+            (df_powerplants.Fueltype == "battery") &
+            (df_powerplants.DateOut >= baseyear)
+            ].copy()
+
+        if not df_batteries.empty:
+            busmap_s = pd.read_csv(snakemake.input.busmap_s, index_col=0).squeeze()
+            busmap = pd.read_csv(snakemake.input.busmap, index_col=0).squeeze()
+            clustermaps = busmap_s.map(busmap).astype(int)
+            df_batteries["cluster_bus"] = df_batteries.bus.map(clustermaps)
+            existing_capacity = df_batteries.groupby("cluster_bus")["Capacity"].sum()
+
+            threshold = snakemake.params.existing_capacities.get("threshold_capacity", 1.0)
+            for node in spatial.nodes:
+                if node in existing_capacity.index and existing_capacity[node] > threshold:
+                    existing_battery_capacity[node] = existing_capacity[node]
+
+            logger.info(
+                f"Found existing battery capacity from powerplants.csv: "
+                f"{sum(existing_battery_capacity.values()):.1f} MW in "
+                f"{len(existing_battery_capacity)} nodes"
+            )
+    except Exception as e:
+        logger.warning(f"Could not load existing battery capacities: {e}")
+        existing_battery_capacity = {}
+
+    # Use configured max_hours for battery duration
+    elec_config = snakemake.config["electricity"]
+    max_hours = elec_config["max_hours"]
+    battery_duration = max_hours["battery"]
+
+    e_nom_mins = []
+    p_nom_mins_charger = []
+    p_nom_mins_discharger = []
+
+    for node in spatial.nodes:
+        p = existing_battery_capacity.get(node, 0)
+        e_nom_mins.append(p * battery_duration)
+        p_nom_mins_charger.append(p)
+        p_nom_mins_discharger.append(p)
+
     n.madd(
         "Store",
         spatial.nodes + " battery",
         bus=spatial.nodes + " battery",
         e_cyclic=True,
         e_nom_extendable=True,
+        e_nom_min=e_nom_mins,
         carrier="battery",
         capital_cost=costs.at["battery storage", "fixed"],
         lifetime=costs.at["battery storage", "lifetime"],
@@ -1386,6 +1436,7 @@ def add_storage(n, costs):
         efficiency=costs.at["battery inverter", "efficiency"] ** 0.5,
         capital_cost=costs.at["battery inverter", "fixed"],
         p_nom_extendable=True,
+        p_nom_min=p_nom_mins_charger,
         lifetime=costs.at["battery inverter", "lifetime"],
     )
 
@@ -1398,6 +1449,7 @@ def add_storage(n, costs):
         efficiency=costs.at["battery inverter", "efficiency"] ** 0.5,
         marginal_cost=options["marginal_cost_storage"],
         p_nom_extendable=True,
+        p_nom_min=p_nom_mins_discharger,
         lifetime=costs.at["battery inverter", "lifetime"],
     )
 
