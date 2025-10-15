@@ -33,7 +33,6 @@ from prepare_transport_data import prepare_transport_data
 logger = logging.getLogger(__name__)
 
 spatial = SimpleNamespace()
-grouping_years_power = snakemake.params.existing_capacities["grouping_years_power"]
 
 def add_lifetime_wind_solar(n, costs):
     """
@@ -3223,6 +3222,8 @@ if __name__ == "__main__":
         reference_year=snakemake.config["costs"].get("reference_year", 2020),
     )
 
+    grouping_years_power = snakemake.params.existing_capacities["grouping_years_power"]
+
     # Define spatial for biomass and co2. They require the same spatial definition
     spatial = define_spatial(pop_layout.index, options)
 
@@ -3321,7 +3322,6 @@ if __name__ == "__main__":
 
     add_hydrogen(n, costs)  # TODO add costs
 
-    grouping_years_power = snakemake.params.existing_capacities["grouping_years_power"]
     add_storage(n, costs)
 
     H2_liquid_fossil_conversions(n, costs)
