@@ -1403,14 +1403,25 @@ def add_storage(n, costs):
         ].copy()
 
         if not df_batteries.empty:
-            # Map each plant's bus to its cluster
+            # assign clustered bus
             busmap_s = pd.read_csv(snakemake.input.busmap_s, index_col=0).squeeze()
-            busmap   = pd.read_csv(snakemake.input.busmap,   index_col=0).squeeze()
-            clustermaps = busmap_s.map(busmap).astype(int)
+            busmap = pd.read_csv(snakemake.input.busmap, index_col=0).squeeze()
 
-            # Assign clustered bus and aggregate capacities
+            inv_busmap = {}
+            for k, v in busmap.items():
+                inv_busmap[v] = inv_busmap.get(v, []) + [k]
+
+            clustermaps = busmap_s.map(busmap)
+            clustermaps.index = clustermaps.index.astype(int)
+
             df_batteries["cluster_bus"] = df_batteries.bus.map(clustermaps)
-            existing_capacity = df_batteries.groupby("cluster_bus")["Capacity"].sum()
+
+            df_batteries["grouping_year"] = np.take(
+                grouping_years_power,
+                np.digitize(df_batteries.DateIn, grouping_years_power, right=True)
+            )
+
+            df_batteries["lifetime"] = df_batteries.DateOut - df_batteries["grouping_year"] + 1
 
             # Apply threshold and collect per-node capacity
             threshold = snakemake.params.existing_capacities.get("threshold_capacity", 1.0)
