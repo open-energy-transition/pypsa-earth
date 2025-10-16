@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 spatial = SimpleNamespace()
 
+
 def add_lifetime_wind_solar(n, costs):
     """
     Add lifetime for solar and wind generators.
@@ -1371,24 +1372,24 @@ def add_storage(n, costs):
     existing_battery_capacity = {}
     try:
         df_powerplants = pd.read_csv(
-            snakemake.input.powerplants,
-            index_col=0,
-            sep=',',
-            skipinitialspace=True
+            snakemake.input.powerplants, index_col=0, sep=",", skipinitialspace=True
         )
 
         # Ensure 'bus' and 'DateOut' are numeric
         if "bus" in df_powerplants.columns:
             df_powerplants["bus"] = (
-                df_powerplants["bus"].astype(str)
+                df_powerplants["bus"]
+                .astype(str)
                 .str.replace(r"[^0-9]", "", regex=True)
                 .replace("", "0")
                 .astype(int)
             )
         if "DateOut" in df_powerplants.columns:
-            df_powerplants["DateOut"] = pd.to_numeric(
-                df_powerplants["DateOut"], errors="coerce"
-            ).fillna(0).astype(int)
+            df_powerplants["DateOut"] = (
+                pd.to_numeric(df_powerplants["DateOut"], errors="coerce")
+                .fillna(0)
+                .astype(int)
+            )
 
         # Filter for battery assets still active in baseyear
         baseyear = (
@@ -1397,8 +1398,8 @@ def add_storage(n, costs):
             else snakemake.params.planning_horizons[0]
         )
         df_batteries = df_powerplants[
-            (df_powerplants.Fueltype == "battery") &
-            (df_powerplants.DateOut >= baseyear)
+            (df_powerplants.Fueltype == "battery")
+            & (df_powerplants.DateOut >= baseyear)
         ].copy()
 
         if not df_batteries.empty:
@@ -1419,13 +1420,17 @@ def add_storage(n, costs):
 
             df_batteries["grouping_year"] = np.take(
                 grouping_years_power,
-                np.digitize(df_batteries.DateIn, grouping_years_power, right=True)
+                np.digitize(df_batteries.DateIn, grouping_years_power, right=True),
             )
 
-            df_batteries["lifetime"] = df_batteries.DateOut - df_batteries["grouping_year"] + 1
+            df_batteries["lifetime"] = (
+                df_batteries.DateOut - df_batteries["grouping_year"] + 1
+            )
 
             # Apply threshold and collect per-node capacity
-            threshold = snakemake.params.existing_capacities.get("threshold_capacity", 1.0)
+            threshold = snakemake.params.existing_capacities.get(
+                "threshold_capacity", 1.0
+            )
             for node in spatial.nodes:
                 cap = existing_capacity.get(node, 0.0)
                 if cap > threshold:

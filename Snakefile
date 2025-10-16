@@ -1136,9 +1136,9 @@ rule prepare_sector_network:
             + SECDIR
             + "gas_networks/gas_network_elec_s{simpl}_{clusters}.csv"
         ),
-        powerplants= "resources/" + RDIR + "powerplants.csv",
-        busmap_s= "resources/" + RDIR + "bus_regions/busmap_elec_s{simpl}.csv",
-        busmap= "resources/" + RDIR + "bus_regions/busmap_elec_s{simpl}_{clusters}.csv",
+        powerplants="resources/" + RDIR + "powerplants.csv",
+        busmap_s="resources/" + RDIR + "bus_regions/busmap_elec_s{simpl}.csv",
+        busmap="resources/" + RDIR + "bus_regions/busmap_elec_s{simpl}_{clusters}.csv",
     output:
         RESDIR
         + "prenetworks/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}_{sopts}_{planning_horizons}_{discountrate}_{demand}.nc",
