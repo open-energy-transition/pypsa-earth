@@ -1352,9 +1352,11 @@ def add_aviation(n, cost):
 
 
 def add_storage(n, costs):
-    "function to add the different types of storage systems"
+    """Function to add the different types of storage systems, including
+    existing battery capacities from powerplants.csv."""
     logger.info("Add battery storage")
 
+    # Add battery carrier and buses
     n.add("Carrier", "battery")
 
     n.madd(
@@ -1366,12 +1368,107 @@ def add_storage(n, costs):
         y=n.buses.loc[list(spatial.nodes)].y.values,
     )
 
+    # Load and clean existing powerplants data
+    existing_battery_capacity = {}
+    try:
+        df_powerplants = pd.read_csv(
+            snakemake.input.powerplants, index_col=0, sep=",", skipinitialspace=True
+        )
+
+        # Ensure 'bus' and 'DateOut' are numeric
+        if "bus" in df_powerplants.columns:
+            df_powerplants["bus"] = (
+                df_powerplants["bus"]
+                .astype(str)
+                .str.replace(r"[^0-9]", "", regex=True)
+                .replace("", "0")
+                .astype(int)
+            )
+        if "DateOut" in df_powerplants.columns:
+            df_powerplants["DateOut"] = (
+                pd.to_numeric(df_powerplants["DateOut"], errors="coerce")
+                .fillna(0)
+                .astype(int)
+            )
+
+        # Filter for battery assets still active in baseyear
+        baseyear = (
+            snakemake.params.planning_horizons
+            if isinstance(snakemake.params.planning_horizons, int)
+            else snakemake.params.planning_horizons[0]
+        )
+        df_batteries = df_powerplants[
+            (df_powerplants.Fueltype == "battery")
+            & (df_powerplants.DateOut >= baseyear)
+        ].copy()
+
+        if not df_batteries.empty:
+            # assign clustered bus
+            busmap_s = pd.read_csv(snakemake.input.busmap_s, index_col=0).squeeze()
+            busmap = pd.read_csv(snakemake.input.busmap, index_col=0).squeeze()
+
+            inv_busmap = {}
+            for k, v in busmap.items():
+                inv_busmap[v] = inv_busmap.get(v, []) + [k]
+
+            clustermaps = busmap_s.map(busmap)
+            clustermaps.index = clustermaps.index.astype(int)
+
+            df_batteries["cluster_bus"] = df_batteries.bus.map(clustermaps)
+
+            existing_capacity = df_batteries.groupby("cluster_bus")["Capacity"].sum()
+
+            df_batteries["grouping_year"] = np.take(
+                grouping_years_power,
+                np.digitize(df_batteries.DateIn, grouping_years_power, right=True),
+            )
+
+            df_batteries["lifetime"] = (
+                df_batteries.DateOut - df_batteries["grouping_year"] + 1
+            )
+
+            # Apply threshold and collect per-node capacity
+            threshold = snakemake.params.existing_capacities.get(
+                "threshold_capacity", 1.0
+            )
+            for node in spatial.nodes:
+                cap = existing_capacity.get(node, 0.0)
+                if cap > threshold:
+                    existing_battery_capacity[node] = cap
+
+            total = sum(existing_battery_capacity.values())
+            nodes = len(existing_battery_capacity)
+            logger.info(
+                f"Found existing battery capacity from powerplants.csv: "
+                f"{total:.1f} MW in {nodes} nodes"
+            )
+
+    except Exception as e:
+        logger.warning(f"Could not load existing battery capacities: {e}")
+        existing_battery_capacity = {}
+
+    # Use configured max_hours for battery duration
+    elec_config = snakemake.config["electricity"]
+    max_hours = elec_config["max_hours"]
+    battery_duration = max_hours["battery"]
+
+    e_nom_mins = []
+    p_nom_mins_charger = []
+    p_nom_mins_discharger = []
+
+    for node in spatial.nodes:
+        p = existing_battery_capacity.get(node, 0)
+        e_nom_mins.append(p * battery_duration)
+        p_nom_mins_charger.append(p)
+        p_nom_mins_discharger.append(p)
+
     n.madd(
         "Store",
         spatial.nodes + " battery",
         bus=spatial.nodes + " battery",
         e_cyclic=True,
         e_nom_extendable=True,
+        e_nom_min=e_nom_mins,
         carrier="battery",
         capital_cost=costs.at["battery storage", "fixed"],
         lifetime=costs.at["battery storage", "lifetime"],
@@ -1386,6 +1483,7 @@ def add_storage(n, costs):
         efficiency=costs.at["battery inverter", "efficiency"] ** 0.5,
         capital_cost=costs.at["battery inverter", "fixed"],
         p_nom_extendable=True,
+        p_nom_min=p_nom_mins_charger,
         lifetime=costs.at["battery inverter", "lifetime"],
     )
 
@@ -1398,6 +1496,7 @@ def add_storage(n, costs):
         efficiency=costs.at["battery inverter", "efficiency"] ** 0.5,
         marginal_cost=options["marginal_cost_storage"],
         p_nom_extendable=True,
+        p_nom_min=p_nom_mins_discharger,
         lifetime=costs.at["battery inverter", "lifetime"],
     )
 
@@ -3127,6 +3226,8 @@ if __name__ == "__main__":
         snakemake.params.costs["default_USD_to_EUR"],
         reference_year=snakemake.config["costs"].get("reference_year", 2020),
     )
+
+    grouping_years_power = snakemake.params.existing_capacities["grouping_years_power"]
 
     # Define spatial for biomass and co2. They require the same spatial definition
     spatial = define_spatial(pop_layout.index, options)
