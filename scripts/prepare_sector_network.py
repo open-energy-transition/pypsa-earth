@@ -4027,13 +4027,6 @@ if __name__ == "__main__":
             "steam225degC_power_residheat80degC_hs",
         ]
 
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # TODO Revise in the stable version
-        # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # Quick-and-dirty way to introduce decreasing costs for geothermal
-        reduction = 0.25
-        n.links.loc[gt_techs, ["capital_cost", "marginal_cost"]] *= 1 - reduction
-
         # Find the BBB sequence and extract year
         for opt in snakemake.wildcards.sopts.split("-"):
             if not opt.startswith("BBB"):
@@ -4043,9 +4036,9 @@ if __name__ == "__main__":
             if year < 2033:
                 reduction = 0.5
             if year in [2033, 2034]:
-                reduction = 0.25
+                reduction = 0.30
             if year > 2034:
-                reduction = 0.0
+                reduction = 0.25
 
             logger.info(
                 f"Reducing geothermal cost through IRA/BBB subsidies by {int(reduction*100)}% assuming project start in {year}."
