@@ -100,7 +100,7 @@ def myround(x):
 def cell_areas(lat, lon, x_stepsize, y_stepsize):
     """
     Approximate grid cell areas for lon/lat grid in sqkm.
-    
+
     lat, lon: arrays of cell center coordinates (in degrees)
     x_stepsize, y_stepsize: grid resolution (in degrees)
     """
@@ -112,9 +112,7 @@ def cell_areas(lat, lon, x_stepsize, y_stepsize):
     dlat = np.radians(y_stepsize)
 
     # area formula on sphere: A = R^2 * dlon * (sin(lat+Δ/2) - sin(lat-Δ/2))
-    area = (R**2) * dlon * (
-        np.sin(lat_rad + dlat/2) - np.sin(lat_rad - dlat/2)
-    )
+    area = (R**2) * dlon * (np.sin(lat_rad + dlat / 2) - np.sin(lat_rad - dlat / 2))
     return area  # in sqkm
 
 
@@ -142,16 +140,14 @@ if __name__ == "__main__":
     with rasterio.open(list(tif_files.values())[0]) as src:
         transform = src.transform
         x_stepsize = transform[0]
-        y_stepsize = abs(
-            transform[4]
-        )
+        y_stepsize = abs(transform[4])
 
         assert x_stepsize == y_stepsize
 
     if mode == "egs":
-        capacity_density = 0.45 # assuming a 0.45MW/km2 footprint
+        capacity_density = 0.45  # assuming a 0.45MW/km2 footprint
     elif mode == "hs":
-        capacity_density = 0.3 # assuming a 0.3MW/km2 footprint
+        capacity_density = 0.3  # assuming a 0.3MW/km2 footprint
     else:
         raise ValueError(f"Invalid mode: {mode}")
 
@@ -193,9 +189,7 @@ if __name__ == "__main__":
         ascii=True,
     ):
 
-        ss = gdf[
-            gdf.geometry.intersects(geom)
-        ]
+        ss = gdf[gdf.geometry.intersects(geom)]
 
         if ss.empty:
             continue
@@ -210,11 +204,13 @@ if __name__ == "__main__":
         area = cell_areas(centroid.y, centroid.x, x_stepsize, y_stepsize)
         ss["p_nom_max[MWe]"] = capacity_density * area
 
-        binned = ss.groupby(np.arange(len(ss)) // (len(ss) / n_steps)).agg({
-            "capex[USD/MWe]": "mean",
-            "opex[USD/MWhe]": "mean",
-            "p_nom_max[MWe]": "sum",
-        })
+        binned = ss.groupby(np.arange(len(ss)) // (len(ss) / n_steps)).agg(
+            {
+                "capex[USD/MWe]": "mean",
+                "opex[USD/MWhe]": "mean",
+                "p_nom_max[MWe]": "sum",
+            }
+        )
         binned.index = pd.MultiIndex.from_product(
             [[name], range(len(binned))], names=["network_region", "supply_curve_step"]
         )
@@ -222,12 +218,16 @@ if __name__ == "__main__":
         regional_potentials.append(binned)
 
     regional_potentials = pd.concat(regional_potentials)
-    assert regional_potentials.notna().all().all(), "There are NaNs in the regional potentials"
+    assert (
+        regional_potentials.notna().all().all()
+    ), "There are NaNs in the regional potentials"
 
     regional_potentials = regional_potentials.rename(
         columns={"capex[USD/MWe]": "capital_cost[USD/MWe]"}
     )
 
-    total_capacity = regional_potentials['p_nom_max[MWe]'].sum() * 1e-6
-    logger.info(f"Found {total_capacity:.3f} TWel {mode} potential. Saving to {snakemake.output.egs_potentials}.")
+    total_capacity = regional_potentials["p_nom_max[MWe]"].sum() * 1e-6
+    logger.info(
+        f"Found {total_capacity:.3f} TWel {mode} potential. Saving to {snakemake.output.egs_potentials}."
+    )
     regional_potentials.to_csv(snakemake.output.egs_potentials)
