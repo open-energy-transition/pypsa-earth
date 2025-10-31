@@ -472,8 +472,12 @@ def attach_wind_and_solar(
             df["carrier"] = df["carrier"].mask(
                 df.technology == "Offshore", "offwind-ac"
             )
-
-        df["carrier"] = df["carrier"].mask(df.technology == "Onshore", "onwind")
+        elif tech == "offwind-dc":
+            df["carrier"] = df["carrier"].mask(
+                df.technology == "Offshore", "offwind-dc"
+            )
+        else:
+            df["carrier"] = df["carrier"].mask(df.technology == "Onshore", "onwind")
 
         with xr.open_dataset(getattr(input_files, "profile_" + tech)) as ds:
             if ds.indexes["bus"].empty:
@@ -498,12 +502,9 @@ def attach_wind_and_solar(
                     + connection_cost
                 )
                 logger.info(
-                    "Added connection cost of {:0.0f}-{:0.0f} {}/MW/a to {}".format(
-                        connection_cost.min(),
-                        connection_cost.max(),
-                        snakemake.params.output_currency,
-                        tech,
-                    )
+                    f"Added connection cost of {connection_cost.min():.0f}-"
+                    f"{connection_cost.max():.0f} "
+                    f"{snakemake.params.costs['output_currency']}/MW/a to {tech}"
                 )
             else:
                 capital_cost = costs.at[tech, "capital_cost"]
