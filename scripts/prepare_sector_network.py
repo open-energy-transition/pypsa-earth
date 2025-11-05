@@ -214,7 +214,7 @@ def H2_liquid_fossil_conversions(n, costs):
         * costs.at[
             "Fischer-Tropsch", "efficiency"
         ],  # Use efficiency to convert from EUR/MW_FT/a to EUR/MW_H2/a
-        efficiency2=-costs.at["oil", "CO2 intensity"]
+        efficiency2=-costs.at["Fischer-Tropsch", "carbondioxide-input"]
         * costs.at["Fischer-Tropsch", "efficiency"],
         efficiency3=-costs.at["Fischer-Tropsch", "electricity-input"]
         / costs.at["Fischer-Tropsch", "hydrogen-input"],
