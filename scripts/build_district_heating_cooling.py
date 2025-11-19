@@ -151,11 +151,26 @@ def process_techno_economic_data(df):
 
 if __name__ == "__main__":
 
+    options = snakemake.config["sector"]      
+
     regions = gpd.read_file(snakemake.input.regions).set_index("name")
     district_gdf = gpd.read_file(snakemake.input.demand_data)
 
     district_gdf["avg_heat_mw"] = district_gdf["frac_htg"] / 8760
     district_gdf["avg_cooling_mw"] = district_gdf["frac_clg"] / 8760
+
+    # The demand rasters correspond to the present state
+    # Scaling accounts for the projections
+    resid_heat_total = options.get("residential_heat_total", 3.422e+6)
+    serv_heat_total = options.get("services_heat_total", 1.141e+6)
+    resid_cool_total = options.get("residential_cool_total", 612.4e+6) #2.09
+    serv_cool_total = options.get("services_cool_total", 366.4e+6)
+    
+    heat_total = resid_heat_total + serv_heat_total
+    cool_total = resid_cool_total + serv_cool_total 
+
+    district_gdf["avg_heat_mw"] *= heat_total / district_gdf["avg_heat_mw"].sum().sum()
+    district_gdf["avg_cooling_mw"] *= cool_total / district_gdf["avg_cooling_mw"].sum().sum()
 
     # remove regions with less than 2 MW of heat or 1.5 MW of cooling demand, as these are too small to be viable
     # these are small numbers because the model can decide against installing geothermal DH/DC itself
