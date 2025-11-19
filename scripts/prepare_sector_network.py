@@ -4133,9 +4133,26 @@ if __name__ == "__main__":
     #     constant=co2_limit,
     # )
 
-    heat_scale = options.get("scale_heat_load", 1)
-    heat_cols = n.loads_t.p_set.columns[n.loads_t.p_set.columns.str.contains("heat")]
-    n.loads_t.p_set[heat_cols] *= heat_scale
+    def evaluate_ann_sum(n, cols):
+        ann_value = (
+            n.loads_t.p_set[cols]
+            .multiply(n_test.snapshot_weightings["objective"], axis=0)
+            .sum()
+            .sum()
+        )
+        return ann_value
+
+    resid_heat_total = options.get("residential_heat_total", 3.422e+6)
+    serv_heat_total = options.get("services_heat_total", 1.141e+6)
+
+    residential_heat_pattern = "heat.*residential|residential.*heat"
+    services_heat_pattern = "services.*heat|heat.*services"
+
+    resid_heat_cols = n.loads_t.p_set.columns[n.loads_t.p_set.columns.str.contains(residential_heat_pattern)]
+    serv_heat_cols = n.loads_t.p_set.columns[n.loads_t.p_set.columns.str.contains(services_heat_pattern)]
+
+    n.loads_t.p_set[resid_heat_cols] *= resid_heat_total / evaluate_ann_sum(n, resid_heat_cols)
+    n.loads_t.p_set[serv_heat_cols] *= serv_heat_total / evaluate_ann_sum(n, serv_heat_cols)
 
     if snakemake.config["custom_data"]["water_costs"]:
         add_custom_water_cost(n)
