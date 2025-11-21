@@ -151,15 +151,34 @@ def process_techno_economic_data(df):
 
 if __name__ == "__main__":
 
+    options = snakemake.config["sector"]
+
     regions = gpd.read_file(snakemake.input.regions).set_index("name")
     district_gdf = gpd.read_file(snakemake.input.demand_data)
 
     district_gdf["avg_heat_mw"] = district_gdf["frac_htg"] / 8760
     district_gdf["avg_cooling_mw"] = district_gdf["frac_clg"] / 8760
 
+    # The demand rasters correspond to the present state
+    # Scaling accounts for the projections
+    resid_heat_total = options.get("residential_heat_total", 3.422e6)
+    serv_heat_total = options.get("services_heat_total", 1.141e6)
+    resid_cool_total = options.get("residential_cool_total", 612.4e6)  # 2.09
+    serv_cool_total = options.get("services_cool_total", 366.4e6)
+
+    heat_total = resid_heat_total + serv_heat_total
+    cool_total = resid_cool_total + serv_cool_total
+
+    district_gdf["avg_heat_mw"] *= heat_total / district_gdf["avg_heat_mw"].sum().sum()
+    district_gdf["avg_cooling_mw"] *= (
+        cool_total / district_gdf["avg_cooling_mw"].sum().sum()
+    )
+
     # remove regions with less than 2 MW of heat or 1.5 MW of cooling demand, as these are too small to be viable
     # these are small numbers because the model can decide against installing geothermal DH/DC itself
-    district_gdf = district_gdf[(district_gdf["avg_heat_mw"] > 2) | (district_gdf["avg_cooling_mw"] > 1.5)]
+    district_gdf = district_gdf[
+        (district_gdf["avg_heat_mw"] > 2) | (district_gdf["avg_cooling_mw"] > 1.5)
+    ]
 
     # References for heat-density classification and conversions used below:
     # - Heat Roadmap Europe / STRATEGO (WP2 Country Heat Roadmaps): DH suitability classes
@@ -173,12 +192,15 @@ if __name__ == "__main__":
     # --- Research-based heat-density tiers (HRE/STRATEGO -> MW/km²)
     # Original classes: 0–30, 30–100, 100–300, >300 TJ/km²·yr
     # Convert TJ/yr -> MW using 1 MW·yr = 31.536 TJ
-    bounds_mw = [0.0, 30/31.536, 100/31.536, 300/31.536, np.inf]
+    bounds_mw = [0.0, 30 / 31.536, 100 / 31.536, 300 / 31.536, np.inf]
     labels = ["low", "med", "high", "very_high"]
 
     district_gdf["density_tier"] = pd.cut(
-    district_gdf["avg_heat_mw"],
-    bins=bounds_mw, labels=labels, right=True, include_lowest=True
+        district_gdf["avg_heat_mw"],
+        bins=bounds_mw,
+        labels=labels,
+        right=True,
+        include_lowest=True,
     )
 
     # for piping-cost, we go with numbers from https://www.npro.energy/main/en/help/technology-costs
@@ -186,23 +208,34 @@ if __name__ == "__main__":
     # --- Installed $/m: cheaper outside cores, higher in dense urban ROWs
     USD_PER_M = {
         "very_high": 2200.0,  # dense downtown cores
-        "high":      1400.0,  # mixed mid-rise
-        "med":       900.0,  # urban fringe/smaller towns
-        "low":       600.0,  # single-family/greenfield-like installs
+        "high": 1400.0,  # mixed mid-rise
+        "med": 900.0,  # urban fringe/smaller towns
+        "low": 600.0,  # single-family/greenfield-like installs
     }
     district_gdf["piping_cost_per_m"] = (
         district_gdf["density_tier"].map(USD_PER_M).astype(float)
     )
 
-    TRENCH_M_PER_KM2 = {"low": 8_000, "med": 12_000, "high": 15_000, "very_high": 20_000}
-    district_gdf["trench_m_per_km2"] = district_gdf["density_tier"].map(TRENCH_M_PER_KM2).astype(float)
+    TRENCH_M_PER_KM2 = {
+        "low": 8_000,
+        "med": 12_000,
+        "high": 15_000,
+        "very_high": 20_000,
+    }
+    district_gdf["trench_m_per_km2"] = (
+        district_gdf["density_tier"].map(TRENCH_M_PER_KM2).astype(float)
+    )
 
     district_gdf["heating_network_cost_per_mw"] = (
-        district_gdf["piping_cost_per_m"] * district_gdf["trench_m_per_km2"] / district_gdf["avg_heat_mw"]
+        district_gdf["piping_cost_per_m"]
+        * district_gdf["trench_m_per_km2"]
+        / district_gdf["avg_heat_mw"]
     )
 
     district_gdf["cooling_network_cost_per_mw"] = (
-        district_gdf["piping_cost_per_m"] * district_gdf["trench_m_per_km2"] / district_gdf["avg_cooling_mw"]
+        district_gdf["piping_cost_per_m"]
+        * district_gdf["trench_m_per_km2"]
+        / district_gdf["avg_cooling_mw"]
     )
 
     tif_files = {
@@ -396,8 +429,7 @@ if __name__ == "__main__":
         heating_regional_supply[["total_output[MWh]"]] = np.nan
 
         heating_regional_supply = process_regional_supply_curves(
-            heating_regional_supply,
-            demand_column="heat_demand[MW]"
+            heating_regional_supply, demand_column="heat_demand[MW]"
         )
 
         heating_total_results.append(heating_regional_supply)
@@ -408,8 +440,7 @@ if __name__ == "__main__":
         cooling_regional_supply[["total_output[MWh]"]] = np.nan
 
         cooling_regional_supply = process_regional_supply_curves(
-            cooling_regional_supply,
-            demand_column="cooling_demand[MW]"
+            cooling_regional_supply, demand_column="cooling_demand[MW]"
         )
 
         cooling_total_results.append(cooling_regional_supply)
@@ -431,18 +462,28 @@ if __name__ == "__main__":
             columns=["cooling_demand[MW]", "capex[USD/MW]", "opex[USD/MWh]"]
         )
 
-    total_results_heating.to_csv(snakemake.output["district_heating_geothermal_supply_curves"])
+    total_results_heating.to_csv(
+        snakemake.output["district_heating_geothermal_supply_curves"]
+    )
 
     # for district cooling, add cost of absorption chillers
     # data taken from https://www.energy.gov/sites/prod/files/2017/06/f35/CHP-Absorption%20Chiller-compliant.pdf
     cop = 0.72
-    capex = 2_100_000.
-    opex = 1.
+    capex = 2_100_000.0
+    opex = 1.0
 
-    total_results_cooling["capex[USD/MW]"] = (total_results_cooling["capex[USD/MW]"] + capex) / cop
-    total_results_cooling["opex[USD/MWh]"] = total_results_cooling["opex[USD/MWh]"] + opex
+    total_results_cooling["capex[USD/MW]"] = (
+        total_results_cooling["capex[USD/MW]"] + capex
+    ) / cop
+    total_results_cooling["opex[USD/MWh]"] = (
+        total_results_cooling["opex[USD/MWh]"] + opex
+    )
 
     # expressed as the MW that can be provided in terms of heat
-    total_results_cooling["cooling_demand[MW]"] = total_results_cooling["cooling_demand[MW]"] / cop
+    total_results_cooling["cooling_demand[MW]"] = (
+        total_results_cooling["cooling_demand[MW]"] / cop
+    )
 
-    total_results_cooling.to_csv(snakemake.output["district_cooling_geothermal_supply_curves"])
+    total_results_cooling.to_csv(
+        snakemake.output["district_cooling_geothermal_supply_curves"]
+    )

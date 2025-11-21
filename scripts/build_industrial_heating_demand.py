@@ -537,10 +537,8 @@ def find_heat_exchanger_capacity(data, distance_threshold=1.0):
 
 
 def process_regional_supply_curves(
-        data,
-        supply_curve_step_number=3,
-        demand_column="heat_demand[MW]"
-        ):
+    data, supply_curve_step_number=3, demand_column="heat_demand[MW]"
+):
     """
     Process regional geothermal data to create discretized supply curves.
 
@@ -562,10 +560,14 @@ def process_regional_supply_curves(
         Processed data with discretized supply curves
     """
 
-    if 'lcoe[USD/MWh]' in data.columns:
-        data = data.loc[data['lcoe[USD/MWh]'] < 1000.] # can occur at the edge of suitable regions and can distort the supply curve
+    if "lcoe[USD/MWh]" in data.columns:
+        data = data.loc[
+            data["lcoe[USD/MWh]"] < 1000.0
+        ]  # can occur at the edge of suitable regions and can distort the supply curve
         if data.empty:
-            logger.warning(f"LCOE filter removed all data in process_regional_supply_curves")
+            logger.warning(
+                f"LCOE filter removed all data in process_regional_supply_curves"
+            )
             return pd.DataFrame()
 
     # Identify share columns
@@ -642,8 +644,7 @@ def process_regional_supply_curves(
 
                         # Calculate demand-weighted average capex for this step
                         new_row["capex[USD/MW]"] = (
-                            step_subset["capex[USD/MW]"]
-                            * step_subset[demand_column]
+                            step_subset["capex[USD/MW]"] * step_subset[demand_column]
                         ).sum() / step_subset[demand_column].sum()
 
                         # Sum heat demand for this step
@@ -656,8 +657,10 @@ def process_regional_supply_curves(
 
                         # Average for opex and share columns
                         new_row["opex[USD/MWh]"] = step_subset["opex[USD/MWh]"].mean()
-                        if 'lcoe[USD/MWh]' in step_subset.columns:
-                            new_row["lcoe[USD/MWh]"] = step_subset["lcoe[USD/MWh]"].mean()
+                        if "lcoe[USD/MWh]" in step_subset.columns:
+                            new_row["lcoe[USD/MWh]"] = step_subset[
+                                "lcoe[USD/MWh]"
+                            ].mean()
 
                         for col in share_cols:
                             if col in step_subset.columns:
@@ -675,8 +678,7 @@ def process_regional_supply_curves(
 
                     # Calculate demand-weighted average capex for discretized data
                     discretized_weighted_capex = (
-                        discretized_df["capex[USD/MW]"]
-                        * discretized_df[demand_column]
+                        discretized_df["capex[USD/MW]"] * discretized_df[demand_column]
                     ).sum() / discretized_df[demand_column].sum()
 
                     # Adjust capex values to ensure demand-weighted average matches original
@@ -1554,47 +1556,53 @@ if __name__ == "__main__":
                 )
 
                 if cluster_supply.empty:
-                    logger.info(f'Temperature band {band} cannot be met in {region}')
+                    logger.info(f"Temperature band {band} cannot be met in {region}")
                     continue
-            
+
                 # The current method only clusters heat demands of the same temperature band,
                 # and therefore it can not be assumed that heat outputs on different bands can be used at the same site.
                 # The following code therefore either assumes that heat output of higher temperature could also be used for a lower temperature, or removes that share of output and adjusts the LCOE accordingly.
-                for other in ['80-150C', '150-250C']:
-                    if band == '50-80C' and f'{other}_share' in cluster_supply.columns:
+                for other in ["80-150C", "150-250C"]:
+                    if band == "50-80C" and f"{other}_share" in cluster_supply.columns:
                         for idx in cluster_supply.index:
-                            if '50-80C_share' in cluster_supply.columns:
-                                cluster_supply.at[idx, '50-80C_share'] += cluster_supply.at[idx, f'{other}_share']
-                                cluster_supply.at[idx, f'{other}_share'] = 0.
+                            if "50-80C_share" in cluster_supply.columns:
+                                cluster_supply.at[
+                                    idx, "50-80C_share"
+                                ] += cluster_supply.at[idx, f"{other}_share"]
+                                cluster_supply.at[idx, f"{other}_share"] = 0.0
                             else:
-                                cluster_supply.at[idx, '50-80C_share'] = cluster_supply.at[idx, f'{other}_share']
-                                cluster_supply.at[idx, f'{other}_share'] = 0.
+                                cluster_supply.at[idx, "50-80C_share"] = (
+                                    cluster_supply.at[idx, f"{other}_share"]
+                                )
+                                cluster_supply.at[idx, f"{other}_share"] = 0.0
 
                 if (
                     cluster_supply.empty
                     or f"{band}_share" not in cluster_supply.columns
-                    ):
-                    logger.info(f'Temperature band {band} cannot be met in {region}')
+                ):
+                    logger.info(f"Temperature band {band} cannot be met in {region}")
                     continue
 
-                heat_bands = ['50-80C', '80-150C', '150-250C']
+                heat_bands = ["50-80C", "80-150C", "150-250C"]
                 others = [b for b in heat_bands if b != band]
 
                 for rowname in cluster_supply.index:
                     removed_share = 0
                     for o in others:
-                        if f'{o}_share' in cluster_supply.columns:
-                            removed_share += cluster_supply.loc[rowname, f'{o}_share']
-                            cluster_supply.loc[rowname, f'{o}_share'] = 0.
-                    
+                        if f"{o}_share" in cluster_supply.columns:
+                            removed_share += cluster_supply.loc[rowname, f"{o}_share"]
+                            cluster_supply.loc[rowname, f"{o}_share"] = 0.0
+
                     if removed_share > 0:
-                        cluster_supply.loc[rowname, 'lcoe[USD/MWh]'] *= 1 / (1 - removed_share)
-                
+                        cluster_supply.loc[rowname, "lcoe[USD/MWh]"] *= 1 / (
+                            1 - removed_share
+                        )
+
                 logger.info(cluster_supply)
 
-                cluster_supply = cluster_supply.sort_values(
-                    by=["lcoe[USD/MWh]"]
-                ).iloc[[0]]
+                cluster_supply = cluster_supply.sort_values(by=["lcoe[USD/MWh]"]).iloc[
+                    [0]
+                ]
 
                 cluster_supply.loc[cluster_supply.index[0], ["heat_demand[MW]"]] = (
                     cluster_size

@@ -1818,7 +1818,9 @@ rule build_population_layouts:
     params:
         planning_horizons=config["scenario"]["planning_horizons"][0],
     input:
-        gadm_shapes=config["cluster_options"]["alternative_clustering_shapefile"].replace("{RDIR}",RDIR),
+        gadm_shapes=config["cluster_options"][
+            "alternative_clustering_shapefile"
+        ].replace("{RDIR}", RDIR),
         urban_percent="resources/" + RDIR + "urban_percent.csv",
         cutout="cutouts/"
         + CDIR
