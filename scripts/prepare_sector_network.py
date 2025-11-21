@@ -4142,8 +4142,8 @@ if __name__ == "__main__":
         )
         return ann_value
 
-    resid_heat_total = options.get("residential_heat_total", 3.422e+6)
-    serv_heat_total = options.get("services_heat_total", 1.141e+6)
+    resid_heat_total = options.get("residential_heat_total", 1871.3e+6)
+    serv_heat_total = options.get("services_heat_total", 748.3e+6)
 
     residential_heat_pattern = "heat.*residential|residential.*heat"
     services_heat_pattern = "services.*heat|heat.*services"
