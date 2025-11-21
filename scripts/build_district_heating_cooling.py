@@ -13,6 +13,9 @@ from build_industrial_heating_demand import process_regional_supply_curves
 # from build_industrial_heating_demand import process_techno_economic_data
 from tqdm import tqdm
 
+FULL_HEAT_EP_HOURLY_MWH = 194745.5
+FULL_COOL_EP_HOURLY_MWH = 148825.1
+
 
 def process_techno_economic_data(df):
     """
@@ -161,18 +164,17 @@ if __name__ == "__main__":
 
     # The demand rasters correspond to the present state
     # Scaling accounts for the projections
-    resid_heat_total = options.get("residential_heat_total", 3.422e6)
-    serv_heat_total = options.get("services_heat_total", 1.141e6)
-    resid_cool_total = options.get("residential_cool_total", 612.4e6)  # 2.09
-    serv_cool_total = options.get("services_cool_total", 366.4e6)
+    resid_heat_total = options.get("residential_heat_total", 1871.3e6)
+    serv_heat_total = options.get("services_heat_total", 748.3e6)
+    resid_cool_total = options.get("residential_cool_total", 437.9e6)  # 2.09
+    serv_cool_total = options.get("services_cool_total", 214.2e6)
 
     heat_total = resid_heat_total + serv_heat_total
     cool_total = resid_cool_total + serv_cool_total
 
-    district_gdf["avg_heat_mw"] *= heat_total / district_gdf["avg_heat_mw"].sum().sum()
-    district_gdf["avg_cooling_mw"] *= (
-        cool_total / district_gdf["avg_cooling_mw"].sum().sum()
-    )
+    # The used raster have been modified by the load cutoff
+    district_gdf["avg_heat_mw"] *= heat_total / FULL_HEAT_EP_HOURLY_MWH
+    district_gdf["avg_cooling_mw"] *= cool_total / FULL_COOL_EP_HOURLY_MWH
 
     # remove regions with less than 2 MW of heat or 1.5 MW of cooling demand, as these are too small to be viable
     # these are small numbers because the model can decide against installing geothermal DH/DC itself
