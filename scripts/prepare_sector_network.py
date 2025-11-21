@@ -4137,7 +4137,7 @@ if __name__ == "__main__":
     def evaluate_ann_sum(n, cols):
         ann_value = (
             n.loads_t.p_set[cols]
-            .multiply(n_test.snapshot_weightings["objective"], axis=0)
+            .multiply(n.snapshot_weightings["objective"], axis=0)
             .sum()
             .sum()
         )
