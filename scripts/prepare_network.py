@@ -65,17 +65,8 @@ import numpy as np
 import pandas as pd
 import pypsa
 import requests
-from _helpers import (
-    BASE_DIR,
-    configure_logging,
-    create_logger,
-    read_csv_nafix,
-)
-from add_electricity import (
-    calculate_annuity,
-    load_costs,
-    update_transmission_costs,
-)
+from _helpers import BASE_DIR, configure_logging, create_logger, read_csv_nafix
+from add_electricity import calculate_annuity, load_costs, update_transmission_costs
 
 idx = pd.IndexSlice
 
@@ -541,7 +532,7 @@ if __name__ == "__main__":
         custom_network_capacities,
         fp_custom_capacities,
         snakemake.config,
-        lines, 
+        lines,
         links,
     )
 

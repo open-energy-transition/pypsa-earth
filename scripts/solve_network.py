@@ -856,36 +856,36 @@ def add_existing(n):
 
 def add_flexible_geothermal_constraints(n):
     # Get all reservoir buses
-    reservoir_buses = n.buses.index[n.buses.index.str.contains('reservoir')]
+    reservoir_buses = n.buses.index[n.buses.index.str.contains("reservoir")]
 
     for bus in reservoir_buses:
         # Find injector and producer links connected to this reservoir
         injector = n.links.index[
-            (n.links.index.str.contains('injector')) & 
-            (n.links.bus1 == bus)
+            (n.links.index.str.contains("injector")) & (n.links.bus1 == bus)
         ]
         producer = n.links.index[
-            (n.links.index.str.contains('producer')) & 
-            (n.links.bus0 == bus)
+            (n.links.index.str.contains("producer")) & (n.links.bus0 == bus)
         ]
 
         # Assert that exactly one injector and producer were found
-        assert len(injector) == 1, f"Expected 1 injector link for {bus}, found {len(injector)}"
-        assert len(producer) == 1, f"Expected 1 producer link for {bus}, found {len(producer)}"
+        assert (
+            len(injector) == 1
+        ), f"Expected 1 injector link for {bus}, found {len(injector)}"
+        assert (
+            len(producer) == 1
+        ), f"Expected 1 producer link for {bus}, found {len(producer)}"
 
         injector = injector[0]
         producer = producer[0]
 
         # Add constraint that injector and producer must have same nominal capacity
         link_p_nom = get_var(n, "Link", "p_nom")
-        
-        lhs = linexpr(
-            (1, link_p_nom[injector]),
-            (-1, link_p_nom[producer])
-        )
-        
-        define_constraints(n, lhs, "=", 0, "flex_geothermal", f"capacity_constraint_{bus}")
 
+        lhs = linexpr((1, link_p_nom[injector]), (-1, link_p_nom[producer]))
+
+        define_constraints(
+            n, lhs, "=", 0, "flex_geothermal", f"capacity_constraint_{bus}"
+        )
 
 
 def extra_functionality(n, snapshots):

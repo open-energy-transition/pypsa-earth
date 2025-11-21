@@ -192,7 +192,7 @@ def H2_liquid_fossil_conversions(n, costs):
 def add_hydrogen(n, costs):
     "function to add hydrogen as an energy carrier with its conversion technologies from and to AC"
     logger.info("Adding hydrogen")
-    nodes=spatial.nodes
+    nodes = spatial.nodes
     n.add("Carrier", "H2")
 
     n.madd(
@@ -960,7 +960,6 @@ def add_co2(n, costs, co2_network):
         p_nom_extendable=True,
     )
 
-
     n.madd(
         "Store",
         spatial.co2.nodes,
@@ -971,7 +970,6 @@ def add_co2(n, costs, co2_network):
         bus=spatial.co2.nodes,
     )
 
-    
     if co2_network:
 
         logger.info("Adding CO2 network.")
@@ -2958,7 +2956,7 @@ def add_industry_demand(n, demand):
             p_nom_extendable=True,
             p_max_pu=0.0,
             capital_cost=0.0,
-            carrier=carrier + ' dump',
+            carrier=carrier + " dump",
         )
 
 
@@ -3040,11 +3038,11 @@ def add_geothermal_industry_supply(n, supply_curve):
                     bus1=reservoir_bus,
                     carrier=tech.split(" ")[0],
                     p_nom_extendable=True,
-                    capital_cost=0.,
-                    marginal_cost=0.,
+                    capital_cost=0.0,
+                    marginal_cost=0.0,
                 )
 
-                if 'gtflex' in snakemake.wildcards.sopts:
+                if "gtflex" in snakemake.wildcards.sopts:
                     n.add(
                         "StorageUnit",
                         name=link_name + " reservoir",
@@ -3160,9 +3158,9 @@ def add_industry_heating(n, costs, market, scenario):
     # ... we scale the concentrated_solar_power capacity factors to the avg capacity factors of each tech
 
     capacity_factors = {
-        "glazed flat plate collector": 0.11, # https://www.iea-shc.org/data/sites/1/documents/statistics/technical_note-new_solar_thermal_statistics_Conversion.pdf
-        "linear fresnel reflector": 0.17, # https://www.sciencedirect.com/science/article/pii/S1364032124002740
-        "solar thermal parabolic trough": 0.18, # https://www.sciencedirect.com/science/article/pii/S1364032124002740
+        "glazed flat plate collector": 0.11,  # https://www.iea-shc.org/data/sites/1/documents/statistics/technical_note-new_solar_thermal_statistics_Conversion.pdf
+        "linear fresnel reflector": 0.17,  # https://www.sciencedirect.com/science/article/pii/S1364032124002740
+        "solar thermal parabolic trough": 0.18,  # https://www.sciencedirect.com/science/article/pii/S1364032124002740
     }
 
     # solar thermal for each temperature band
@@ -3263,14 +3261,13 @@ def add_industry_heating(n, costs, market, scenario):
                     if " ".join(bus.split(" ")[:2]) in locs
                 ]
                 kwargs = dict(
-                    bus2='co2 atmosphere',
-                    efficiency2=0.2,  
-                    # co2 intensity [tCO2/MWh] per burned caloric mwh in gas 
+                    bus2="co2 atmosphere",
+                    efficiency2=0.2,
+                    # co2 intensity [tCO2/MWh] per burned caloric mwh in gas
                     # source: https://www.ipcc-nggip.iges.or.jp/public/2006gl/pdf/2_Volume2/V2_2_Ch2_Stationary_Combustion.pdf
                 )
 
             name = nod + " " + boiler_tech_name + " " + fuel + "-powered"
-
 
             n.madd(
                 "Link",
@@ -3281,7 +3278,7 @@ def add_industry_heating(n, costs, market, scenario):
                 p_nom_extendable=True,
                 capital_cost=costs.at[boiler_tech_name, "fixed"],
                 efficiency=costs.at[boiler_tech_name, "efficiency"] * 0.01,
-                **kwargs
+                **kwargs,
             )
 
     # Typically this would convert electricity (bus0) to heat (bus1). For simplicity, assume same bus.
@@ -3298,7 +3295,8 @@ def add_industry_heating(n, costs, market, scenario):
         bus1=low_temp_buses,
         carrier="industrial heat pump low temperature",
         p_nom_extendable=True,
-        capital_cost=costs.at["industrial heat pump medium temperature", "fixed"]* 1000, # $/kW -> $/MW
+        capital_cost=costs.at["industrial heat pump medium temperature", "fixed"]
+        * 1000,  # $/kW -> $/MW
         lifetime=costs.at["industrial heat pump medium temperature", "lifetime"],
         efficiency=costs.at["industrial heat pump medium temperature", "efficiency"],
         marginal_cost=costs.at["industrial heat pump medium temperature", "VOM"],
@@ -3316,7 +3314,8 @@ def add_industry_heating(n, costs, market, scenario):
         bus1=medium_temp_buses,
         carrier="industrial heat pump medium temperature",
         p_nom_extendable=True,
-        capital_cost=costs.at["industrial heat pump high temperature", "fixed"] * 1000, # $/kW -> $/MW
+        capital_cost=costs.at["industrial heat pump high temperature", "fixed"]
+        * 1000,  # $/kW -> $/MW
         lifetime=costs.at["industrial heat pump high temperature", "lifetime"],
         efficiency=costs.at["industrial heat pump high temperature", "efficiency"],
         marginal_cost=costs.at["industrial heat pump high temperature", "VOM"],
@@ -3512,20 +3511,22 @@ def attach_enhanced_geothermal(n, potential_fn, mode):
             opex = row["opex[USD/MWhe]"]
 
             # Build an identifier that encodes the region name and supply-curve step
-            identifier = f"{bus} geothermal power {mode.lower()} curve {supply_curve_step}"
+            identifier = (
+                f"{bus} geothermal power {mode.lower()} curve {supply_curve_step}"
+            )
 
             n.add(
                 "Bus",
                 name=identifier + " reservoir",
                 carrier="geothermal heat",
                 unit="MWh_th",
-            )            
+            )
 
             # Create the link: connects the EGS bus with the regional bus
             n.add(
                 "Link",
                 name=identifier + " injector",
-                bus0='geothermal power ' + mode,
+                bus0="geothermal power " + mode,
                 bus1=identifier + " reservoir",
                 carrier=f"geothermal {mode}",
                 capital_cost=0,
@@ -3534,7 +3535,7 @@ def attach_enhanced_geothermal(n, potential_fn, mode):
                 p_nom_extendable=True,
             )
 
-            if 'gtflex' in snakemake.wildcards.sopts:
+            if "gtflex" in snakemake.wildcards.sopts:
                 n.add(
                     "StorageUnit",
                     name=identifier + " reservoir",
@@ -3572,9 +3573,7 @@ def add_geothermal_district_heating_supply(n, egs_potential):
     )
     # annuity_factor = 1 / lifetime # cost of capital are already accounted for in the capital cost
 
-    egs_potential["capex[USD/MW]"] = (
-        egs_potential["capex[USD/MW]"] * annuity_factor
-    )
+    egs_potential["capex[USD/MW]"] = egs_potential["capex[USD/MW]"] * annuity_factor
 
     if f"geothermal district heat" not in n.buses.index:
         n.add(
@@ -3600,7 +3599,7 @@ def add_geothermal_district_heating_supply(n, egs_potential):
         capital_cost = row["capex[USD/MW]"]
         opex = row["opex[USD/MWh]"]
 
-        if capacity < 10: # preventing adding very small generators
+        if capacity < 10:  # preventing adding very small generators
             continue
 
         identifier = f"{bus} geothermal district heating {supply_curve_step}"
@@ -3618,12 +3617,12 @@ def add_geothermal_district_heating_supply(n, egs_potential):
             bus1=reservoir_bus,
             carrier="geothermal district heat",
             p_nom_extendable=True,
-            capital_cost=0.,
-            marginal_cost=0.,
+            capital_cost=0.0,
+            marginal_cost=0.0,
         )
 
         # Add storage if gtflex in wildcards
-        if 'gtflex' in snakemake.wildcards.sopts:
+        if "gtflex" in snakemake.wildcards.sopts:
             n.add(
                 "StorageUnit",
                 name=identifier + " reservoir",
@@ -3662,9 +3661,7 @@ def add_geothermal_district_cooling_supply(n, egs_potential):
     )
     # annuity_factor = 1 / lifetime # cost of capital are already accounted for in the capital cost
 
-    egs_potential["capex[USD/MW]"] = (
-        egs_potential["capex[USD/MW]"] * annuity_factor
-    )
+    egs_potential["capex[USD/MW]"] = egs_potential["capex[USD/MW]"] * annuity_factor
 
     if f"geothermal district cooling" not in n.buses.index:
         n.add(
@@ -3690,7 +3687,7 @@ def add_geothermal_district_cooling_supply(n, egs_potential):
         capital_cost = row["capex[USD/MW]"]
         opex = row["opex[USD/MWh]"]
 
-        if capacity < 10: # preventing adding very small generators
+        if capacity < 10:  # preventing adding very small generators
             continue
 
         identifier = f"{bus} geothermal district cooling {supply_curve_step}"
@@ -3708,12 +3705,12 @@ def add_geothermal_district_cooling_supply(n, egs_potential):
             bus1=reservoir_bus,
             carrier="geothermal district cooling",
             p_nom_extendable=True,
-            capital_cost=0.,
-            marginal_cost=0.,
+            capital_cost=0.0,
+            marginal_cost=0.0,
         )
 
         # Add storage if gtflex in wildcards
-        if 'gtflex' in snakemake.wildcards.sopts:
+        if "gtflex" in snakemake.wildcards.sopts:
             n.add(
                 "StorageUnit",
                 name=identifier + " reservoir",
@@ -3737,7 +3734,7 @@ def add_geothermal_district_cooling_supply(n, egs_potential):
             capital_cost=capital_cost,
             marginal_cost=opex,
             p_nom_extendable=True,
-            efficiency=0.72, # efficiency of absorption chillers, taken from https://www.energy.gov/sites/prod/files/2017/06/f35/CHP-Absorption%20Chiller-compliant.pdf
+            efficiency=0.72,  # efficiency of absorption chillers, taken from https://www.energy.gov/sites/prod/files/2017/06/f35/CHP-Absorption%20Chiller-compliant.pdf
         )
 
 
@@ -3746,7 +3743,7 @@ if __name__ == "__main__":
         # from helper import mock_snakemake #TODO remove func from here to helper script
         snakemake = mock_snakemake(
             "prepare_sector_network",
-        simpl="",
+            simpl="",
             clusters="10",
             ll="copt",
             opts="Co2L-24H",
@@ -3872,7 +3869,7 @@ if __name__ == "__main__":
         snakemake.input.cooling_demand, index_col=0, header=[0, 1], parse_dates=True
     ).fillna(0)
     # Hard-coding cooling demand to 0, this needs to be properly implemented if cooling demand needs to be by-passed in the upstream
-    cooling_demand.loc[:,:] = 0
+    cooling_demand.loc[:, :] = 0
 
     # Heatpump coefficient of performance when in cooling mode
     hp_cooling_cop = pd.read_csv(
@@ -3903,7 +3900,7 @@ if __name__ == "__main__":
 
     # import sys
     # sys.exit()
-    #breakpoint()
+    # breakpoint()
     if not "noEGS" in snakemake.wildcards.sopts:
         for potential, mode in [
             (snakemake.input["egs_potentials_egs"], "egs"),
@@ -3917,7 +3914,7 @@ if __name__ == "__main__":
 
     logger.info("Adding industrial heating demands.")
     add_industry_demand(n, industry_demands)
-    
+
     if not "noEGS" in snakemake.wildcards.sopts:
         industry_egs_supply = pd.read_csv(
             snakemake.input["industrial_heating_egs_supply_curves"], index_col=[0, 1]
@@ -3950,21 +3947,24 @@ if __name__ == "__main__":
         snakemake.params.costs["financial_case"],
         snakemake.params.costs["scenario"],
     )
-    
+
     if not "noEGS" in snakemake.wildcards.sopts:
         district_heat_egs_supply = pd.read_csv(
-            snakemake.input["district_heating_geothermal_supply_curves"], index_col=[0, 1]
+            snakemake.input["district_heating_geothermal_supply_curves"],
+            index_col=[0, 1],
         )
 
         district_heat_geothermal_supply = pd.read_csv(
-            snakemake.input["district_heating_geothermal_supply_curves"], index_col=[0, 1]
+            snakemake.input["district_heating_geothermal_supply_curves"],
+            index_col=[0, 1],
         )
 
         logger.info("Adding geothermal supply for district heating.")
         add_geothermal_district_heating_supply(n, district_heat_geothermal_supply)
 
         district_cooling_geothermal_supply = pd.read_csv(
-            snakemake.input["district_cooling_geothermal_supply_curves"], index_col=[0, 1]
+            snakemake.input["district_cooling_geothermal_supply_curves"],
+            index_col=[0, 1],
         )
 
         logger.info("Adding geothermal supply for district cooling.")
@@ -4006,11 +4006,11 @@ if __name__ == "__main__":
         snakemake.params.costs["scenario"],
     )
 
-    if 'BBB' in snakemake.wildcards.sopts:
+    if "BBB" in snakemake.wildcards.sopts:
 
         geothermal_techs = [
             "directheat100degC",
-            "directheat200degC", 
+            "directheat200degC",
             "pwr_residheat80degC_egs",
             "pwr_residheat80degC_hs",
             "steam150degC_egs",
@@ -4020,16 +4020,16 @@ if __name__ == "__main__":
             "geothermal district cooling",
             "geothermal district heat",
             "steam175degC_power_residheat80degC_egs",
-            "steam175degC_power_residheat80degC_hs", 
+            "steam175degC_power_residheat80degC_hs",
             "steam200degC_power_residheat80degC_egs",
             "steam200degC_power_residheat80degC_hs",
             "steam225degC_power_residheat80degC_egs",
-            "steam225degC_power_residheat80degC_hs"
+            "steam225degC_power_residheat80degC_hs",
         ]
 
         # Find the BBB sequence and extract year
-        for opt in snakemake.wildcards.sopts.split('-'):
-            if not opt.startswith('BBB'):
+        for opt in snakemake.wildcards.sopts.split("-"):
+            if not opt.startswith("BBB"):
                 continue
 
             year = int(opt[3:])
@@ -4040,14 +4040,15 @@ if __name__ == "__main__":
             if year > 2034:
                 reduction = 0.0
 
-            logger.info(f"Reducing geothermal cost through IRA/BBB subsidies by {int(reduction*100)}% assuming project start in {year}.")
+            logger.info(
+                f"Reducing geothermal cost through IRA/BBB subsidies by {int(reduction*100)}% assuming project start in {year}."
+            )
             # see https://www.hklaw.com/en/insights/publications/2025/05/irs-releases-2025-section-45-production-tax-credit-amounts
 
             gt_techs = n.links.index[n.links.carrier.isin(geothermal_techs)]
-            n.links.loc[gt_techs, ['capital_cost', 'marginal_cost']] *= (1 - reduction)
+            n.links.loc[gt_techs, ["capital_cost", "marginal_cost"]] *= 1 - reduction
 
             break
-                
 
     ##########################################################################
     ############## Functions adding different carriers and sectors ###########
@@ -4142,17 +4143,25 @@ if __name__ == "__main__":
         )
         return ann_value
 
-    resid_heat_total = options.get("residential_heat_total", 1871.3e+6)
-    serv_heat_total = options.get("services_heat_total", 748.3e+6)
+    resid_heat_total = options.get("residential_heat_total", 1871.3e6)
+    serv_heat_total = options.get("services_heat_total", 748.3e6)
 
     residential_heat_pattern = "heat.*residential|residential.*heat"
     services_heat_pattern = "services.*heat|heat.*services"
 
-    resid_heat_cols = n.loads_t.p_set.columns[n.loads_t.p_set.columns.str.contains(residential_heat_pattern)]
-    serv_heat_cols = n.loads_t.p_set.columns[n.loads_t.p_set.columns.str.contains(services_heat_pattern)]
+    resid_heat_cols = n.loads_t.p_set.columns[
+        n.loads_t.p_set.columns.str.contains(residential_heat_pattern)
+    ]
+    serv_heat_cols = n.loads_t.p_set.columns[
+        n.loads_t.p_set.columns.str.contains(services_heat_pattern)
+    ]
 
-    n.loads_t.p_set[resid_heat_cols] *= resid_heat_total / evaluate_ann_sum(n, resid_heat_cols)
-    n.loads_t.p_set[serv_heat_cols] *= serv_heat_total / evaluate_ann_sum(n, serv_heat_cols)
+    n.loads_t.p_set[resid_heat_cols] *= resid_heat_total / evaluate_ann_sum(
+        n, resid_heat_cols
+    )
+    n.loads_t.p_set[serv_heat_cols] *= serv_heat_total / evaluate_ann_sum(
+        n, serv_heat_cols
+    )
 
     if snakemake.config["custom_data"]["water_costs"]:
         add_custom_water_cost(n)
