@@ -80,21 +80,67 @@ def download_IGGIELGN_gas_network():
 
 def download_GGIT_gas_network():
     """
-    Downloads a global dataset for gas networks as .xlsx.
-
-    The following xlsx file was downloaded from the webpage
-    https://globalenergymonitor.org/projects/global-gas-infrastructure-tracker/
-    The dataset contains 3144 pipelines.
+    Try to download GGIT gas network (dataset of 3144 pipelines) from GEM.
+    If download fails (e.g. 403 Forbidden), fall back to local cached file.
     """
-    url = "https://globalenergymonitor.org/wp-content/uploads/2022/12/GEM-GGIT-Gas-Pipelines-December-2022.xlsx"
-    GGIT_gas_pipeline = pd.read_excel(
-        content_retrieve(url),
-        index_col=0,
-        sheet_name="Gas Pipelines 2022-12-16",
-        header=0,
+
+    url = (
+        "https://globalenergymonitor.org/wp-content/uploads/2022/12/"
+        "GEM-GGIT-Gas-Pipelines-December-2022.xlsx"
     )
 
-    return GGIT_gas_pipeline
+    local_file = (
+        Path(BASE_DIR)
+        / "submodules"
+        / "pypsa-earth"
+        / "data"
+        / "gas_network"
+        / "GGIT"
+        / "GEM-GGIT-Gas-Pipelines-December-2022.xlsx"
+    )
+
+    # Try online download
+    try:
+        logger.info("Trying to download GGIT gas network from Global Energy Monitor.")
+        df = pd.read_excel(
+            content_retrieve(url),
+            index_col=0,
+            sheet_name="Gas Pipelines 2022-12-16",
+            header=0,
+        )
+        logger.info("GGIT gas network downloaded successfully from GEM.")
+
+        # Cache locally for future runs
+        local_file.parent.mkdir(parents=True, exist_ok=True)
+        df.to_excel(local_file)
+
+        return df
+
+    except Exception as e:
+        logger.warning(
+            "Failed to download GGIT gas network from GEM "
+            f"(likely 403 Forbidden). Falling back to local file.\n"
+            f"Reason: {e}"
+        )
+
+    # Fallback to local file
+    if local_file.exists():
+        logger.info(f"Loading GGIT gas network from local file: {local_file}")
+        return pd.read_excel(
+            local_file,
+            index_col=0,
+            sheet_name="Gas Pipelines 2022-12-16",
+            header=0,
+        )
+
+    # Hard fail if neither works
+    raise RuntimeError(
+        "GGIT gas network could not be obtained.\n"
+        "Tried:\n"
+        f"  - Online: {url}\n"
+        f"  - Local:  {local_file}\n"
+        "Download the file manually from Global Energy Monitor and place it there."
+    )
 
 
 def diameter_to_capacity(pipe_diameter_mm):
