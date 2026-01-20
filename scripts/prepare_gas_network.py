@@ -135,11 +135,19 @@ def download_GGIT_gas_network():
 
     # Hard fail if neither works
     raise RuntimeError(
-        "GGIT gas network could not be obtained.\n"
-        "Tried:\n"
-        f"  - Online: {url}\n"
-        f"  - Local:  {local_file}\n"
-        "Download the file manually from Global Energy Monitor and place it there."
+        "\n"
+        "GGIT gas pipeline dataset could not be downloaded automatically.\n\n"
+        "Reason:\n"
+        "  Global Energy Monitor blocks automated downloads (HTTP 403 Forbidden),\n"
+        "  especially from HPC clusters and proxies.\n\n"
+        "Manual fix:\n"
+        "  1. Download the dataset from:\n"
+        "     https://globalenergymonitor.org/projects/global-gas-infrastructure-tracker/\n"
+        "  2. Download file:\n"
+        "     GEM-GGIT-Gas-Pipelines-December-2022.xlsx\n"
+        "  3. Place it at:\n"
+        f"     {local_file}\n\n"
+        "Then re-run Snakemake.\n"
     )
 
 
