@@ -80,75 +80,21 @@ def download_IGGIELGN_gas_network():
 
 def download_GGIT_gas_network():
     """
-    Try to download GGIT gas network (dataset of 3144 pipelines) from GEM.
-    If download fails (e.g. 403 Forbidden), fall back to local cached file.
+    Downloads a global dataset for gas networks as .xlsx.
+
+    The following xlsx file was downloaded from the webpage
+    https://globalenergymonitor.org/projects/global-gas-infrastructure-tracker/
+    The dataset contains 3144 pipelines.
     """
-
-    url = (
-        "https://globalenergymonitor.org/wp-content/uploads/2022/12/"
-        "GEM-GGIT-Gas-Pipelines-December-2022.xlsx"
+    url = "https://globalenergymonitor.org/wp-content/uploads/2022/12/GEM-GGIT-Gas-Pipelines-December-2022.xlsx"
+    GGIT_gas_pipeline = pd.read_excel(
+        content_retrieve(url),
+        index_col=0,
+        sheet_name="Gas Pipelines 2022-12-16",
+        header=0,
     )
 
-    local_file = (
-        Path(BASE_DIR)
-        / "submodules"
-        / "pypsa-earth"
-        / "data"
-        / "gas_network"
-        / "GGIT"
-        / "GEM-GGIT-Gas-Pipelines-December-2022.xlsx"
-    )
-
-    # Try online download
-    try:
-        logger.info("Trying to download GGIT gas network from Global Energy Monitor.")
-        df = pd.read_excel(
-            content_retrieve(url),
-            index_col=0,
-            sheet_name="Gas Pipelines 2022-12-16",
-            header=0,
-        )
-        logger.info("GGIT gas network downloaded successfully from GEM.")
-
-        # Cache locally for future runs
-        local_file.parent.mkdir(parents=True, exist_ok=True)
-        df.to_excel(local_file)
-
-        return df
-
-    except Exception as e:
-        logger.warning(
-            "Failed to download GGIT gas network from GEM "
-            f"(likely 403 Forbidden). Falling back to local file.\n"
-            f"Reason: {e}"
-        )
-
-    # Fallback to local file
-    if local_file.exists():
-        logger.info(f"Loading GGIT gas network from local file: {local_file}")
-        return pd.read_excel(
-            local_file,
-            index_col=0,
-            sheet_name="Gas Pipelines 2022-12-16",
-            header=0,
-        )
-
-    # Hard fail if neither works
-    raise RuntimeError(
-        "\n"
-        "GGIT gas pipeline dataset could not be downloaded automatically.\n\n"
-        "Reason:\n"
-        "  Global Energy Monitor blocks automated downloads (HTTP 403 Forbidden),\n"
-        "  especially from HPC clusters and proxies.\n\n"
-        "Manual fix:\n"
-        "  1. Download the dataset from:\n"
-        "     https://globalenergymonitor.org/projects/global-gas-infrastructure-tracker/\n"
-        "  2. Download file:\n"
-        "     GEM-GGIT-Gas-Pipelines-December-2022.xlsx\n"
-        "  3. Place it at:\n"
-        f"     {local_file}\n\n"
-        "Then re-run Snakemake.\n"
-    )
+    return GGIT_gas_pipeline
 
 
 def diameter_to_capacity(pipe_diameter_mm):
