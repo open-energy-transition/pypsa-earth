@@ -91,8 +91,6 @@ def download_GGIT_gas_network():
 
     local_file = (
         Path(BASE_DIR)
-        / "submodules"
-        / "pypsa-earth"
         / "data"
         / "gas_network"
         / "GGIT"
