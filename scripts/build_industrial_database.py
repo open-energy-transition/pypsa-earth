@@ -4,16 +4,15 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import math
+from pathlib import Path
 
 import country_converter as coco
 import numpy as np
 import pandas as pd
 import pycountry
 import requests
-from _helpers import content_retrieve
+from _helpers import BASE_DIR, content_retrieve
 from geopy.geocoders import Nominatim
-from pathlib import Path
-from _helpers import BASE_DIR
 
 
 def get_cocode_from_name(df, country_column_name):
@@ -103,8 +102,7 @@ def create_steel_db():
 
     except Exception as e:
         logger.warning(
-            "Remote steel dataset download failed. "
-            "Reason: %s",
+            "Remote steel dataset download failed. " "Reason: %s",
             e,
         )
 

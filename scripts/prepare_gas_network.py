@@ -79,6 +79,7 @@ def download_IGGIELGN_gas_network():
 
 
 from pathlib import Path
+
 import pandas as pd
 
 
@@ -129,8 +130,7 @@ def download_GGIT_gas_network():
 
     except Exception as e:
         logger.warning(
-            "Remote GGIT download failed. "
-            "Reason: %s",
+            "Remote GGIT download failed. " "Reason: %s",
             e,
         )
 
@@ -152,7 +152,6 @@ def download_GGIT_gas_network():
         f"Expected backup location:\n  {backup_file}\n\n"
         "Add the dataset manually and re-run Snakemake.\n"
     )
-
 
 
 def diameter_to_capacity(pipe_diameter_mm):
