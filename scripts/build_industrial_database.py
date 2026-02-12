@@ -12,6 +12,8 @@ import pycountry
 import requests
 from _helpers import content_retrieve
 from geopy.geocoders import Nominatim
+from pathlib import Path
+from _helpers import BASE_DIR
 
 
 def get_cocode_from_name(df, country_column_name):
@@ -74,8 +76,6 @@ def create_steel_db():
 
     SHEET_NAME = "Steel Plants"
 
-    # Resolve project root (outside submodule)
-    # BASE_DIR = <project>/submodules/pypsa-earth
     PROJECT_ROOT = Path(BASE_DIR).parent.parent
 
     backup_file = (
