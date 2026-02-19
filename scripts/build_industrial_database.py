@@ -4,13 +4,14 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import math
+from pathlib import Path
 
 import country_converter as coco
 import numpy as np
 import pandas as pd
 import pycountry
 import requests
-from _helpers import content_retrieve
+from _helpers import BASE_DIR, content_retrieve
 from geopy.geocoders import Nominatim
 
 
@@ -72,12 +73,55 @@ def create_steel_db():
 
     url = "https://globalenergymonitor.org/wp-content/uploads/2023/03/Global-Steel-Plant-Tracker-2023-03.xlsx"
 
-    df_steel = pd.read_excel(
-        content_retrieve(url),
-        index_col=0,
-        sheet_name="Steel Plants",
-        header=0,
+    SHEET_NAME = "Steel Plants"
+
+    PROJECT_ROOT = Path(BASE_DIR).parent.parent
+
+    backup_file = (
+        PROJECT_ROOT
+        / "data"
+        / "industry_data"
+        / "Global-Steel-Plant-Tracker-2023-03.xlsx"
     )
+
+    logger.info("Steel dataset source URL: %s", url)
+    logger.info("Steel backup file path: %s", backup_file)
+
+    # Try remote download
+    try:
+        logger.info("Attempting steel dataset download from GEM.")
+
+        df_steel = pd.read_excel(
+            content_retrieve(url),
+            index_col=0,
+            sheet_name=SHEET_NAME,
+            header=0,
+        )
+
+        logger.info("Steel dataset successfully downloaded from GEM.")
+
+    except Exception as e:
+        logger.warning(
+            "Remote steel dataset download failed. " "Reason: %s",
+            e,
+        )
+
+        if backup_file.exists():
+            logger.info("Loading steel dataset from project backup file.")
+            df_steel = pd.read_excel(
+                backup_file,
+                index_col=0,
+                sheet_name=SHEET_NAME,
+                header=0,
+            )
+        else:
+            raise RuntimeError(
+                "\n"
+                "Steel plant dataset could not be retrieved.\n\n"
+                "Remote download failed and backup file not found.\n\n"
+                f"Expected backup location:\n  {backup_file}\n\n"
+                "Add the dataset manually and re-run Snakemake.\n"
+            )
 
     df_steel = df_steel[
         [

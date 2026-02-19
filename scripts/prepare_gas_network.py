@@ -78,74 +78,79 @@ def download_IGGIELGN_gas_network():
     logger.info(f"Gas infrastructure data available in '{to_fn}'.")
 
 
+from pathlib import Path
+
+import pandas as pd
+
+
 def download_GGIT_gas_network():
     """
-    Try to download GGIT gas network (dataset of 3144 pipelines) from GEM.
-    If download fails (e.g. 403 Forbidden), fall back to local cached file.
+    Try to download GGIT gas network from Global Energy Monitor.
+    If download fails (e.g. HTTP 403), fall back to project-level backup file.
     """
+
+    SHEET_NAME = "Gas Pipelines 2022-12-16"
 
     url = (
         "https://globalenergymonitor.org/wp-content/uploads/2022/12/"
         "GEM-GGIT-Gas-Pipelines-December-2022.xlsx"
     )
 
-    local_file = (
-        Path(BASE_DIR)
+    # ------------------------------------------------------------------
+    # Resolve project root (outside submodule)
+    # BASE_DIR = <project>/submodules/pypsa-earth
+    # -> parent       = <project>/submodules
+    # -> parent.parent= <project>
+    # ------------------------------------------------------------------
+    PROJECT_ROOT = Path(BASE_DIR).parent.parent
+
+    backup_file = (
+        PROJECT_ROOT
         / "data"
         / "gas_network"
-        / "GGIT"
         / "GEM-GGIT-Gas-Pipelines-December-2022.xlsx"
     )
 
-    # Try online download
+    logger.info("GGIT source URL: %s", url)
+    logger.info("Backup file path: %s", backup_file)
+
+    # Attempt remote download
     try:
-        logger.info("Trying to download GGIT gas network from Global Energy Monitor.")
+        logger.info("Attempting GGIT download from GEM.")
+
         df = pd.read_excel(
             content_retrieve(url),
             index_col=0,
-            sheet_name="Gas Pipelines 2022-12-16",
+            sheet_name=SHEET_NAME,
             header=0,
         )
-        logger.info("GGIT gas network downloaded successfully from GEM.")
 
-        # Cache locally for future runs
-        local_file.parent.mkdir(parents=True, exist_ok=True)
-        df.to_excel(local_file)
-
+        logger.info("GGIT successfully downloaded from GEM.")
         return df
 
     except Exception as e:
         logger.warning(
-            "Failed to download GGIT gas network from GEM "
-            f"(likely 403 Forbidden). Falling back to local file.\n"
-            f"Reason: {e}"
+            "Remote GGIT download failed. " "Reason: %s",
+            e,
         )
 
-    # Fallback to local file
-    if local_file.exists():
-        logger.info(f"Loading GGIT gas network from local file: {local_file}")
+    # Fallback to project backup
+    if backup_file.exists():
+        logger.info("Loading GGIT gas network from project backup file.")
         return pd.read_excel(
-            local_file,
+            backup_file,
             index_col=0,
-            sheet_name="Gas Pipelines 2022-12-16",
+            sheet_name=SHEET_NAME,
             header=0,
         )
 
-    # Hard fail if neither works
+    # Hard fail
     raise RuntimeError(
         "\n"
-        "GGIT gas pipeline dataset could not be downloaded automatically.\n\n"
-        "Reason:\n"
-        "  Global Energy Monitor blocks automated downloads (HTTP 403 Forbidden),\n"
-        "  especially from HPC clusters and proxies.\n\n"
-        "Manual fix:\n"
-        "  1. Download the dataset from:\n"
-        "     https://globalenergymonitor.org/projects/global-gas-infrastructure-tracker/\n"
-        "  2. Download file:\n"
-        "     GEM-GGIT-Gas-Pipelines-December-2022.xlsx\n"
-        "  3. Place it at:\n"
-        f"     {local_file}\n\n"
-        "Then re-run Snakemake.\n"
+        "GGIT gas pipeline dataset could not be retrieved.\n\n"
+        "Remote download failed and backup file not found.\n\n"
+        f"Expected backup location:\n  {backup_file}\n\n"
+        "Add the dataset manually and re-run Snakemake.\n"
     )
 
 
