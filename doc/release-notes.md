@@ -4,15 +4,15 @@ SPDX-FileCopyrightText:  PyPSA-Earth and PyPSA-Eur Authors
 SPDX-License-Identifier: CC-BY-4.0
 -->
 
-Release Notes
+# Release Notes
 
-# PyPSA-Zambia release
+## PyPSA-Zambia release
 
 This part of documentation collects descriptive release notes to capture the main improvements introduced by developing the model before the next release.
 
-## New Features and Major Changes
+### New Features and Major Changes
 
-## Minor Changes and bug-fixing
+### Minor Changes and bug-fixing
 
 * Adds a PyPSA-Zambia specific GitHub Actions workflow for the Zambia model [PR #60](https://github.com/openenergytransition/pypsa-zambia/pull/60)
 
@@ -20,11 +20,13 @@ This part of documentation collects descriptive release notes to capture the mai
 
 * Integrate a regional cutout into a testing workflow for the Zambia model [PR #75](https://github.com/openenergytransition/pypsa-zambia/pull/75)
 
-# Upcoming release
+* Only run Github Action test workflows when workflow-relevant files are changed [PR #94](https://github.com/openenergytransition/pypsa-zambia/pull/94)
+
+## Upcoming release
 
 This part of documentation collects descriptive release notes to capture the main improvements introduced by developing the model before the next release.
 
-**New Features and Major Changes**
+### New Features and Major Changes
 
 * Use IRENA statistics for 2023 to normalize countries hydropower generation data [PR #1681](https://github.com/pypsa-meets-earth/pypsa-earth/pull/1681)
 
@@ -32,7 +34,7 @@ This part of documentation collects descriptive release notes to capture the mai
 
 * Ensure connectivity of transformers in buses with several transformers [PR #1706](https://github.com/pypsa-meets-earth/pypsa-earth/pull/1706)
 
-**Minor Changes and bug-fixing**
+### Minor Changes and bug-fixing
 
 * Use bus_regions instead of downloading gadm regions again in prepare_gas_network to avoid mismatches in case of simplifying [PR #1662](https://github.com/pypsa-meets-earth/pypsa-earth/pull/1662)
 
