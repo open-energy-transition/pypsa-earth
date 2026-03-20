@@ -9,12 +9,12 @@ assignees: ""
 
 ## A check-list for adding new data sources
 
--[ ] Download a raw data source (e.g. pdf file)
--[ ] Share the data source in a local storage folder:
+- [ ] Download a raw data source (e.g. pdf file)
+- [ ] Share the data source in a local storage folder:
     - create a dedicated sub-folder for the particular data source
     - include `Raw` and `Processed` folders inside the sub-folder
     - place the raw source file into `Raw` folder
--[ ] Extract relevant parts of the source into csv format (e.g. tables for the installed generation)
--[ ] Share csv files in `Processed` folder
--[ ] Create a metadata file for csv files and place into `Processed`
--[ ] Upload csv files on Zenodo using the metadata as a description
+- [ ] Extract relevant parts of the source into csv format (e.g. tables for the installed generation)
+- [ ] Share csv files in `Processed` folder
+- [ ] Create a metadata file for csv files and place into `Processed`
+- [ ] Upload csv files on Zenodo using the metadata as a description
