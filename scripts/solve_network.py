@@ -1121,6 +1121,7 @@ def solve_network(n, config, solving, **kwargs):
         solving["solver_options"][set_of_options] if set_of_options else {}
     )
     kwargs["solver_name"] = solving["solver"]["name"]
+    kwargs["assign_all_duals"] = True
     kwargs["extra_functionality"] = extra_functionality
 
     skip_iterations = cf_solving.get("skip_iterations", False)
