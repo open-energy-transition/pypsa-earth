@@ -1138,6 +1138,7 @@ def solve_network(n, config, solving, **kwargs):
         os.environ["PATH"] = f"{highs_bin}:{os.environ['PATH']}"
 
         import shutil
+
         logger.info(f"Using highs from: {shutil.which('highs')}")
 
     elif io_api:
