@@ -13,7 +13,7 @@ by
 <a/>
 </p>
 
-## Development Status: **Stable and Active**
+## Development Status: **Under Development**
 
 [![Test workflows](https://github.com/open-energy-transition/pypsa-zambia/actions/workflows/test.yml/badge.svg)](https://github.com/open-energy-transition/pypsa-zambia/actions/workflows/test.yml)
 [![Documentation Status](https://readthedocs.org/projects/pypsa-earth/badge/?version=latest)](https://pypsa-earth.readthedocs.io/en/latest/?badge=latest)
@@ -28,7 +28,7 @@ by
 
 ## Installation
 
-1. Open your terminal at a location where you want to install pypsa-earth. Type the following in your terminal to download the package from GitHub:
+1. Open your terminal at a location where you want to install pypsa-zambia. Type the following in your terminal to download the package from GitHub:
 
    ```bash
    .../some/path/without/spaces % git clone https://github.com/open-energy-transition/pypsa-zambia.git
@@ -94,16 +94,9 @@ To use them, you need to go through the following steps:
 3. Set-up Copernicus API
 4. run `build_cutout` rule
 
-## Running the model in previous versions
+## Validation
 
-The model can be run in previous versions by checking out the respective tag. For instance, to run the model in version 0.8.0, which is the last version before the recent PyPSA update, the following command can be used:
-
-```bash
-git checkout v0.8.0
-```
-After checking out the tag, the model can be run as usual. Please make sure to use the environment built for the respective version.
-
-
+A set of notebooks which provides ingights on outputs of the model and ways to analyse them are available in [zambia-dev-notebooks](https://github.com/open-energy-transition/zambia-dev-notebooks) repo.
 
 ## Test run on tutorial
 
@@ -120,22 +113,13 @@ After checking out the tag, the model can be run as usual. Please make sure to u
 
   Remove the -n to do a real run. Follow the tutorial of PyPSA-Eur 1 and 2 on [YouTube](https://www.youtube.com/watch?v=ty47YU1_eeQ) to continue with an analysis.
 
-
-
-
-
-## Training
-
-- We recently updated some [hackathon material](https://github.com/pypsa-meets-earth/documentation) for PyPSA-Earth. The hackathon contains jupyter notebooks with exercises. After going through the 1 day theoretical and practical material you should have a suitable coding setup and feel confident about contributing.
-- The get a general feeling about the PyPSA functionality, we further recommend going through the [PyPSA](https://github.com/PyPSA/PyPSA/tree/master/examples) and [Atlite](https://github.com/PyPSA/atlite/tree/master/examples) examples.
-
 ## Questions and Issues
 
 - We are happy to answer questions and help with issues **if they are public**. Through being public the wider community can benefit from the raised points. Some tips. **Bugs** and **feature requests** should be raised in the [**GitHub Issues**](https://github.com/open-energy-transition/pypsa-zambia/issues/new/choose). **General workflow** or **user questions** as well as discussion points should be posted at the [**GitHub Discussions**](https://github.com/open-energy-transition/pypsa-zambia/discussions/categories/q-a) tab. Happy coding.
 
 ## Documentation
 
-The documentation is available here: [documentation](https://pypsa-earth.readthedocs.io/en/latest/index.html).
+Specific documentation for PyPSA-Zambia is under development. General documentation for PyPSA-Earth is available [here](https://pypsa-earth.readthedocs.io/en/latest/index.html) and can be used to get information on installation and customisation procedures, design of the model and philosophy of the workflow, as well as to access tutorial and support materials.
 
 ## Collaborators
 
