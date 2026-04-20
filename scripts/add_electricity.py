@@ -429,13 +429,19 @@ def attach_wind_and_solar(
     n: pypsa.Network,
     costs: pd.DataFrame,
     ppl: pd.DataFrame,
-    input_files: dict,  # snakemake input
-    technologies: set,
+    input_files: dict,
+    carriers: set,
     extendable_carriers: dict,
     line_length_factor: float,
 ) -> None:
     """
-    Add existing and extendable wind and solar generators to the network.
+    Attach wind and solar generators.
+
+    Existing capacities are taken from powerplants.csv and spatialized to buses.
+    National capacity gaps with respect to IRENA targets are filled and
+    redistributed uniformly across buses within each country.
+
+    Offshore wind is treated entirely as offwind-ac.
 
     Parameters
     ----------
@@ -446,9 +452,9 @@ def attach_wind_and_solar(
     ppl : pd.DataFrame
         Power plant DataFrame.
     input_files : dict
-        Snakemake input object.
-    technologies : set
-        Set of renewable technologies to be added.
+        Snakemake input object containing renewable profile files.
+    carriers : set
+        Set of renewable carriers to be added.
     extendable_carriers : dict
         Dictionary of extendable carriers for different component types.
     line_length_factor : float
@@ -458,130 +464,157 @@ def attach_wind_and_solar(
     -------
     None
     """
-    # TODO: rename tech -> carrier, technologies -> carriers
-    _add_missing_carriers_from_costs(n, costs, technologies)
+    _add_missing_carriers_from_costs(n, costs, carriers)
 
-    df = ppl.rename(columns={"country": "Country"})
+    df = ppl.rename(columns={"country": "Country"}).copy()
 
-    for tech in technologies:
-        if tech == "hydro":
+    # Force offshore to offwind-ac
+    df.loc[df.technology == "Offshore", "carrier"] = "offwind-ac"
+    df.loc[df.technology == "Onshore", "carrier"] = "onwind"
+
+    estimate_cfg = snakemake.params.electricity.get("estimate_renewable_capacities", {})
+    countries = snakemake.params.countries
+
+    for carrier in carriers:
+        if carrier == "hydro":
             continue
 
-        if tech == "offwind-ac":
-            # add all offwind wind power plants by default as offwind-ac
-            df["carrier"] = df["carrier"].mask(
-                df.technology == "Offshore", "offwind-ac"
-            )
-        elif tech == "offwind-dc":
-            df["carrier"] = df["carrier"].mask(
-                df.technology == "Offshore", "offwind-dc"
-            )
-        else:
-            df["carrier"] = df["carrier"].mask(df.technology == "Onshore", "onwind")
-
-        with xr.open_dataset(getattr(input_files, "profile_" + tech)) as ds:
+        with xr.open_dataset(getattr(input_files, "profile_" + carrier)) as ds:
             if ds.indexes["bus"].empty:
                 continue
 
-            suptech = tech.split("-", 2)[0]
-            if suptech == "offwind":
+            supcarrier = carrier.split("-", 2)[0]
+
+            if supcarrier == "offwind":
                 underwater_fraction = ds["underwater_fraction"].to_pandas()
                 connection_cost = (
                     line_length_factor
                     * ds["average_distance"].to_pandas()
                     * (
                         underwater_fraction
-                        * costs.at[tech + "-connection-submarine", "capital_cost"]
+                        * costs.at[carrier + "-connection-submarine", "capital_cost"]
                         + (1.0 - underwater_fraction)
-                        * costs.at[tech + "-connection-underground", "capital_cost"]
+                        * costs.at[carrier + "-connection-underground", "capital_cost"]
                     )
                 )
                 capital_cost = (
                     costs.at["offwind", "capital_cost"]
-                    + costs.at[tech + "-station", "capital_cost"]
+                    + costs.at[carrier + "-station", "capital_cost"]
                     + connection_cost
                 )
+
                 logger.info(
-                    f"Added connection cost of {connection_cost.min():.0f}-"
-                    f"{connection_cost.max():.0f} "
-                    f"{snakemake.params.costs['output_currency']}/MW/a to {tech}"
+                    "Added connection cost of {:0.0f}-{:0.0f} {}/MW/a to {}".format(
+                        connection_cost.min(),
+                        connection_cost.max(),
+                        snakemake.config["costs"]["output_currency"],
+                        carrier,
+                    )
                 )
             else:
-                capital_cost = costs.at[tech, "capital_cost"]
+                capital_cost = costs.at[carrier, "capital_cost"]
 
-            # Get p_max_pu profile for all buses
+            # Existing capacity from powerplants.csv
+            ppl_carrier = df.query("carrier == @carrier")
+
+            if not ppl_carrier.empty:
+                valid = ppl_carrier[ppl_carrier.bus.isin(n.buses.index)].copy()
+                missing = ppl_carrier[~ppl_carrier.bus.isin(n.buses.index)].copy()
+
+                if not missing.empty:
+                    bus_coords = n.buses.loc[ds.indexes["bus"], ["x", "y"]]
+
+                    reassigned = 0
+                    for _, row in missing.iterrows():
+                        if pd.isna(row.lon) or pd.isna(row.lat):
+                            continue
+
+                        dist = (bus_coords.x - row.lon) ** 2 + (
+                            bus_coords.y - row.lat
+                        ) ** 2
+                        row.bus = dist.idxmin()
+                        valid = pd.concat(
+                            [valid, pd.DataFrame([row])], ignore_index=False
+                        )
+                        reassigned += 1
+
+                    if reassigned > 0:
+                        logger.info(
+                            f"{carrier}: reassigned {reassigned} plants without valid bus."
+                        )
+
+                caps_existing = (
+                    valid.groupby("bus")["p_nom"]
+                    .sum()
+                    .reindex(ds.indexes["bus"], fill_value=0.0)
+                )
+            else:
+                caps_existing = pd.Series(0.0, index=ds.indexes["bus"])
+
             p_max_pu = ds["profile"].transpose("time", "bus").to_pandas()
-            p_nom_max_per_bus = ds["p_nom_max"].to_pandas()
+            p_nom_max = ds["p_nom_max"].to_pandas()
             weight = ds["weight"].to_pandas()
 
-            # Add existing generators (not extendable)
-            tech_ppl = df.query("carrier == @tech")
-            if not tech_ppl.empty:
-                buses = n.buses.loc[ds.indexes["bus"]]
-                existing = map_country_bus(tech_ppl, buses)
+            # Gap filling using IRENA
+            caps_final = caps_existing.copy()
 
-                # Aggregate existing generators by (bus, carrier, grouping_year)
-                existing_grouped = aggregate_ppl_by_bus_carrier_year(existing)
+            targets = get_irena_targets_for_carrier(
+                carrier=carrier,
+                estimate_renewable_capacities_config=estimate_cfg,
+                countries=countries,
+            )
 
-                # Get p_max_pu for each existing generator's bus
-                existing_p_max_pu = p_max_pu[existing_grouped["bus"].values]
-                existing_p_max_pu.columns = existing_grouped.index
-
-                n.madd(
-                    "Generator",
-                    existing_grouped.index,
-                    bus=existing_grouped["bus"],
-                    carrier=existing_grouped["carrier"],
-                    p_nom=existing_grouped["p_nom"],
-                    p_nom_extendable=False,
-                    p_nom_min=existing_grouped["p_nom"],
-                    p_nom_max=existing_grouped["p_nom"],
-                    p_max_pu=existing_p_max_pu,
-                    marginal_cost=costs.at[suptech, "marginal_cost"],
-                    capital_cost=capital_cost,
-                    efficiency=costs.at[suptech, "efficiency"],
-                    build_year=existing_grouped["build_year"],
-                    lifetime=existing_grouped["lifetime"],
-                )
-
-                # Calculate existing capacity per bus for adjusting p_nom_max
-                existing_per_bus = existing.groupby("bus")["p_nom"].sum()
-                existing_per_bus = existing_per_bus.reindex(ds.indexes["bus"]).fillna(0)
-
-                logger.info(
-                    f"Added {len(existing)} existing {tech} generators "
-                    f"with total capacity {existing['p_nom'].sum() / 1e3:.2f} GW"
-                )
-            else:
-                existing_per_bus = pd.Series(0.0, index=ds.indexes["bus"])
-
-            # Add extendable generators
-            if tech in extendable_carriers["Generator"]:
-                # Adjust p_nom_max by subtracting existing capacities
-                adjusted_p_nom_max = (p_nom_max_per_bus - existing_per_bus).clip(
+            if not targets.empty:
+                buses_country = n.buses.loc[ds.indexes["bus"], "country"]
+                existing_by_country = caps_existing.groupby(buses_country).sum()
+                gap_by_country = targets.sub(existing_by_country, fill_value=0.0).clip(
                     lower=0.0
                 )
 
-                n.madd(
-                    "Generator",
-                    ds.indexes["bus"],
-                    suffix=" " + tech,
-                    bus=ds.indexes["bus"],
-                    carrier=tech,
-                    p_nom_extendable=True,
-                    p_nom_max=adjusted_p_nom_max,
-                    p_max_pu=p_max_pu,
-                    weight=weight,
-                    marginal_cost=costs.at[suptech, "marginal_cost"],
-                    capital_cost=capital_cost,
-                    efficiency=costs.at[suptech, "efficiency"],
-                    lifetime=costs.at[suptech, "lifetime"],
-                )
+                if gap_by_country.sum() > 0:
+                    for country, gap in gap_by_country.items():
+                        if gap <= 0:
+                            continue
+
+                        buses_c = buses_country[buses_country == country].index
+                        if len(buses_c) == 0:
+                            logger.warning(
+                                f"{carrier}: no buses found for country {country}, "
+                                f"cannot redistribute {gap/1e3:.2f} GW from IRENA."
+                            )
+                            continue
+
+                        add_per_bus = gap / len(buses_c)
+                        caps_final.loc[buses_c] += add_per_bus
+
+                existing_total = caps_existing.sum()
+                target_total = targets.sum()
+                gap_total = caps_final.sum() - caps_existing.sum()
 
                 logger.info(
-                    f"Added extendable {tech} generators at {len(ds.indexes['bus'])} buses "
-                    f"with total potential {adjusted_p_nom_max.sum() / 1e3:.2f} GW"
+                    f"{carrier}: existing from powerplants = {existing_total/1e3:.2f} GW, "
+                    f"IRENA target = {target_total/1e3:.2f} GW, "
+                    f"gap filled = {gap_total/1e3:.2f} GW "
+                    f"({100 * gap_total / max(target_total, 1):.1f}% of total)."
                 )
+
+            # Add generators
+            n.madd(
+                "Generator",
+                ds.indexes["bus"],
+                " " + carrier,
+                bus=ds.indexes["bus"],
+                carrier=carrier,
+                p_nom=caps_final,
+                p_nom_min=caps_existing,
+                p_nom_extendable=carrier in extendable_carriers["Generator"],
+                p_nom_max=p_nom_max,
+                p_max_pu=p_max_pu,
+                weight=weight,
+                marginal_cost=costs.at[supcarrier, "marginal_cost"],
+                capital_cost=capital_cost,
+                efficiency=costs.at[supcarrier, "efficiency"],
+            )
 
 
 def attach_conventional_generators(
