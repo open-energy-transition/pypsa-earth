@@ -769,24 +769,38 @@ def attach_conventional_generators(
         renewable_carriers
     )
 
-    for carrier in extendable_conventional:
-        carrier_buses = ppl[ppl.carrier == carrier]["bus"].unique()
-        n.madd(
-            "Generator",
-            carrier_buses,
-            suffix=" " + carrier,
-            carrier=carrier,
-            bus=carrier_buses,
-            p_nom_extendable=True,
-            efficiency=costs.at[carrier, "efficiency"],
-            marginal_cost=costs.at[carrier, "marginal_cost"],
-            capital_cost=costs.at[carrier, "capital_cost"],
-            lifetime=costs.at[carrier, "lifetime"],
-        )
+    if extendable_conventional:
+        extendable_bus_count = {}
 
-    logger.info(
-        f"Added extendable {extendable_conventional} generators at {len(carrier_buses)} buses."
-    )
+        for carrier in extendable_conventional:
+            carrier_buses = ppl.loc[ppl.carrier == carrier, "bus"].unique()
+            extendable_bus_count[carrier] = len(carrier_buses)
+
+            if len(carrier_buses) == 0:
+                logger.warning(
+                    f"No buses found for extendable conventional carrier '{carrier}'. Skipping."
+                )
+                continue
+
+            n.madd(
+                "Generator",
+                carrier_buses,
+                suffix=" " + carrier,
+                carrier=carrier,
+                bus=carrier_buses,
+                p_nom_extendable=True,
+                efficiency=costs.at[carrier, "efficiency"],
+                marginal_cost=costs.at[carrier, "marginal_cost"],
+                capital_cost=costs.at[carrier, "capital_cost"],
+                lifetime=costs.at[carrier, "lifetime"],
+            )
+
+        logger.info(
+            f"Added extendable conventional generators for carriers {extendable_conventional} "
+            f"at buses per carrier: {extendable_bus_count}."
+        )
+    else:
+        logger.info("No extendable conventional generators configured.")
 
     for carrier in conventional_config:
         # Generators with technology affected
@@ -806,7 +820,6 @@ def attach_conventional_generators(
             else:
                 # Single value affecting all generators of technology k indiscriminantely of country
                 n.generators.loc[idx, attr] = values
-
 
 def apply_nuclear_p_max_pu(n, nuclear_p_max_pu):
     """
