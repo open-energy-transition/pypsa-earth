@@ -770,18 +770,8 @@ def attach_conventional_generators(
     )
 
     if extendable_conventional:
-        extendable_bus_count = {}
-
         for carrier in extendable_conventional:
-            carrier_buses = ppl.loc[ppl.carrier == carrier, "bus"].unique()
-            extendable_bus_count[carrier] = len(carrier_buses)
-
-            if len(carrier_buses) == 0:
-                logger.warning(
-                    f"No buses found for extendable conventional carrier '{carrier}'. Skipping."
-                )
-                continue
-
+            carrier_buses = ppl[ppl.carrier == carrier]["bus"].unique()
             n.madd(
                 "Generator",
                 carrier_buses,
@@ -795,10 +785,7 @@ def attach_conventional_generators(
                 lifetime=costs.at[carrier, "lifetime"],
             )
 
-        logger.info(
-            f"Added extendable conventional generators for carriers {extendable_conventional} "
-            f"at buses per carrier: {extendable_bus_count}."
-        )
+        logger.info(f"Added extendable {extendable_conventional} generators.")
     else:
         logger.info("No extendable conventional generators configured.")
 
