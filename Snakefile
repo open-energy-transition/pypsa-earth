@@ -1242,7 +1242,9 @@ rule prepare_sector_network:
         ),
         rooftop_solar_existing=branch(
             config["sector"]["solar_rooftop"].get("existing", False),
-            "resources/" + RDIR + "rooftop_solar_existing.csv",
+            "resources/"
+            + RDIR
+            + "rooftop_solar_existing_elec_s{simpl}_{clusters}_{planning_horizons}.csv",
         ),
         network=RESDIR
         + "prenetworks/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}_{sopts}_{planning_horizons}_{discountrate}_{demand}_presec.nc",
