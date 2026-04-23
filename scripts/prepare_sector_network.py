@@ -3474,9 +3474,9 @@ if __name__ == "__main__":
         add_electricity_distribution_grid(n, costs)
 
         if (
-                options.get("solar_rooftop", False)
-                and isinstance(options["solar_rooftop"], dict)
-                and options["solar_rooftop"].get("existing", False)
+            options.get("solar_rooftop", False)
+            and isinstance(options["solar_rooftop"], dict)
+            and options["solar_rooftop"].get("existing", False)
         ):
             add_existing_rooftop_solar(
                 n,
