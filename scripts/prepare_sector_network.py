@@ -3066,12 +3066,16 @@ def add_existing_rooftop_solar(
     rooftop = rooftop[rooftop["p_nom"] > 0]
 
     if rooftop.empty:
-        logger.warning("No positive rooftop solar capacities found in %s", rooftop_existing_fn)
+        logger.warning(
+            "No positive rooftop solar capacities found in %s",
+            rooftop_existing_fn,
+        )
         return
 
-    # Require low-voltage buses to exist already
     rooftop["lv_bus"] = rooftop["node"] + " low voltage"
-    missing_lv_buses = rooftop.loc[~rooftop["lv_bus"].isin(n.buses.index), "lv_bus"].unique()
+    missing_lv_buses = rooftop.loc[
+        ~rooftop["lv_bus"].isin(n.buses.index), "lv_bus"
+    ].unique()
     if len(missing_lv_buses) > 0:
         raise ValueError(
             "Some rooftop low-voltage buses do not exist. "
@@ -3079,16 +3083,42 @@ def add_existing_rooftop_solar(
             f"Missing examples: {list(missing_lv_buses[:10])}"
         )
 
-    # Use the corresponding utility-scale solar profile where available
-    solar_profile_index = rooftop["node"] + " solar"
-    missing_profiles = solar_profile_index[~solar_profile_index.isin(n.generators.index)]
-
-    if len(missing_profiles) > 0:
+    solar_gens = n.generators[n.generators.carrier == "solar"].copy()
+    if solar_gens.empty:
         raise ValueError(
-            "Some rooftop nodes do not have a matching 'node solar' generator profile. "
-            f"Missing examples: {list(missing_profiles[:10])}"
+            "No 'solar' generators found in the network. "
+            "Cannot infer rooftop solar availability profiles."
         )
 
+    solar_p_max_pu = n.generators_t.p_max_pu.loc[:, solar_gens.index]
+
+    profile_names = []
+    fallback_counter = 0
+
+    for node in rooftop["node"]:
+        candidate_name = f"{node} solar"
+
+        if candidate_name in solar_gens.index:
+            profile_names.append(candidate_name)
+            continue
+
+        same_bus = solar_gens.index[solar_gens.bus == node]
+        if len(same_bus) > 0:
+            profile_names.append(same_bus[0])
+            fallback_counter += 1
+            continue
+
+        profile_names.append(solar_gens.index[0])
+        fallback_counter += 1
+
+    if fallback_counter > 0:
+        logger.warning(
+            "Used fallback solar profiles for %d rooftop nodes because "
+            "matching '{node} solar' generators were not found.",
+            fallback_counter,
+        )
+
+    profile_names = pd.Index(profile_names, index=rooftop.index)
     gen_names = rooftop["node"] + " rooftop existing"
 
     n.madd(
@@ -3098,10 +3128,10 @@ def add_existing_rooftop_solar(
         carrier="solar rooftop",
         p_nom=rooftop["p_nom"].values,
         p_nom_extendable=False,
-        marginal_cost=n.generators.loc[solar_profile_index, "marginal_cost"].values,
-        capital_cost=0,
-        efficiency=n.generators.loc[solar_profile_index, "efficiency"].values,
-        p_max_pu=n.generators_t.p_max_pu[solar_profile_index].copy(),
+        marginal_cost=n.generators.loc[profile_names, "marginal_cost"].values,
+        capital_cost=costs.at["solar-rooftop", "fixed"],
+        efficiency=n.generators.loc[profile_names, "efficiency"].values,
+        p_max_pu=solar_p_max_pu[profile_names].set_axis(gen_names, axis=1),
         lifetime=costs.at["solar-rooftop", "lifetime"],
     )
 
