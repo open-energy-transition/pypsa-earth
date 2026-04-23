@@ -3099,18 +3099,58 @@ def add_existing_rooftop_solar(
     if isinstance(solar_profile, pd.Series):
         solar_profile = solar_profile.to_frame()
 
-    # Ensure columns are strings
     solar_profile.columns = solar_profile.columns.astype(str)
 
-    missing_nodes = rooftop.loc[~rooftop["node"].isin(solar_profile.columns), "node"].unique()
-    if len(missing_nodes) > 0:
-        raise ValueError(
-            "Some rooftop nodes do not have a matching solar profile in "
-            f"{solar_profile_fn}. Missing examples: {list(missing_nodes[:10])}"
+    # Case 1: direct match available
+    available_nodes = pd.Index(solar_profile.columns)
+    rooftop["profile_node"] = rooftop["node"]
+
+    missing_mask = ~rooftop["profile_node"].isin(available_nodes)
+
+    if missing_mask.any():
+        logger.warning(
+            "%d rooftop nodes have no direct solar profile match. "
+            "They will be mapped to the nearest node with an available solar profile.",
+            int(missing_mask.sum()),
         )
 
+        profile_buses = n.buses.loc[n.buses.index.intersection(available_nodes)].copy()
+        profile_buses = profile_buses.dropna(subset=["x", "y"])
+
+        if profile_buses.empty:
+            raise ValueError(
+                "No buses in the network match the solar profile columns. "
+                "Cannot assign rooftop solar profiles."
+            )
+
+        rooftop_missing = rooftop.loc[missing_mask].copy()
+        rooftop_missing_buses = n.buses.loc[
+            rooftop_missing["node"].values
+        ].dropna(subset=["x", "y"])
+
+        if rooftop_missing_buses.empty:
+            raise ValueError(
+                "Missing rooftop nodes do not have valid coordinates in n.buses."
+            )
+
+        tree = cKDTree(profile_buses[["x", "y"]].to_numpy())
+        _, idx = tree.query(rooftop_missing_buses[["x", "y"]].to_numpy(), k=1)
+
+        nearest_profile_nodes = profile_buses.index.to_numpy()[idx]
+
+        rooftop.loc[missing_mask, "profile_node"] = nearest_profile_nodes
+
+        example_map = (
+            rooftop.loc[missing_mask, ["node", "profile_node"]]
+            .drop_duplicates()
+            .head(10)
+            .to_dict(orient="records")
+        )
+        logger.info("Example nearest rooftop profile mapping: %s", example_map)
+
     gen_names = rooftop["node"] + " rooftop existing"
-    p_max_pu = solar_profile.loc[:, rooftop["node"]].copy()
+
+    p_max_pu = solar_profile.loc[:, rooftop["profile_node"]].copy()
     p_max_pu.columns = gen_names.values
 
     n.madd(
