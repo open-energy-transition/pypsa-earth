@@ -3050,7 +3050,7 @@ def add_existing_rooftop_solar(
     rooftop_existing_fn : str
         CSV file with columns ['node', 'p_nom'], where p_nom is in MW.
     solar_profile_fn : str
-        NetCDF renewable profile file for utility solar.
+        NetCDF renewable profile file for solar availability.
     """
     logger.info("Adding existing rooftop solar from %s", rooftop_existing_fn)
     logger.info("Using solar availability profile from %s", solar_profile_fn)
@@ -3090,68 +3090,31 @@ def add_existing_rooftop_solar(
     profile_ds = xr.open_dataset(solar_profile_fn)
 
     if "profile" not in profile_ds:
-        raise ValueError(
-            "Variable 'profile' not found in solar profile file."
-        )
+        raise ValueError("Variable 'profile' not found in solar profile file.")
 
     solar_profile = profile_ds["profile"].to_pandas()
 
     if isinstance(solar_profile, pd.Series):
         solar_profile = solar_profile.to_frame()
 
-    solar_profile.columns = solar_profile.columns.astype(str)
+    if solar_profile.empty:
+        raise ValueError("Solar profile file contains no usable profile data.")
 
-    # Case 1: direct match available
-    available_nodes = pd.Index(solar_profile.columns)
-    rooftop["profile_node"] = rooftop["node"]
+    # Use a single aggregate solar profile for all existing rooftop generators.
+    # This avoids assuming that profile_solar.nc columns match PyPSA bus names.
+    aggregate_profile = solar_profile.mean(axis=1)
 
-    missing_mask = ~rooftop["profile_node"].isin(available_nodes)
+    if aggregate_profile.isna().all():
+        raise ValueError("Aggregate solar profile is entirely NaN.")
 
-    if missing_mask.any():
-        logger.warning(
-            "%d rooftop nodes have no direct solar profile match. "
-            "They will be mapped to the nearest node with an available solar profile.",
-            int(missing_mask.sum()),
-        )
-
-        profile_buses = n.buses.loc[n.buses.index.intersection(available_nodes)].copy()
-        profile_buses = profile_buses.dropna(subset=["x", "y"])
-
-        if profile_buses.empty:
-            raise ValueError(
-                "No buses in the network match the solar profile columns. "
-                "Cannot assign rooftop solar profiles."
-            )
-
-        rooftop_missing = rooftop.loc[missing_mask].copy()
-        rooftop_missing_buses = n.buses.loc[
-            rooftop_missing["node"].values
-        ].dropna(subset=["x", "y"])
-
-        if rooftop_missing_buses.empty:
-            raise ValueError(
-                "Missing rooftop nodes do not have valid coordinates in n.buses."
-            )
-
-        tree = cKDTree(profile_buses[["x", "y"]].to_numpy())
-        _, idx = tree.query(rooftop_missing_buses[["x", "y"]].to_numpy(), k=1)
-
-        nearest_profile_nodes = profile_buses.index.to_numpy()[idx]
-
-        rooftop.loc[missing_mask, "profile_node"] = nearest_profile_nodes
-
-        example_map = (
-            rooftop.loc[missing_mask, ["node", "profile_node"]]
-            .drop_duplicates()
-            .head(10)
-            .to_dict(orient="records")
-        )
-        logger.info("Example nearest rooftop profile mapping: %s", example_map)
+    aggregate_profile = aggregate_profile.fillna(0.0)
 
     gen_names = rooftop["node"] + " rooftop existing"
 
-    p_max_pu = solar_profile.loc[:, rooftop["profile_node"]].copy()
-    p_max_pu.columns = gen_names.values
+    p_max_pu = pd.concat(
+        [aggregate_profile.rename(name) for name in gen_names],
+        axis=1,
+    )
 
     n.madd(
         "Generator",
