@@ -497,12 +497,17 @@ else:
 
 if config["enable"].get("retrieve_cost_data", True):
 
+    technology_data_repo = config["costs"].get(
+        "technology_data_repo", "PyPSA/technology-data"
+    )
+
     rule retrieve_cost_data:
         params:
+            repo=technology_data_repo,
             version=config["costs"]["technology_data_version"],
         input:
             HTTP.remote(
-                f"raw.githubusercontent.com/PyPSA/technology-data/{config['costs']['technology_data_version']}/outputs/{cost_directory}"
+                f"raw.githubusercontent.com/{technology_data_repo}/{config['costs']['technology_data_version']}/outputs/{cost_directory}"
                 + "costs_{year}.csv",
                 keep_local=True,
             ),
