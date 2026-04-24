@@ -1311,6 +1311,20 @@ rule build_ship_profile:
         "scripts/build_ship_profile.py"
 
 
+def add_export_input_network(w):
+    if config.get("custom_industry", {}).get("enable", False):
+        return (
+            "results/"
+            + SECDIR
+            + f"prenetworks/elec_s{w.simpl}_{w.clusters}_ec_l{w.ll}_{w.opts}_{w.sopts}_{w.planning_horizons}_{w.discountrate}_{w.demand}_custom_industry.nc"
+        )
+    return (
+        "results/"
+        + SECDIR
+        + f"prenetworks/elec_s{w.simpl}_{w.clusters}_ec_l{w.ll}_{w.opts}_{w.sopts}_{w.planning_horizons}_{w.discountrate}_{w.demand}.nc"
+    )
+
+
 rule add_export:
     params:
         gadm_layer_id=config["build_shape_options"]["gadm_layer_id"],
@@ -1325,9 +1339,7 @@ rule add_export:
         export_ports="resources/" + SECDIR + "export_ports.csv",
         costs="resources/" + RDIR + "costs_{planning_horizons}_sec.csv",
         ship_profile="resources/" + SECDIR + "ship_profile_{h2export}TWh.csv",
-        network=RESDIR
-        + "prenetworks/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}_{sopts}_{planning_horizons}_{discountrate}_{demand}.nc",
-        shapes_path="resources/"
+        network=add_export_input_network,
         + RDIR
         + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
     output:
