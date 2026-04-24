@@ -1336,12 +1336,11 @@ rule add_export:
         endogenous_price=config["export"]["endogenous_price"],
         snapshots=config["snapshots"],
     input:
+        +RDIR + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
         export_ports="resources/" + SECDIR + "export_ports.csv",
         costs="resources/" + RDIR + "costs_{planning_horizons}_sec.csv",
         ship_profile="resources/" + SECDIR + "ship_profile_{h2export}TWh.csv",
         network=add_export_input_network,
-        + RDIR
-        + "bus_regions/regions_onshore_elec_s{simpl}_{clusters}.geojson",
     output:
         RESDIR
         + "prenetworks/elec_s{simpl}_{clusters}_ec_l{ll}_{opts}_{sopts}_{planning_horizons}_{discountrate}_{demand}_{h2export}export.nc",
