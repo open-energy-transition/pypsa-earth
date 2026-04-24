@@ -2880,13 +2880,15 @@ def add_electricity_distribution_grid(n, costs):
     mchp = n.links.index[n.links.carrier.str.contains("micro gas")]
     n.links.loc[mchp, "bus1"] += " low voltage"
 
+    enable_solar_rooftop = False
+    solar_opts = {}
+
     if options.get("solar_rooftop", False):
         if isinstance(options["solar_rooftop"], dict):
             enable_solar_rooftop = options["solar_rooftop"]["enable"]
             solar_opts = options["solar_rooftop"]
         else:
             enable_solar_rooftop = True
-            solar_opts = {}
 
     if enable_solar_rooftop:
         # set existing solar to cost of utility cost rather the 50-50 rooftop-utility
@@ -3031,6 +3033,108 @@ def add_co2_budget(n, co2_budget, investment_year, elec_opts):
     )
 
     add_co2limit(n, annual_emissions, Nyears)
+
+
+def add_existing_rooftop_solar(
+    n: pypsa.Network,
+    rooftop_existing_fn: str,
+    solar_profile_fn: str,
+) -> None:
+    """
+    Add existing rooftop solar generators on low-voltage buses.
+
+    Parameters
+    ----------
+    n : pypsa.Network
+        Sector network.
+    rooftop_existing_fn : str
+        CSV file with columns ['node', 'p_nom'], where p_nom is in MW.
+    solar_profile_fn : str
+        NetCDF renewable profile file for solar availability.
+    """
+    logger.info("Adding existing rooftop solar from %s", rooftop_existing_fn)
+    logger.info("Using solar availability profile from %s", solar_profile_fn)
+
+    rooftop = pd.read_csv(rooftop_existing_fn)
+
+    required_cols = {"node", "p_nom"}
+    missing_cols = required_cols - set(rooftop.columns)
+    if missing_cols:
+        raise ValueError(
+            f"Missing required columns in rooftop existing file: {missing_cols}"
+        )
+
+    rooftop = rooftop.copy()
+    rooftop["node"] = rooftop["node"].astype(str)
+    rooftop["p_nom"] = pd.to_numeric(rooftop["p_nom"], errors="coerce").fillna(0.0)
+    rooftop = rooftop[rooftop["p_nom"] > 0]
+
+    if rooftop.empty:
+        logger.warning(
+            "No positive rooftop solar capacities found in %s",
+            rooftop_existing_fn,
+        )
+        return
+
+    rooftop["lv_bus"] = rooftop["node"] + " low voltage"
+    missing_lv_buses = rooftop.loc[
+        ~rooftop["lv_bus"].isin(n.buses.index), "lv_bus"
+    ].unique()
+    if len(missing_lv_buses) > 0:
+        raise ValueError(
+            "Some rooftop low-voltage buses do not exist. "
+            "Make sure add_electricity_distribution_grid() is called first. "
+            f"Missing examples: {list(missing_lv_buses[:10])}"
+        )
+
+    profile_ds = xr.open_dataset(solar_profile_fn)
+
+    if "profile" not in profile_ds:
+        raise ValueError("Variable 'profile' not found in solar profile file.")
+
+    solar_profile = profile_ds["profile"].to_pandas()
+
+    if isinstance(solar_profile, pd.Series):
+        solar_profile = solar_profile.to_frame()
+
+    if solar_profile.empty:
+        raise ValueError("Solar profile file contains no usable profile data.")
+
+    # Use a single aggregate solar profile for all existing rooftop generators.
+    # This avoids assuming that profile_solar.nc columns match PyPSA bus names.
+    aggregate_profile = solar_profile.mean(axis=1)
+
+    if aggregate_profile.isna().all():
+        raise ValueError("Aggregate solar profile is entirely NaN.")
+
+    aggregate_profile = aggregate_profile.fillna(0.0)
+
+    gen_names = rooftop["node"] + " rooftop existing"
+
+    p_max_pu = pd.concat(
+        [aggregate_profile.rename(name) for name in gen_names],
+        axis=1,
+    )
+
+    n.madd(
+        "Generator",
+        gen_names,
+        bus=rooftop["lv_bus"].values,
+        carrier="solar rooftop",
+        p_nom=rooftop["p_nom"].values,
+        p_nom_extendable=False,
+        marginal_cost=0.0,
+        capital_cost=0.0,
+        efficiency=1.0,
+        p_max_pu=p_max_pu,
+        lifetime=costs.at["solar-rooftop", "lifetime"],
+    )
+
+    logger.info(
+        "Added %d existing rooftop solar generators with %.3f GW total capacity",
+        len(rooftop),
+        rooftop["p_nom"].sum() / 1e3,
+    )
 
 
 def add_custom_water_cost(n):
@@ -3368,6 +3472,17 @@ if __name__ == "__main__":
 
     if options.get("electricity_distribution_grid", False):
         add_electricity_distribution_grid(n, costs)
+
+        if (
+            options.get("solar_rooftop", False)
+            and isinstance(options["solar_rooftop"], dict)
+            and options["solar_rooftop"].get("existing", False)
+        ):
+            add_existing_rooftop_solar(
+                n,
+                rooftop_existing_fn=snakemake.input.rooftop_solar_existing,
+                solar_profile_fn=snakemake.input.solar_profile,
+            )
 
     sopts = snakemake.wildcards.sopts.split("-")
 
