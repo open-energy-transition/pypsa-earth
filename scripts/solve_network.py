@@ -1120,31 +1120,7 @@ def solve_network(n, config, solving, **kwargs):
     kwargs["solver_options"] = (
         solving["solver_options"][set_of_options] if set_of_options else {}
     )
-    solver_name = solving["solver"]["name"]
-    kwargs["solver_name"] = solver_name
-
-    io_api = solving["solver"].get("io_api")
-
-    if solver_name == "highs":
-        kwargs["io_api"] = io_api or "lp"
-
-        project_root = Path.cwd()
-        highs_bin = (
-            project_root
-            / "tools"
-            / "highs-1.14.0-x86_64-linux-gnu-static-apache"
-            / "bin"
-        )
-        os.environ["PATH"] = f"{highs_bin}:{os.environ['PATH']}"
-
-        import shutil
-
-        logger.info(f"Using highs from: {shutil.which('highs')}")
-
-    elif io_api:
-        kwargs["io_api"] = io_api
-
-    kwargs["assign_all_duals"] = True
+    kwargs["solver_name"] = solving["solver"]["name"]
     kwargs["extra_functionality"] = extra_functionality
 
     skip_iterations = cf_solving.get("skip_iterations", False)
