@@ -1319,6 +1319,13 @@ rule build_ship_profile:
 
 
 def add_export_input_network(w):
+    if config.get("custom_hydrogen_demand", {}).get("enable", False):
+        return (
+            "results/"
+            + SECDIR
+            + f"prenetworks/elec_s{w.simpl}_{w.clusters}_ec_l{w.ll}_{w.opts}_{w.sopts}_{w.planning_horizons}_{w.discountrate}_{w.demand}_custom_hydrogen_demand.nc"
+        )
+
     if config.get("custom_industry", {}).get("enable", False):
         return (
             "results/"
