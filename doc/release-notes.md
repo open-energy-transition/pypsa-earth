@@ -14,7 +14,6 @@ This part of documentation collects descriptive release notes to capture the mai
 
 ### Minor Changes and bug-fixing
 
-* advance testing infrastructure to update the objective reference values, ensure that run artifacts are always available, add a manual run trigger, and amend an example on adding a new test [PR #166](https://github.com/open-energy-transition/pypsa-zambia/pull/166)
 
 ## Upcoming changes from upstream
 
@@ -22,7 +21,23 @@ This part of documentation collects descriptive release notes to capture the mai
 
 ### New Features and Major Changes
 
+* Power Plant disaggregation allowing power plants to retain individual identities [PR #153](https://github.com/open-energy-transition/pypsa-zambia/pull/153)
+
+* Ability to use custom hydro inflow data in the workflow [PR #178](https://github.com/open-energy-transition/pypsa-zambia/pull/178)
+
 ### Minor Changes and bug-fixing
+
+
+# PyPSA-Zambia v0.2
+
+## New Features and Major Changes
+
+
+## Minor Changes and bug-fixing
+* advance testing infrastructure to update the objective reference values, ensure that run artifacts are always available, add a manual run trigger, and amend an example on adding a new test [PR #166](https://github.com/open-energy-transition/pypsa-zambia/pull/166)
+
+* Updated readme to align more closely with the Zambian context. Fixed overall consistency
+
 
 # PyPSA-Zambia v0.1
 
