@@ -19,6 +19,7 @@ from _helpers import (
     check_config_version,
     copy_default_files,
     BASE_DIR,
+    write_config,
     branch,  # Remove if Snakemake >= 8.3.0
 )
 from build_demand_profiles import get_load_paths_gegis
