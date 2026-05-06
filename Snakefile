@@ -64,6 +64,21 @@ SECDIR = run["sector_name"] + "/" if run.get("sector_name") else ""
 SDIR = config["summary_dir"].strip("/") + f"/{SECDIR}"
 RESDIR = config["results_dir"].strip("/") + f"/{SECDIR}"
 
+write_config(
+    config,
+    fl_name="model_run_config.yaml",
+    output_dir=RDIR,
+    config_exclude=config_technical,
+)
+
+# provide the full list of config dictionary used by Snakemake
+write_config(
+    config,
+    fl_name="full_run_config.yaml",
+    output_dir=RDIR,
+    config_exclude=None,
+)
+
 load_data_paths = get_load_paths_gegis("data", config)
 
 if config["enable"].get("retrieve_cost_data", True):
