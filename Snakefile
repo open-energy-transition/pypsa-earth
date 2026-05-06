@@ -68,7 +68,7 @@ if config.get("update_consol_config", False):
     write_config(
         config,
         fl_name="model_run_config.yaml",
-        output_dir=RDIR,
+        output_dir="",
         config_exclude=config_technical,
     )
     
@@ -76,7 +76,7 @@ if config.get("update_consol_config", False):
     write_config(
         config,
         fl_name="full_run_config.yaml",
-        output_dir=RDIR,
+        output_dir="",
         config_exclude=None,
     )
 
