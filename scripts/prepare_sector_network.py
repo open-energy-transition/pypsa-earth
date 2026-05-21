@@ -1782,7 +1782,7 @@ def add_industry(
 
     ########################################################### CARRIER = HEAT
     # TODO simplify bus expression
-    industry_heat_bus = pd.Index(
+    industry_heat_bus = pd.Series(
         [
             (
                 node + " urban central heat"
