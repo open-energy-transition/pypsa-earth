@@ -1782,26 +1782,17 @@ def add_industry(
 
     ########################################################### CARRIER = HEAT
     # TODO simplify bus expression
-    industry_heat_bus = pd.Series(
-        [
-            (
-                node + " urban central heat"
-                if node + " urban central heat" in n.buses.index
-                else node + " services urban decentral heat"
-            )
-            for node in spatial.nodes
-        ],
-        index=spatial.nodes,
-    )
+    industry_heat_bus = pd.Series(index=spatial.nodes, dtype=object)
 
-    missing_industry_heat_buses = industry_heat_bus[
-        ~industry_heat_bus.isin(n.buses.index)
-    ]
+    for node in spatial.nodes:
+        candidates = [
+            node + " urban central heat",
+            node + " services urban decentral heat",
+            node,
+        ]
 
-    if not missing_industry_heat_buses.empty:
-        raise ValueError(
-            "Missing low-temperature heat buses for industry loads: "
-            f"{missing_industry_heat_buses.tolist()}"
+        industry_heat_bus.at[node] = next(
+            candidate for candidate in candidates if candidate in n.buses.index
         )
 
     n.add(
