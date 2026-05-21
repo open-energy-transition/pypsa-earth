@@ -1782,11 +1782,8 @@ def add_industry(
 
     ########################################################### CARRIER = HEAT
     # TODO simplify bus expression
-    n.add(
-        "Load",
-        spatial.nodes,
-        suffix=" low-temperature heat for industry",
-        bus=[
+    industry_heat_bus = pd.Index(
+        [
             (
                 node + " urban central heat"
                 if node + " urban central heat" in n.buses.index
@@ -1794,6 +1791,24 @@ def add_industry(
             )
             for node in spatial.nodes
         ],
+        index=spatial.nodes,
+    )
+
+    missing_industry_heat_buses = industry_heat_bus[
+        ~industry_heat_bus.isin(n.buses.index)
+    ]
+
+    if not missing_industry_heat_buses.empty:
+        raise ValueError(
+            "Missing low-temperature heat buses for industry loads: "
+            f"{missing_industry_heat_buses.tolist()}"
+        )
+
+    n.add(
+        "Load",
+        spatial.nodes,
+        suffix=" low-temperature heat for industry",
+        bus=industry_heat_bus.values,
         carrier="low-temperature heat for industry",
         p_set=industrial_demand.loc[spatial.nodes, "low-temperature heat"] / 8760,
     )
