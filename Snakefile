@@ -1237,7 +1237,6 @@ rule prepare_sector_network:
                 for country in config["countries"]
             },
         ),
-        network="networks/" + RDIR + "elec_s{simpl}_{clusters}_ec_l{ll}_{opts}.nc",
         rooftop_solar_existing=branch(
             config["sector"]["solar_rooftop"].get("existing", False),
             "resources/"
