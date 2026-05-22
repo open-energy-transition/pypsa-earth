@@ -3114,7 +3114,12 @@ def add_existing_rooftop_solar(
     if aggregate_profile.isna().all():
         raise ValueError("Aggregate solar profile is entirely NaN.")
 
-    aggregate_profile = aggregate_profile.fillna(0.0)
+    aggregate_profile = (
+        aggregate_profile
+        .reindex(n.snapshots, method="nearest")
+        .fillna(0.0)
+        .clip(lower=0.0, upper=1.0)
+    )
 
     gen_names = rooftop["node"] + " rooftop existing"
 
@@ -3123,12 +3128,14 @@ def add_existing_rooftop_solar(
         axis=1,
     )
 
-    n.madd(
+    n.add(
         "Generator",
-        gen_names,
+        name=gen_names,
         bus=rooftop["lv_bus"].values,
         carrier="solar rooftop",
         p_nom=rooftop["p_nom"].values,
+        p_nom_min=rooftop["p_nom"].values,
+        p_nom_max=rooftop["p_nom"].values,
         p_nom_extendable=False,
         marginal_cost=0.0,
         capital_cost=0.0,
@@ -3136,6 +3143,16 @@ def add_existing_rooftop_solar(
         p_max_pu=p_max_pu,
         lifetime=costs.at["solar-rooftop", "lifetime"],
     )
+
+    added_capacity = n.generators.loc[gen_names, "p_nom"].sum()
+    expected_capacity = rooftop["p_nom"].sum()
+
+    if abs(added_capacity - expected_capacity) > 1e-6:
+        raise ValueError(
+            "Existing rooftop solar p_nom was not added correctly. "
+            f"Expected {expected_capacity:.3f} MW, "
+            f"got {added_capacity:.3f} MW."
+        )
 
     logger.info(
         "Added %d existing rooftop solar generators with %.3f GW total capacity",
@@ -3482,16 +3499,17 @@ if __name__ == "__main__":
 
     if options.get("enable_electricity_connection_cost", False):
         add_electricity_grid_connection(n, costs)
-        if (
+
+    if (
             options.get("solar_rooftop", False)
             and isinstance(options["solar_rooftop"], dict)
             and options["solar_rooftop"].get("existing", False)
-        ):
-            add_existing_rooftop_solar(
-                n,
-                rooftop_existing_fn=snakemake.input.rooftop_solar_existing,
-                solar_profile_fn=snakemake.input.solar_profile,
-            )
+    ):
+        add_existing_rooftop_solar(
+            n,
+            rooftop_existing_fn=snakemake.input.rooftop_solar_existing,
+            solar_profile_fn=snakemake.input.solar_profile,
+        )
 
     sopts = snakemake.wildcards.sopts.split("-")
 
