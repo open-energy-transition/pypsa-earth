@@ -3115,8 +3115,7 @@ def add_existing_rooftop_solar(
         raise ValueError("Aggregate solar profile is entirely NaN.")
 
     aggregate_profile = (
-        aggregate_profile
-        .reindex(n.snapshots, method="nearest")
+        aggregate_profile.reindex(n.snapshots, method="nearest")
         .fillna(0.0)
         .clip(lower=0.0, upper=1.0)
     )
@@ -3501,9 +3500,9 @@ if __name__ == "__main__":
         add_electricity_grid_connection(n, costs)
 
     if (
-            options.get("solar_rooftop", False)
-            and isinstance(options["solar_rooftop"], dict)
-            and options["solar_rooftop"].get("existing", False)
+        options.get("solar_rooftop", False)
+        and isinstance(options["solar_rooftop"], dict)
+        and options["solar_rooftop"].get("existing", False)
     ):
         add_existing_rooftop_solar(
             n,
