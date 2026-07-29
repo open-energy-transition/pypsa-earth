@@ -68,7 +68,7 @@ lines:
 costs:
   year: 2025
 
-cluster_options:
+clustering:
   simplify_network:
     exclude_carriers: []
 
