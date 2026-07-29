@@ -175,6 +175,25 @@ if config["enable"].get("retrieve_databundle", True):
         script:
             "scripts/retrieve_databundle_light.py"
 
+if config["enable"].get("retrieve_databundle", True) and config["tutorial"]:
+
+    hydrobasins_to_download = get_best_bundles_in_snakemake(
+        config, include_categories=["hydrobasins"]
+    )
+
+    rule retrieve_databundle_light:
+        params:
+            bundles_to_download=hydrobasins_to_download,
+        output:
+            expand(
+                "{file}", file=datafiles_retrivedatabundle(config, hydrobasins_to_download)
+            ),
+        log:
+            "logs/" + RDIR + "retrieve_databundle.log",
+        benchmark:
+            "benchmarks/" + RDIR + "retrieve_databundle_light"
+        script:
+            "scripts/retrieve_databundle_light.py"            
 
 if config["enable"].get("download_global_buildings", True):
 

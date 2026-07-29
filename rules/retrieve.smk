@@ -27,7 +27,6 @@ else:
 
 if (HYDROBASINS_DATASET := dataset_version("hydrobasins", config))["source"] in [
     "build",
-    "tutorial",
 ]:
 
     """
