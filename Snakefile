@@ -801,6 +801,7 @@ if config["validation"].get("biomass"):
             "scripts/add_electricity.py"
 
 else:
+
     # TODO Check conflicts resolution
     rule add_electricity:
         params:
