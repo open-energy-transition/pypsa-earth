@@ -196,7 +196,7 @@ electricity:
     Link: [] # H2 pipeline
 
   conventional_carriers: [nuclear, oil, OCGT, CCGT, coal, lignite, geothermal, biomass]
-  renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]    
+  renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]
 
   max_hours: # Storage duration [h]: fill time at max power for extendable battery/H2 storage
     battery: 6
@@ -220,7 +220,7 @@ electricity:
   existing_thermal_dispatch:
     enable: false
     base_year: 2025
-    carriers: [coal, oil]      
+    carriers: [coal, oil]
 
   # ----------------- Grid topology -------------------
   base_voltage: 380.
