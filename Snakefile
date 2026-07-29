@@ -182,7 +182,7 @@ if config["enable"].get("retrieve_databundle", True) and config["tutorial"]:
         config, include_categories=["hydrobasins"]
     )
 
-    rule retrieve_databundle_light:
+    rule retrieve_hydrobasins_tutorial:
         params:
             bundles_to_download=hydrobasins_to_download,
         output:
