@@ -110,7 +110,7 @@ renewable:
 
 co2:
   automatic_emission: # derive co2.limit from historical emission data instead of the value above
-    enable: false      
+    enable: false
 
 sector:
   enable:
