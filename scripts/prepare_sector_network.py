@@ -243,7 +243,6 @@ Add sector based technologies to the PyPSA network, including:
 import logging
 import os
 import re
-from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
