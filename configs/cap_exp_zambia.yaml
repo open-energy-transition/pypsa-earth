@@ -78,4 +78,5 @@ co2:
   limit: 1.487e+9     # annual cap [tCO2/year]; European default — adjust for your region; active via Co2L wildcard
   base: 1.487e+9     # baseline emissions used for relative reduction targets; European default
   emission_price: 0. # [currency/tCO2]; active via Ep wildcard
-  automatic_emission: true
+  automatic_emission: false
+  automatic_emission_base_year: 1990
