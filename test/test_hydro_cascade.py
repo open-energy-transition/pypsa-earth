@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 
 import pandas as pd
+import pypsa
 
 sys.path.insert(
     0,
@@ -773,6 +774,76 @@ class TestValidateCascadeTopology(unittest.TestCase):
                 discharge,
                 dam_heights,
             )
+
+    def test_cascade_supports_downstream_energy_ratio_above_one(self):
+        n = pypsa.Network()
+        n.set_snapshots(pd.RangeIndex(3))
+
+        n.add("Carrier", "AC")
+
+        for plant in ["ITT", "KGU"]:
+            n.add("Bus", f"{plant} elec", carrier="AC")
+
+            add_hydro_reservoir(
+                n,
+                plant_id=plant,
+                electricity_bus=f"{plant} elec",
+                p_nom=3000.0,
+                max_hours=10.0,
+                efficiency_dispatch=0.9,
+                cyclic=False,
+            )
+
+        ratio = 600.0 / 24.5
+
+        connect_hydro_reservoirs(
+            n,
+            upstream_plant_id="ITT",
+            downstream_plant_id="KGU",
+            travel_time_hours=1.0,
+            downstream_energy_ratio=ratio,
+            cyclic_delay=False,
+        )
+
+        n.links.loc[
+            ["ITT turbine", "KGU turbine"],
+            "marginal_cost",
+        ] = 1e-6
+
+        n.add(
+            "Generator",
+            "ITT inflow",
+            bus="ITT water",
+            p_nom=100.0,
+            p_min_pu=[1.0, 0.0, 0.0],
+            p_max_pu=[1.0, 0.0, 0.0],
+        )
+
+        n.add(
+            "Load",
+            "ITT load",
+            bus="ITT elec",
+            p_set=[90.0, 0.0, 0.0],
+        )
+
+        expected = 100.0 * ratio
+
+        n.add(
+            "Load",
+            "KGU load",
+            bus="KGU elec",
+            p_set=[0.0, expected * 0.9, 0.0],
+        )
+
+        n.optimize(
+            solver_name="highs",
+            include_objective_constant=False,
+        )
+
+        self.assertAlmostEqual(
+            n.links_t.p0.loc[1, "KGU turbine"],
+            expected,
+        )
 
 
 if __name__ == "__main__":
