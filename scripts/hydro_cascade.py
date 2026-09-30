@@ -362,3 +362,36 @@ def derive_local_inflows(
         local[cascade_columns] = local[cascade_columns].clip(lower=0.0)
 
     return local
+
+
+def discharge_to_hydraulic_inflow(
+    discharge: pd.DataFrame,
+    dam_heights: pd.Series,
+    multiplier: float = 1.0,
+) -> pd.DataFrame:
+    """
+    Convert discharge [m3/s] to hydraulic inflow [MW].
+
+    This follows the existing PyPSA-Earth GloFAS convention:
+    discharge * dam height * rho_water * g / 1e6 * multiplier,
+    with rho_water = 1000 kg/m3 and g = 10 m/s2.
+    """
+    missing = sorted(set(discharge.columns) - set(dam_heights.index))
+
+    if missing:
+        raise ValueError(
+            "Missing dam heights for cascade plants: " + ", ".join(map(str, missing))
+        )
+
+    if multiplier <= 0:
+        raise ValueError("multiplier must be positive.")
+
+    scaling = (1e3 * 10.0) / 1e6 * multiplier
+
+    return (
+        discharge.mul(
+            dam_heights[discharge.columns],
+            axis="columns",
+        )
+        * scaling
+    )

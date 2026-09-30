@@ -17,6 +17,7 @@ from hydro_cascade import (
     add_hydro_reservoir,
     connect_hydro_reservoirs,
     derive_local_inflows,
+    discharge_to_hydraulic_inflow,
     resolve_cascade_plants,
     validate_cascade_topology,
 )
@@ -722,6 +723,55 @@ class TestValidateCascadeTopology(unittest.TestCase):
                 cumulative,
                 topology,
                 negative_policy="ignore",
+            )
+
+    def test_discharge_to_hydraulic_inflow(self):
+        discharge = pd.DataFrame(
+            {
+                "A": [100.0],
+                "B": [40.0],
+            }
+        )
+
+        dam_heights = pd.Series(
+            {
+                "A": 20.0,
+                "B": 50.0,
+            }
+        )
+
+        inflow = discharge_to_hydraulic_inflow(
+            discharge,
+            dam_heights,
+            multiplier=1.0,
+        )
+
+        self.assertAlmostEqual(inflow.loc[0, "A"], 20.0)
+        self.assertAlmostEqual(inflow.loc[0, "B"], 20.0)
+
+    def test_discharge_to_hydraulic_inflow_applies_multiplier(self):
+        discharge = pd.DataFrame({"A": [100.0]})
+        dam_heights = pd.Series({"A": 20.0})
+
+        inflow = discharge_to_hydraulic_inflow(
+            discharge,
+            dam_heights,
+            multiplier=2.0,
+        )
+
+        self.assertAlmostEqual(inflow.loc[0, "A"], 40.0)
+
+    def test_discharge_to_hydraulic_inflow_requires_height(self):
+        discharge = pd.DataFrame({"A": [100.0]})
+        dam_heights = pd.Series({"B": 20.0})
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Missing dam heights",
+        ):
+            discharge_to_hydraulic_inflow(
+                discharge,
+                dam_heights,
             )
 
 
