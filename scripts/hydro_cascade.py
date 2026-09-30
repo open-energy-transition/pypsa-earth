@@ -395,3 +395,77 @@ def discharge_to_hydraulic_inflow(
         )
         * scaling
     )
+
+
+def pop_cascade_storage_units(
+    n: pypsa.Network,
+) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
+    """Remove and return cascade StorageUnits while preserving their time series."""
+    if PLANT_ID_COLUMN not in n.storage_units.columns:
+        return pd.DataFrame(), {}
+
+    plant_ids = n.storage_units[PLANT_ID_COLUMN]
+    cascade_i = plant_ids.index[
+        plant_ids.notna() & plant_ids.astype(str).str.strip().ne("")
+    ]
+
+    if cascade_i.empty:
+        return pd.DataFrame(), {}
+
+    static = n.storage_units.loc[cascade_i].copy()
+
+    dynamic = {}
+    for attr, df in n.storage_units_t.items():
+        if not df.empty:
+            columns = df.columns.intersection(cascade_i)
+            if not columns.empty:
+                dynamic[attr] = df.loc[:, columns].copy()
+
+    n.remove("StorageUnit", cascade_i)
+
+    return static, dynamic
+
+
+def restore_cascade_storage_units(
+    n: pypsa.Network,
+    static: pd.DataFrame,
+    dynamic: dict[str, pd.DataFrame],
+    busmap: pd.Series,
+) -> None:
+    """Restore cascade StorageUnits on their remapped electrical buses."""
+    if static.empty:
+        return
+
+    restored = static.copy()
+    restored["bus"] = restored["bus"].map(busmap)
+
+    missing_bus = restored["bus"].isna()
+    if missing_bus.any():
+        missing = ", ".join(restored.index[missing_bus])
+        raise ValueError(
+            f"Could not map electrical buses for cascade plants: {missing}"
+        )
+
+    defaults = n.components["StorageUnit"]["defaults"]
+    standard_columns = [
+        column
+        for column in restored.columns
+        if column in defaults.index and defaults.loc[column, "static"]
+    ]
+
+    n.add(
+        "StorageUnit",
+        restored.index,
+        **{column: restored[column] for column in standard_columns},
+    )
+
+    custom_columns = restored.columns.difference(standard_columns)
+    for column in custom_columns:
+        n.storage_units.loc[restored.index, column] = restored[column]
+
+    for attr, df in dynamic.items():
+        n._import_series_from_df(
+            df,
+            "StorageUnit",
+            attr,
+        )

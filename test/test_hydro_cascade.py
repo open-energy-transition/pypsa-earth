@@ -19,7 +19,9 @@ from hydro_cascade import (
     connect_hydro_reservoirs,
     derive_local_inflows,
     discharge_to_hydraulic_inflow,
+    pop_cascade_storage_units,
     resolve_cascade_plants,
+    restore_cascade_storage_units,
     validate_cascade_topology,
 )
 
@@ -843,6 +845,81 @@ class TestValidateCascadeTopology(unittest.TestCase):
         self.assertAlmostEqual(
             n.links_t.p0.loc[1, "KGU turbine"],
             expected,
+        )
+
+    def test_preserve_cascade_storage_unit_through_clustering(self):
+        from pypsa.clustering.spatial import get_clustering_from_busmap
+
+        n = pypsa.Network()
+        n.set_snapshots(pd.RangeIndex(2))
+
+        n.add("Carrier", "AC")
+        n.add("Carrier", "hydro")
+        n.add("Bus", ["A", "B"], carrier="AC")
+
+        n.add(
+            "StorageUnit",
+            "cascade",
+            bus="A",
+            carrier="hydro",
+            p_nom=100.0,
+            max_hours=4.0,
+            efficiency_dispatch=0.9,
+            inflow=[10.0, 20.0],
+        )
+
+        n.add(
+            "StorageUnit",
+            "regular",
+            bus="B",
+            carrier="hydro",
+            p_nom=200.0,
+            max_hours=6.0,
+            efficiency_dispatch=0.9,
+            inflow=[30.0, 40.0],
+        )
+
+        n.storage_units["plant_id"] = ""
+        n.storage_units.loc["cascade", "plant_id"] = "TEST_CASCADE"
+
+        static, dynamic = pop_cascade_storage_units(n)
+
+        busmap = pd.Series(
+            {
+                "A": "X",
+                "B": "X",
+            }
+        )
+
+        nc = get_clustering_from_busmap(
+            n,
+            busmap,
+            aggregate_one_ports={"StorageUnit": {}},
+        ).n
+
+        restore_cascade_storage_units(
+            nc,
+            static,
+            dynamic,
+            busmap,
+        )
+
+        self.assertIn("cascade", nc.storage_units.index)
+        self.assertEqual(
+            nc.storage_units.loc["cascade", "bus"],
+            "X",
+        )
+        self.assertEqual(
+            nc.storage_units.loc["cascade", "plant_id"],
+            "TEST_CASCADE",
+        )
+        self.assertEqual(
+            nc.storage_units.loc["cascade", "p_nom"],
+            100.0,
+        )
+        self.assertEqual(
+            nc.storage_units_t.inflow["cascade"].tolist(),
+            [10.0, 20.0],
         )
 
 
