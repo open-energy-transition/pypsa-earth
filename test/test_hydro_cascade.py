@@ -15,6 +15,7 @@ sys.path.insert(
 
 from hydro_cascade import (
     add_hydro_reservoir,
+    connect_hydro_reservoirs,
     resolve_cascade_plants,
     validate_cascade_topology,
 )
@@ -349,6 +350,109 @@ class TestValidateCascadeTopology(unittest.TestCase):
                 p_nom=100.0,
                 max_hours=4.0,
                 efficiency_dispatch=0.0,
+            )
+
+    def test_connect_hydro_reservoirs(self):
+        import pypsa
+
+        n = pypsa.Network()
+        n.add("Bus", "electricity")
+
+        add_hydro_reservoir(
+            n=n,
+            plant_id="A",
+            electricity_bus="electricity",
+            p_nom=100.0,
+            max_hours=4.0,
+            efficiency_dispatch=0.9,
+        )
+
+        add_hydro_reservoir(
+            n=n,
+            plant_id="B",
+            electricity_bus="electricity",
+            p_nom=200.0,
+            max_hours=5.0,
+            efficiency_dispatch=0.9,
+        )
+
+        result = connect_hydro_reservoirs(
+            n=n,
+            upstream_plant_id="A",
+            downstream_plant_id="B",
+            travel_time_hours=6.0,
+            downstream_energy_ratio=0.5,
+            cyclic_delay=False,
+        )
+
+        self.assertEqual(result["turbine"], "A turbine")
+        self.assertEqual(result["spill"], "A spill")
+
+        self.assertEqual(
+            n.links.at["A turbine", "bus2"],
+            "B water",
+        )
+        self.assertAlmostEqual(
+            n.links.at["A turbine", "efficiency2"],
+            0.5,
+        )
+        self.assertAlmostEqual(
+            n.links.at["A turbine", "delay2"],
+            6.0,
+        )
+        self.assertFalse(n.links.at["A turbine", "cyclic_delay2"])
+
+        self.assertEqual(
+            n.links.at["A spill", "bus0"],
+            "A water",
+        )
+        self.assertEqual(
+            n.links.at["A spill", "bus1"],
+            "B water",
+        )
+        self.assertAlmostEqual(
+            n.links.at["A spill", "efficiency"],
+            0.5,
+        )
+        self.assertAlmostEqual(
+            n.links.at["A spill", "delay"],
+            6.0,
+        )
+
+    def test_connect_hydro_reservoirs_rejects_negative_delay(self):
+        import pypsa
+
+        n = pypsa.Network()
+        n.add("Bus", "electricity")
+
+        add_hydro_reservoir(
+            n=n,
+            plant_id="A",
+            electricity_bus="electricity",
+            p_nom=100.0,
+            max_hours=4.0,
+            efficiency_dispatch=0.9,
+        )
+
+        add_hydro_reservoir(
+            n=n,
+            plant_id="B",
+            electricity_bus="electricity",
+            p_nom=100.0,
+            max_hours=4.0,
+            efficiency_dispatch=0.9,
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Travel time",
+        ):
+            connect_hydro_reservoirs(
+                n=n,
+                upstream_plant_id="A",
+                downstream_plant_id="B",
+                travel_time_hours=-1.0,
+                downstream_energy_ratio=1.0,
             )
 
 

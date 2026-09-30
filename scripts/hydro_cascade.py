@@ -240,3 +240,63 @@ def add_hydro_reservoir(
         "store": store,
         "turbine": turbine,
     }
+
+
+def connect_hydro_reservoirs(
+    n: pypsa.Network,
+    upstream_plant_id: str,
+    downstream_plant_id: str,
+    travel_time_hours: float,
+    downstream_energy_ratio: float,
+    cyclic_delay: bool = False,
+) -> dict[str, str]:
+    """Connect two hydro reservoirs with delayed turbine outflow and spill."""
+    if travel_time_hours < 0:
+        raise ValueError("Travel time must be non-negative.")
+
+    if not math.isfinite(travel_time_hours):
+        raise ValueError("Travel time must be finite.")
+
+    if downstream_energy_ratio <= 0 or not math.isfinite(downstream_energy_ratio):
+        raise ValueError("Downstream energy ratio must be positive and finite.")
+
+    upstream_water_bus = f"{upstream_plant_id} water"
+    downstream_water_bus = f"{downstream_plant_id} water"
+    turbine = f"{upstream_plant_id} turbine"
+    spill = f"{upstream_plant_id} spill"
+
+    if upstream_water_bus not in n.buses.index:
+        raise ValueError(f"Upstream water bus '{upstream_water_bus}' does not exist.")
+
+    if downstream_water_bus not in n.buses.index:
+        raise ValueError(
+            f"Downstream water bus '{downstream_water_bus}' does not exist."
+        )
+
+    if turbine not in n.links.index:
+        raise ValueError(f"Upstream turbine '{turbine}' does not exist.")
+
+    n.links.loc[turbine, "bus2"] = downstream_water_bus
+    n.links.loc[turbine, "efficiency2"] = downstream_energy_ratio
+    n.links.loc[turbine, "delay2"] = travel_time_hours
+    n.links.loc[turbine, "cyclic_delay2"] = cyclic_delay
+
+    n.links["bus2"] = n.links["bus2"].fillna("")
+
+    n.add(
+        "Link",
+        spill,
+        bus0=upstream_water_bus,
+        bus1=downstream_water_bus,
+        bus2="",
+        carrier="hydro",
+        p_nom=float("inf"),
+        efficiency=downstream_energy_ratio,
+        delay=travel_time_hours,
+        cyclic_delay=cyclic_delay,
+    )
+
+    return {
+        "turbine": turbine,
+        "spill": spill,
+    }
