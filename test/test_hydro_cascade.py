@@ -14,6 +14,7 @@ sys.path.insert(
 )
 
 from hydro_cascade import (
+    add_hydro_reservoir,
     resolve_cascade_plants,
     validate_cascade_topology,
 )
@@ -288,6 +289,66 @@ class TestValidateCascadeTopology(unittest.TestCase):
             resolve_cascade_plants(
                 topology,
                 powerplants,
+            )
+
+    def test_add_hydro_reservoir(self):
+        import pypsa
+
+        n = pypsa.Network()
+        n.add("Bus", "electricity")
+
+        components = add_hydro_reservoir(
+            n=n,
+            plant_id="PLANT_A",
+            electricity_bus="electricity",
+            p_nom=100.0,
+            max_hours=4.0,
+            efficiency_dispatch=0.9,
+            cyclic=False,
+        )
+
+        self.assertEqual(
+            components["water_bus"],
+            "PLANT_A water",
+        )
+        self.assertEqual(
+            n.stores.at["PLANT_A reservoir", "e_nom"],
+            400.0,
+        )
+        self.assertAlmostEqual(
+            n.links.at["PLANT_A turbine", "p_nom"],
+            100.0 / 0.9,
+        )
+        self.assertAlmostEqual(
+            n.links.at["PLANT_A turbine", "efficiency"],
+            0.9,
+        )
+        self.assertEqual(
+            n.links.at["PLANT_A turbine", "bus0"],
+            "PLANT_A water",
+        )
+        self.assertEqual(
+            n.links.at["PLANT_A turbine", "bus1"],
+            "electricity",
+        )
+
+    def test_add_hydro_reservoir_rejects_invalid_efficiency(self):
+        import pypsa
+
+        n = pypsa.Network()
+        n.add("Bus", "electricity")
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "dispatch efficiency",
+        ):
+            add_hydro_reservoir(
+                n=n,
+                plant_id="PLANT_A",
+                electricity_bus="electricity",
+                p_nom=100.0,
+                max_hours=4.0,
+                efficiency_dispatch=0.0,
             )
 
 

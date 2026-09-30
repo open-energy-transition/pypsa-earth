@@ -7,6 +7,7 @@ from __future__ import annotations
 import math
 
 import pandas as pd
+import pypsa
 
 REQUIRED_TOPOLOGY_COLUMNS = {
     "upstream",
@@ -176,3 +177,66 @@ def resolve_cascade_plants(
         )
 
     return plants.loc[sorted(topology_nodes)].copy()
+
+
+def add_hydro_reservoir(
+    n: pypsa.Network,
+    plant_id: str,
+    electricity_bus: str,
+    p_nom: float,
+    max_hours: float,
+    efficiency_dispatch: float,
+    cyclic: bool = True,
+) -> dict[str, str]:
+    """Add a reservoir as a water bus, Store and turbine Link."""
+    if p_nom <= 0:
+        raise ValueError("Reservoir p_nom must be positive.")
+    if max_hours <= 0:
+        raise ValueError("Reservoir max_hours must be positive.")
+    if not 0 < efficiency_dispatch <= 1:
+        raise ValueError(
+            "Reservoir dispatch efficiency must be in the interval (0, 1]."
+        )
+
+    if electricity_bus not in n.buses.index:
+        raise ValueError(f"Electricity bus '{electricity_bus}' does not exist.")
+
+    water_bus = f"{plant_id} water"
+    store = f"{plant_id} reservoir"
+    turbine = f"{plant_id} turbine"
+
+    if "water" not in n.carriers.index:
+        n.add("Carrier", "water")
+    if "hydro" not in n.carriers.index:
+        n.add("Carrier", "hydro")
+
+    n.add(
+        "Bus",
+        water_bus,
+        carrier="water",
+    )
+
+    n.add(
+        "Store",
+        store,
+        bus=water_bus,
+        carrier="hydro",
+        e_nom=p_nom * max_hours,
+        e_cyclic=cyclic,
+    )
+
+    n.add(
+        "Link",
+        turbine,
+        bus0=water_bus,
+        bus1=electricity_bus,
+        carrier="hydro",
+        p_nom=p_nom / efficiency_dispatch,
+        efficiency=efficiency_dispatch,
+    )
+
+    return {
+        "water_bus": water_bus,
+        "store": store,
+        "turbine": turbine,
+    }
