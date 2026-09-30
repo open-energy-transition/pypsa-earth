@@ -696,6 +696,15 @@ rule add_electricity:
             for attr, fn in d.items()
             if str(fn).startswith("data/")
         },
+        **(
+            {
+                "hydro_cascade_topology": config["renewable"]["hydro"]["cascading"][
+                    "topology"
+                ]
+            }
+            if config["renewable"]["hydro"].get("cascading", {}).get("enable", False)
+            else {}
+        ),
         base_network="networks/" + RDIR + "base.nc",
         tech_costs="resources/" + RDIR + f"costs_{config['costs']['year']}_elec.csv",
         powerplants="resources/" + RDIR + "powerplants.csv",
