@@ -305,3 +305,36 @@ def connect_hydro_reservoirs(
         "turbine": turbine,
         "spill": spill,
     }
+
+
+def derive_local_inflows(
+    cumulative_inflows: pd.DataFrame,
+    topology: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Convert cumulative inflows into local incremental inflows.
+
+    For each downstream node, the cumulative inflow of all directly upstream
+    nodes is subtracted at the same timestep. Travel-time delays are handled
+    separately by the PyPSA hydraulic routing.
+    """
+    validate_cascade_topology(topology)
+
+    nodes = set(topology["upstream"]).union(topology["downstream"])
+    missing = sorted(nodes - set(cumulative_inflows.columns))
+
+    if missing:
+        raise ValueError(
+            "Missing cumulative inflow profiles for cascade nodes: "
+            + ", ".join(map(str, missing))
+        )
+
+    local = cumulative_inflows.copy()
+
+    for downstream, edges in topology.groupby("downstream"):
+        upstream = edges["upstream"].tolist()
+        local[downstream] = cumulative_inflows[downstream] - cumulative_inflows[
+            upstream
+        ].sum(axis=1)
+
+    return local

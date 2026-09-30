@@ -16,6 +16,7 @@ sys.path.insert(
 from hydro_cascade import (
     add_hydro_reservoir,
     connect_hydro_reservoirs,
+    derive_local_inflows,
     resolve_cascade_plants,
     validate_cascade_topology,
 )
@@ -557,6 +558,90 @@ class TestValidateCascadeTopology(unittest.TestCase):
             self.assertTrue(
                 (abs(actual[key] - expected[key]) < 1e-6).all(),
                 key,
+            )
+
+    def test_derive_local_inflows_chain(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A", "B"],
+                "downstream": ["B", "C"],
+                "travel_time_hours": [1, 1],
+            }
+        )
+
+        cumulative = pd.DataFrame(
+            {
+                "A": [100.0, 0.0],
+                "B": [140.0, 0.0],
+                "C": [170.0, 0.0],
+            }
+        )
+
+        local = derive_local_inflows(
+            cumulative,
+            topology,
+        )
+
+        pd.testing.assert_frame_equal(
+            local,
+            pd.DataFrame(
+                {
+                    "A": [100.0, 0.0],
+                    "B": [40.0, 0.0],
+                    "C": [30.0, 0.0],
+                }
+            ),
+        )
+
+    def test_derive_local_inflows_confluence(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A", "B"],
+                "downstream": ["C", "C"],
+                "travel_time_hours": [1, 1],
+            }
+        )
+
+        cumulative = pd.DataFrame(
+            {
+                "A": [30.0],
+                "B": [20.0],
+                "C": [70.0],
+            }
+        )
+
+        local = derive_local_inflows(
+            cumulative,
+            topology,
+        )
+
+        self.assertAlmostEqual(
+            local.loc[0, "C"],
+            20.0,
+        )
+
+    def test_derive_local_inflows_requires_all_profiles(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [1],
+            }
+        )
+
+        cumulative = pd.DataFrame(
+            {
+                "A": [100.0],
+            }
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Missing cumulative inflow",
+        ):
+            derive_local_inflows(
+                cumulative,
+                topology,
             )
 
 
