@@ -13,7 +13,10 @@ sys.path.insert(
     str(Path(__file__).resolve().parents[1] / "scripts"),
 )
 
-from hydro_cascade import validate_cascade_topology
+from hydro_cascade import (
+    resolve_cascade_plants,
+    validate_cascade_topology,
+)
 
 
 class TestValidateCascadeTopology(unittest.TestCase):
@@ -172,6 +175,120 @@ class TestValidateCascadeTopology(unittest.TestCase):
             "directed cycle",
         ):
             validate_cascade_topology(topology)
+
+    def test_resolve_cascade_plants(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["PLANT_A", "PLANT_B"],
+                "downstream": ["PLANT_B", "PLANT_C"],
+                "travel_time_hours": [6, 2],
+            }
+        )
+
+        powerplants = pd.DataFrame(
+            {
+                "plant_id": [
+                    "PLANT_A",
+                    "PLANT_B",
+                    "PLANT_C",
+                    "OTHER",
+                ],
+                "name": [
+                    "Plant A",
+                    "Plant B",
+                    "Plant C",
+                    "Other",
+                ],
+                "p_nom": [100, 200, 300, 400],
+            }
+        )
+
+        result = resolve_cascade_plants(
+            topology,
+            powerplants,
+        )
+
+        self.assertEqual(
+            set(result.index),
+            {"PLANT_A", "PLANT_B", "PLANT_C"},
+        )
+        self.assertEqual(
+            result.loc["PLANT_B", "p_nom"],
+            200,
+        )
+
+    def test_resolve_requires_plant_id(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [1],
+            }
+        )
+
+        powerplants = pd.DataFrame(
+            {
+                "name": ["A", "B"],
+            }
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "plant_id",
+        ):
+            resolve_cascade_plants(
+                topology,
+                powerplants,
+            )
+
+    def test_duplicate_plant_id_is_rejected(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [1],
+            }
+        )
+
+        powerplants = pd.DataFrame(
+            {
+                "plant_id": ["A", "A", "B"],
+                "name": ["A1", "A2", "B"],
+            }
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Duplicate plant_id",
+        ):
+            resolve_cascade_plants(
+                topology,
+                powerplants,
+            )
+
+    def test_unresolved_topology_node_is_rejected(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["UNKNOWN"],
+                "travel_time_hours": [1],
+            }
+        )
+
+        powerplants = pd.DataFrame(
+            {
+                "plant_id": ["A", "B"],
+            }
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "cannot be resolved",
+        ):
+            resolve_cascade_plants(
+                topology,
+                powerplants,
+            )
 
 
 if __name__ == "__main__":

@@ -14,6 +14,8 @@ REQUIRED_TOPOLOGY_COLUMNS = {
     "travel_time_hours",
 }
 
+PLANT_ID_COLUMN = "plant_id"
+
 
 def validate_cascade_topology(topology: pd.DataFrame) -> None:
     """
@@ -112,3 +114,65 @@ def validate_cascade_topology(topology: pd.DataFrame) -> None:
             node = downstream_by_upstream[node]
 
         completed.update(path)
+
+
+def resolve_cascade_plants(
+    topology: pd.DataFrame,
+    powerplants: pd.DataFrame,
+) -> pd.DataFrame:
+    """
+    Resolve cascade topology nodes against the powerplant table.
+
+    Plants participating in a cascade must provide a unique ``plant_id``.
+
+    Parameters
+    ----------
+    topology : pandas.DataFrame
+        Cascade connections with ``upstream`` and ``downstream`` node IDs.
+    powerplants : pandas.DataFrame
+        Power plant table containing a ``plant_id`` column.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Powerplant rows participating in the cascade, indexed by
+        ``plant_id``.
+
+    Raises
+    ------
+    ValueError
+        If ``plant_id`` is unavailable, duplicated, or if topology nodes
+        cannot be resolved.
+    """
+    if PLANT_ID_COLUMN not in powerplants.columns:
+        raise ValueError(
+            "Powerplant data must contain a 'plant_id' column "
+            "to resolve cascading-hydro plants."
+        )
+
+    plant_ids = powerplants[PLANT_ID_COLUMN]
+
+    duplicate_mask = plant_ids.notna() & plant_ids.astype(str).duplicated(keep=False)
+
+    if duplicate_mask.any():
+        duplicates = sorted(plant_ids.loc[duplicate_mask].astype(str).unique())
+        raise ValueError(
+            "Duplicate plant_id values found in powerplant data: "
+            + ", ".join(duplicates)
+        )
+
+    plants = (
+        powerplants.loc[plant_ids.notna()].copy().set_index(PLANT_ID_COLUMN, drop=False)
+    )
+
+    topology_nodes = set(topology["upstream"]).union(topology["downstream"])
+
+    missing = sorted(topology_nodes - set(plants.index))
+
+    if missing:
+        raise ValueError(
+            "Cascade topology references nodes which cannot be "
+            "resolved to powerplants: " + ", ".join(map(str, missing))
+        )
+
+    return plants.loc[sorted(topology_nodes)].copy()
