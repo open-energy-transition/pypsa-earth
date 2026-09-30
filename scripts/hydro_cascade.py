@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import math
+import warnings
 
 import pandas as pd
 import pypsa
@@ -310,14 +311,16 @@ def connect_hydro_reservoirs(
 def derive_local_inflows(
     cumulative_inflows: pd.DataFrame,
     topology: pd.DataFrame,
+    negative_policy: str = "raise",
 ) -> pd.DataFrame:
     """
     Convert cumulative inflows into local incremental inflows.
 
-    For each downstream node, the cumulative inflow of all directly upstream
-    nodes is subtracted at the same timestep. Travel-time delays are handled
-    separately by the PyPSA hydraulic routing.
+    Travel-time delays are handled separately by the hydraulic routing.
     """
+    if negative_policy not in {"raise", "clip"}:
+        raise ValueError("negative_policy must be either 'raise' or 'clip'.")
+
     validate_cascade_topology(topology)
 
     nodes = set(topology["upstream"]).union(topology["downstream"])
@@ -336,5 +339,26 @@ def derive_local_inflows(
         local[downstream] = cumulative_inflows[downstream] - cumulative_inflows[
             upstream
         ].sum(axis=1)
+
+    cascade_columns = list(nodes)
+    negative = local[cascade_columns] < 0
+
+    if negative.any().any():
+        if negative_policy == "raise":
+            counts = negative.sum()
+            affected = counts[counts > 0]
+            detail = ", ".join(f"{node}: {count}" for node, count in affected.items())
+            raise ValueError(
+                "Negative local inflows detected after cumulative-flow "
+                f"subtraction ({detail})."
+            )
+
+        warnings.warn(
+            "Negative local inflows detected after cumulative-flow "
+            "subtraction and clipped to zero.",
+            UserWarning,
+            stacklevel=2,
+        )
+        local[cascade_columns] = local[cascade_columns].clip(lower=0.0)
 
     return local

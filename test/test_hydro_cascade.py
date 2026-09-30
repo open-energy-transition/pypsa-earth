@@ -644,6 +644,86 @@ class TestValidateCascadeTopology(unittest.TestCase):
                 topology,
             )
 
+    def test_derive_local_inflows_raises_on_negative_values(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [1],
+            }
+        )
+
+        cumulative = pd.DataFrame(
+            {
+                "A": [100.0, 50.0],
+                "B": [90.0, 80.0],
+            }
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "Negative local inflows detected",
+        ):
+            derive_local_inflows(
+                cumulative,
+                topology,
+            )
+
+    def test_derive_local_inflows_clips_negative_values(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [1],
+            }
+        )
+
+        cumulative = pd.DataFrame(
+            {
+                "A": [100.0, 50.0],
+                "B": [90.0, 80.0],
+            }
+        )
+
+        with self.assertWarnsRegex(
+            UserWarning,
+            "clipped to zero",
+        ):
+            local = derive_local_inflows(
+                cumulative,
+                topology,
+                negative_policy="clip",
+            )
+
+        self.assertEqual(local.loc[0, "B"], 0.0)
+        self.assertEqual(local.loc[1, "B"], 30.0)
+
+    def test_derive_local_inflows_rejects_invalid_negative_policy(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [1],
+            }
+        )
+
+        cumulative = pd.DataFrame(
+            {
+                "A": [100.0],
+                "B": [120.0],
+            }
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "negative_policy",
+        ):
+            derive_local_inflows(
+                cumulative,
+                topology,
+                negative_policy="ignore",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
