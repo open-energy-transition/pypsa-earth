@@ -230,9 +230,13 @@ def add_hydro_reservoir(
         turbine,
         bus0=water_bus,
         bus1=electricity_bus,
+        bus2="",
         carrier="hydro",
         p_nom=p_nom / efficiency_dispatch,
         efficiency=efficiency_dispatch,
+        efficiency2=1.0,
+        delay2=0.0,
+        cyclic_delay2=True,
     )
 
     return {
@@ -281,14 +285,15 @@ def connect_hydro_reservoirs(
     n.links.loc[turbine, "delay2"] = travel_time_hours
     n.links.loc[turbine, "cyclic_delay2"] = cyclic_delay
 
-    n.links["bus2"] = n.links["bus2"].fillna("")
-
     n.add(
         "Link",
         spill,
         bus0=upstream_water_bus,
         bus1=downstream_water_bus,
         bus2="",
+        efficiency2=1.0,
+        delay2=0.0,
+        cyclic_delay2=True,
         carrier="hydro",
         p_nom=float("inf"),
         efficiency=downstream_energy_ratio,

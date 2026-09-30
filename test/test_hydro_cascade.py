@@ -455,6 +455,110 @@ class TestValidateCascadeTopology(unittest.TestCase):
                 downstream_energy_ratio=1.0,
             )
 
+    def test_full_three_reservoir_cascade(self):
+        import pypsa
+
+        n = pypsa.Network()
+        n.set_snapshots(pd.RangeIndex(4))
+
+        for bus in ["A elec", "B elec", "C elec"]:
+            n.add("Bus", bus)
+
+        for plant, bus in [
+            ("A", "A elec"),
+            ("B", "B elec"),
+            ("C", "C elec"),
+        ]:
+            add_hydro_reservoir(
+                n=n,
+                plant_id=plant,
+                electricity_bus=bus,
+                p_nom=200.0,
+                max_hours=10.0,
+                efficiency_dispatch=0.9,
+                cyclic=False,
+            )
+
+        connect_hydro_reservoirs(
+            n=n,
+            upstream_plant_id="A",
+            downstream_plant_id="B",
+            travel_time_hours=1.0,
+            downstream_energy_ratio=1.0,
+            cyclic_delay=False,
+        )
+
+        connect_hydro_reservoirs(
+            n=n,
+            upstream_plant_id="B",
+            downstream_plant_id="C",
+            travel_time_hours=1.0,
+            downstream_energy_ratio=1.0,
+            cyclic_delay=False,
+        )
+
+        local_inflows = {
+            "A": [100.0, 0.0, 0.0, 0.0],
+            "B": [40.0, 0.0, 0.0, 0.0],
+            "C": [30.0, 0.0, 0.0, 0.0],
+        }
+
+        for plant, profile in local_inflows.items():
+            p_nom = max(profile)
+
+            n.add(
+                "Generator",
+                f"{plant} inflow",
+                bus=f"{plant} water",
+                p_nom=p_nom,
+                p_min_pu=[x / p_nom for x in profile],
+                p_max_pu=[x / p_nom for x in profile],
+            )
+
+        loads = {
+            "A elec": [90.0, 0.0, 0.0, 0.0],
+            "B elec": [36.0, 90.0, 0.0, 0.0],
+            "C elec": [27.0, 36.0, 90.0, 0.0],
+        }
+
+        for bus, profile in loads.items():
+            n.add(
+                "Load",
+                f"{bus} load",
+                bus=bus,
+                p_set=profile,
+            )
+
+        for turbine in ["A turbine", "B turbine", "C turbine"]:
+            n.links.loc[turbine, "marginal_cost"] = 1e-6
+
+        n.optimize(
+            solver_name="highs",
+            include_objective_constant=False,
+        )
+
+        expected = {
+            "A turbine": [100.0, 0.0, 0.0, 0.0],
+            "A->B": [0.0, 100.0, 0.0, 0.0],
+            "B turbine": [40.0, 100.0, 0.0, 0.0],
+            "B->C": [0.0, 40.0, 100.0, 0.0],
+            "C turbine": [30.0, 40.0, 100.0, 0.0],
+        }
+
+        actual = {
+            "A turbine": n.links_t.p0["A turbine"],
+            "A->B": -n.links_t.p2["A turbine"],
+            "B turbine": n.links_t.p0["B turbine"],
+            "B->C": -n.links_t.p2["B turbine"],
+            "C turbine": n.links_t.p0["C turbine"],
+        }
+
+        for key in expected:
+            self.assertTrue(
+                (abs(actual[key] - expected[key]) < 1e-6).all(),
+                key,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
