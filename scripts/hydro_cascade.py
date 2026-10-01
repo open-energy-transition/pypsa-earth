@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import ast
 import math
 import warnings
 
@@ -118,6 +119,49 @@ def validate_cascade_topology(topology: pd.DataFrame) -> None:
         completed.update(path)
 
 
+def _qualified_project_ids(value) -> set[str]:
+    """Return source-qualified IDs such as ``GHPT:G123456``."""
+    if value is None:
+        return set()
+
+    if isinstance(value, str):
+        value = value.strip()
+        if not value or value.lower() == "nan":
+            return set()
+        try:
+            value = ast.literal_eval(value)
+        except (SyntaxError, ValueError):
+            return set()
+
+    if not isinstance(value, dict):
+        return set()
+
+    qualified = set()
+
+    for source, identifiers in value.items():
+        if isinstance(identifiers, (set, list, tuple)):
+            values = identifiers
+        else:
+            values = [identifiers]
+
+        for identifier in values:
+            if identifier is None:
+                continue
+
+            try:
+                if pd.isna(identifier):
+                    continue
+            except (TypeError, ValueError):
+                pass
+
+            identifier = str(identifier).strip()
+
+            if identifier and identifier.lower() != "nan":
+                qualified.add(f"{source}:{identifier}")
+
+    return qualified
+
+
 def resolve_cascade_plants(
     topology: pd.DataFrame,
     powerplants: pd.DataFrame,
@@ -125,59 +169,101 @@ def resolve_cascade_plants(
     """
     Resolve cascade topology nodes against the powerplant table.
 
-    Plants participating in a cascade must provide a unique ``plant_id``.
+    Topology nodes may either match an explicit ``plant_id`` or use a
+    source-qualified powerplantmatching project ID such as
+    ``GHPT:G123456``.
 
     Parameters
     ----------
     topology : pandas.DataFrame
         Cascade connections with ``upstream`` and ``downstream`` node IDs.
     powerplants : pandas.DataFrame
-        Power plant table containing a ``plant_id`` column.
+        Power plant table. It may contain an explicit ``plant_id`` column
+        and/or the powerplantmatching ``projectid`` metadata.
 
     Returns
     -------
     pandas.DataFrame
-        Powerplant rows participating in the cascade, indexed by
-        ``plant_id``.
+        Powerplant rows participating in the cascade, indexed by the stable
+        cascade ``plant_id``.
 
     Raises
     ------
     ValueError
-        If ``plant_id`` is unavailable, duplicated, or if topology nodes
-        cannot be resolved.
+        If topology nodes cannot be resolved uniquely.
     """
-    if PLANT_ID_COLUMN not in powerplants.columns:
-        raise ValueError(
-            "Powerplant data must contain a 'plant_id' column "
-            "to resolve cascading-hydro plants."
+    topology_nodes = {
+        str(node).strip()
+        for node in set(topology["upstream"]).union(topology["downstream"])
+    }
+
+    resolved = {}
+    unresolved = set(topology_nodes)
+
+    # Prefer explicitly supplied stable plant IDs.
+    if PLANT_ID_COLUMN in powerplants.columns:
+        explicit_ids = powerplants[PLANT_ID_COLUMN].map(
+            lambda value: ("" if pd.isna(value) else str(value).strip())
         )
 
-    plant_ids = powerplants[PLANT_ID_COLUMN]
+        duplicate_mask = (explicit_ids != "") & explicit_ids.duplicated(keep=False)
 
-    duplicate_mask = plant_ids.notna() & plant_ids.astype(str).duplicated(keep=False)
+        if duplicate_mask.any():
+            duplicates = sorted(explicit_ids.loc[duplicate_mask].unique())
+            raise ValueError(
+                "Duplicate plant_id values found in powerplant data: "
+                + ", ".join(duplicates)
+            )
 
-    if duplicate_mask.any():
-        duplicates = sorted(plant_ids.loc[duplicate_mask].astype(str).unique())
-        raise ValueError(
-            "Duplicate plant_id values found in powerplant data: "
-            + ", ".join(duplicates)
-        )
+        for component, plant_id in explicit_ids.items():
+            if plant_id in unresolved:
+                resolved[plant_id] = component
+                unresolved.remove(plant_id)
 
-    plants = (
-        powerplants.loc[plant_ids.notna()].copy().set_index(PLANT_ID_COLUMN, drop=False)
-    )
+    # Fall back to immutable source IDs carried by powerplantmatching.
+    if unresolved and "projectid" in powerplants.columns:
+        matches = {node: [] for node in unresolved}
 
-    topology_nodes = set(topology["upstream"]).union(topology["downstream"])
+        for component, project_ids in powerplants["projectid"].items():
+            qualified_ids = _qualified_project_ids(project_ids)
 
-    missing = sorted(topology_nodes - set(plants.index))
+            for node in unresolved.intersection(qualified_ids):
+                matches[node].append(component)
 
-    if missing:
+        ambiguous = {
+            node: components
+            for node, components in matches.items()
+            if len(components) > 1
+        }
+
+        if ambiguous:
+            details = ", ".join(
+                f"{node} ({len(components)} matches)"
+                for node, components in sorted(ambiguous.items())
+            )
+            raise ValueError(
+                "Cascade topology project IDs are not unique in powerplant data: "
+                + details
+            )
+
+        for node, components in matches.items():
+            if len(components) == 1:
+                resolved[node] = components[0]
+
+        unresolved -= set(resolved)
+
+    if unresolved:
         raise ValueError(
             "Cascade topology references nodes which cannot be "
-            "resolved to powerplants: " + ", ".join(map(str, missing))
+            "resolved to powerplants: " + ", ".join(sorted(unresolved))
         )
 
-    return plants.loc[sorted(topology_nodes)].copy()
+    plants = powerplants.loc[[resolved[node] for node in sorted(topology_nodes)]].copy()
+
+    plants[PLANT_ID_COLUMN] = sorted(topology_nodes)
+    plants = plants.set_index(PLANT_ID_COLUMN, drop=False)
+
+    return plants
 
 
 def add_hydro_reservoir(
@@ -188,6 +274,10 @@ def add_hydro_reservoir(
     max_hours: float,
     efficiency_dispatch: float,
     cyclic: bool = True,
+    capital_cost: float = 0.0,
+    marginal_cost: float = 0.0,
+    build_year: int = 0,
+    lifetime: float = math.inf,
 ) -> dict[str, str]:
     """Add a reservoir as a water bus, Store and turbine Link."""
     if p_nom <= 0:
@@ -224,6 +314,8 @@ def add_hydro_reservoir(
         carrier="hydro",
         e_nom=p_nom * max_hours,
         e_cyclic=cyclic,
+        build_year=build_year,
+        lifetime=lifetime,
     )
 
     n.add(
@@ -238,6 +330,10 @@ def add_hydro_reservoir(
         efficiency2=1.0,
         delay2=0.0,
         cyclic_delay2=True,
+        capital_cost=capital_cost * efficiency_dispatch,
+        marginal_cost=marginal_cost * efficiency_dispatch,
+        build_year=build_year,
+        lifetime=lifetime,
     )
 
     return {
@@ -253,6 +349,7 @@ def connect_hydro_reservoirs(
     downstream_plant_id: str,
     travel_time_hours: float,
     downstream_energy_ratio: float,
+    spill_cost: float = 0.0,
     cyclic_delay: bool = False,
 ) -> dict[str, str]:
     """Connect two hydro reservoirs with delayed turbine outflow and spill."""
@@ -264,6 +361,9 @@ def connect_hydro_reservoirs(
 
     if downstream_energy_ratio <= 0 or not math.isfinite(downstream_energy_ratio):
         raise ValueError("Downstream energy ratio must be positive and finite.")
+
+    if not math.isfinite(spill_cost):
+        raise ValueError("Spill cost must be finite.")
 
     upstream_water_bus = f"{upstream_plant_id} water"
     downstream_water_bus = f"{downstream_plant_id} water"
@@ -298,6 +398,7 @@ def connect_hydro_reservoirs(
         carrier="hydro",
         p_nom=float("inf"),
         efficiency=downstream_energy_ratio,
+        marginal_cost=spill_cost,
         delay=travel_time_hours,
         cyclic_delay=cyclic_delay,
     )
@@ -308,60 +409,96 @@ def connect_hydro_reservoirs(
     }
 
 
-def derive_local_inflows(
-    cumulative_inflows: pd.DataFrame,
+def build_local_cascade_basins(
+    basins,
     topology: pd.DataFrame,
-    negative_policy: str = "raise",
-) -> pd.DataFrame:
+    cascade_profile_indices: dict[str, object],
+):
     """
-    Convert cumulative inflows into local incremental inflows.
+    Restrict cascade plants to their local HydroBASINS catchments.
 
-    Travel-time delays are handled separately by the hydraulic routing.
+    For each downstream reservoir, basins already draining through an
+    immediately upstream cascade reservoir are removed. Travel-time delays
+    from the cascade topology are intentionally not used here: runoff routing
+    remains the responsibility of atlite.
     """
-    if negative_policy not in {"raise", "clip"}:
-        raise ValueError("negative_policy must be either 'raise' or 'clip'.")
-
+    topology = topology.copy()
+    topology["upstream"] = topology["upstream"].astype(str).str.strip()
+    topology["downstream"] = topology["downstream"].astype(str).str.strip()
     validate_cascade_topology(topology)
 
-    nodes = set(topology["upstream"]).union(topology["downstream"])
-    missing = sorted(nodes - set(cumulative_inflows.columns))
+    cascade_profile_indices = {
+        str(plant_id).strip(): index
+        for plant_id, index in cascade_profile_indices.items()
+    }
 
+    cascade_ids = set(topology["upstream"]).union(topology["downstream"])
+    missing = sorted(cascade_ids - set(cascade_profile_indices))
     if missing:
         raise ValueError(
-            "Missing cumulative inflow profiles for cascade nodes: "
-            + ", ".join(map(str, missing))
+            "Cascade plants are missing from the hydro basin mapping: "
+            + ", ".join(missing)
         )
 
-    local = cumulative_inflows.copy()
+    ordered_ids = dict.fromkeys(
+        topology["upstream"].tolist() + topology["downstream"].tolist()
+    )
+    local_plants = basins.plants.loc[
+        [cascade_profile_indices[plant_id] for plant_id in ordered_ids]
+    ].copy()
 
-    for downstream, edges in topology.groupby("downstream"):
-        upstream = edges["upstream"].tolist()
-        local[downstream] = cumulative_inflows[downstream] - cumulative_inflows[
-            upstream
-        ].sum(axis=1)
+    for downstream, edges in topology.groupby("downstream", sort=False):
+        downstream_index = cascade_profile_indices[downstream]
+        downstream_basins = list(basins.plants.at[downstream_index, "upstream"])
+        downstream_basin_set = set(downstream_basins)
+        local_basin_set = set(downstream_basins)
 
-    cascade_columns = list(nodes)
-    negative = local[cascade_columns] < 0
+        for upstream in edges["upstream"]:
+            upstream_index = cascade_profile_indices[upstream]
+            upstream_basin_set = set(basins.plants.at[upstream_index, "upstream"])
 
-    if negative.any().any():
-        if negative_policy == "raise":
-            counts = negative.sum()
-            affected = counts[counts > 0]
-            detail = ", ".join(f"{node}: {count}" for node, count in affected.items())
-            raise ValueError(
-                "Negative local inflows detected after cumulative-flow "
-                f"subtraction ({detail})."
-            )
+            if not upstream_basin_set.issubset(downstream_basin_set):
+                raise ValueError(
+                    f"Cascade topology {upstream} -> {downstream} "
+                    "is inconsistent with the HydroBASINS drainage topology."
+                )
 
-        warnings.warn(
-            "Negative local inflows detected after cumulative-flow "
-            "subtraction and clipped to zero.",
-            UserWarning,
-            stacklevel=2,
+            local_basin_set.difference_update(upstream_basin_set)
+
+        local_plants.at[downstream_index, "upstream"] = [
+            hid for hid in downstream_basins if hid in local_basin_set
+        ]
+
+    return type(basins)(
+        local_plants,
+        basins.meta,
+        basins.shapes,
+    )
+
+
+def runoff_to_discharge(runoff: pd.DataFrame) -> pd.DataFrame:
+    """Convert hourly runoff volumes [m3/h] to discharge [m3/s]."""
+    time_index = pd.DatetimeIndex(runoff.index)
+
+    if len(time_index) < 2:
+        raise ValueError(
+            "At least two hydro-profile timesteps are required "
+            "to convert runoff to discharge."
         )
-        local[cascade_columns] = local[cascade_columns].clip(lower=0.0)
 
-    return local
+    timesteps = time_index.to_series().diff().dropna()
+    timestep = timesteps.iloc[0]
+
+    if not (timesteps == timestep).all():
+        raise ValueError("Hydro runoff profiles must have a regular timestep.")
+
+    if timestep != pd.Timedelta(hours=1):
+        raise ValueError(
+            "Physical cascade runoff conversion currently requires "
+            "hourly hydro-profile timesteps."
+        )
+
+    return runoff / 3600.0
 
 
 def discharge_to_hydraulic_inflow(
@@ -395,6 +532,186 @@ def discharge_to_hydraulic_inflow(
         )
         * scaling
     )
+
+
+def materialize_cascade_storage_units(
+    n: pypsa.Network,
+    topology: pd.DataFrame,
+) -> dict[str, dict[str, str]]:
+    """
+    Convert preserved cascade StorageUnits into explicit hydraulic components.
+
+    The StorageUnit inflow is already expressed as local hydraulic power.
+    It is therefore attached as a fixed Generator on the corresponding
+    reservoir water bus.
+    """
+    topology = topology.copy()
+    topology["upstream"] = topology["upstream"].astype(str).str.strip()
+    topology["downstream"] = topology["downstream"].astype(str).str.strip()
+    validate_cascade_topology(topology)
+
+    dense_inflow = n.get_switchable_as_dense("StorageUnit", "inflow")
+    static, _ = pop_cascade_storage_units(n)
+    if static.empty:
+        raise ValueError(
+            "Cascading hydro is enabled but no preserved cascade StorageUnits "
+            "were found in the clustered network."
+        )
+
+    required = {
+        PLANT_ID_COLUMN,
+        "bus",
+        "p_nom",
+        "max_hours",
+        "efficiency_dispatch",
+        "dam_height_m",
+    }
+    missing_columns = required - set(static.columns)
+    if missing_columns:
+        raise ValueError(
+            "Cascade StorageUnits are missing required columns: "
+            + ", ".join(sorted(missing_columns))
+        )
+
+    plant_ids = static[PLANT_ID_COLUMN].fillna("").astype(str).str.strip()
+    duplicate_ids = plant_ids[plant_ids.ne("") & plant_ids.duplicated(keep=False)]
+    if not duplicate_ids.empty:
+        raise ValueError(
+            "Cascade StorageUnits must have unique plant_id values. Duplicates: "
+            + ", ".join(sorted(duplicate_ids.unique()))
+        )
+
+    component_by_plant = pd.Series(static.index, index=plant_ids)
+    topology_nodes = set(topology["upstream"]).union(topology["downstream"])
+    missing_nodes = sorted(topology_nodes - set(component_by_plant.index))
+    if missing_nodes:
+        raise ValueError(
+            "Cascade topology nodes are missing from the clustered network: "
+            + ", ".join(missing_nodes)
+        )
+
+    dam_heights = pd.to_numeric(
+        static.set_index(plant_ids)["dam_height_m"],
+        errors="coerce",
+    )
+    invalid_heights = dam_heights[dam_heights.isna() | (dam_heights <= 0)]
+    if not invalid_heights.empty:
+        raise ValueError(
+            "Cascade StorageUnits require positive dam heights: "
+            + ", ".join(invalid_heights.index)
+        )
+
+    ordered_plant_ids = list(
+        dict.fromkeys(topology["upstream"].tolist() + topology["downstream"].tolist())
+    )
+
+    components = {}
+
+    for plant_id in ordered_plant_ids:
+        component = component_by_plant.loc[plant_id]
+        row = static.loc[component]
+
+        names = add_hydro_reservoir(
+            n,
+            plant_id=plant_id,
+            electricity_bus=row["bus"],
+            p_nom=float(row["p_nom"]),
+            max_hours=float(row["max_hours"]),
+            efficiency_dispatch=float(row["efficiency_dispatch"]),
+            cyclic=bool(row.get("cyclic_state_of_charge", True)),
+            capital_cost=float(row.get("capital_cost", 0.0)),
+            marginal_cost=float(row.get("marginal_cost", 0.0)),
+            build_year=int(row.get("build_year", 0)),
+            lifetime=float(row.get("lifetime", math.inf)),
+        )
+
+        if component not in dense_inflow.columns:
+            raise ValueError(f"Missing inflow data for cascade plant '{plant_id}'.")
+
+        profile = dense_inflow[component].reindex(n.snapshots)
+        if profile.isna().any():
+            raise ValueError(
+                f"Inflow time series for cascade plant '{plant_id}' "
+                "does not cover all network snapshots."
+            )
+        if (profile < 0).any():
+            raise ValueError(
+                f"Negative hydraulic inflow found for cascade plant '{plant_id}'."
+            )
+
+        inflow_name = f"{plant_id} inflow"
+        inflow_p_nom = max(float(profile.max()), 1.0)
+        inflow_pu = profile / inflow_p_nom
+
+        n.add(
+            "Generator",
+            inflow_name,
+            bus=names["water_bus"],
+            carrier="water",
+            p_nom=inflow_p_nom,
+            p_nom_extendable=False,
+            p_min_pu=inflow_pu,
+            p_max_pu=inflow_pu,
+            build_year=int(row.get("build_year", 0)),
+            lifetime=float(row.get("lifetime", math.inf)),
+        )
+
+        components[plant_id] = {
+            **names,
+            "inflow": inflow_name,
+        }
+
+    for edge in topology.itertuples(index=False):
+        upstream = edge.upstream
+        downstream = edge.downstream
+
+        upstream_component = component_by_plant.loc[upstream]
+        upstream_row = static.loc[upstream_component]
+        spill_cost = upstream_row.get("spill_cost", 0.0)
+        spill_cost = 0.0 if pd.isna(spill_cost) else float(spill_cost)
+
+        connect_hydro_reservoirs(
+            n,
+            upstream_plant_id=upstream,
+            downstream_plant_id=downstream,
+            travel_time_hours=float(edge.travel_time_hours),
+            downstream_energy_ratio=(
+                float(dam_heights.loc[downstream]) / float(dam_heights.loc[upstream])
+            ),
+            spill_cost=spill_cost,
+            cyclic_delay=False,
+        )
+
+    # Terminal reservoirs still need a free spill path. A negative-sign
+    # Generator acts as a dispatchable sink on the water bus and reproduces
+    # the spillage freedom of the original StorageUnit representation.
+    terminal_ids = [
+        plant_id
+        for plant_id in ordered_plant_ids
+        if plant_id not in set(topology["upstream"])
+    ]
+
+    for plant_id in terminal_ids:
+        component = component_by_plant.loc[plant_id]
+        row = static.loc[component]
+        spill = f"{plant_id} terminal spill"
+
+        n.add(
+            "Generator",
+            spill,
+            bus=components[plant_id]["water_bus"],
+            carrier="water",
+            sign=-1.0,
+            p_nom=float("inf"),
+            p_nom_extendable=False,
+            marginal_cost=float(row.get("spill_cost", 0.0)),
+            build_year=int(row.get("build_year", 0)),
+            lifetime=float(row.get("lifetime", math.inf)),
+        )
+
+        components[plant_id]["spill"] = spill
+
+    return components
 
 
 def pop_cascade_storage_units(

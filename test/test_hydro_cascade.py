@@ -6,8 +6,11 @@ import sys
 import unittest
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pypsa
+import xarray as xr
+from atlite import hydro as hydrom
 
 sys.path.insert(
     0,
@@ -16,12 +19,14 @@ sys.path.insert(
 
 from hydro_cascade import (
     add_hydro_reservoir,
+    build_local_cascade_basins,
     connect_hydro_reservoirs,
-    derive_local_inflows,
     discharge_to_hydraulic_inflow,
+    materialize_cascade_storage_units,
     pop_cascade_storage_units,
     resolve_cascade_plants,
     restore_cascade_storage_units,
+    runoff_to_discharge,
     validate_cascade_topology,
 )
 
@@ -224,24 +229,105 @@ class TestValidateCascadeTopology(unittest.TestCase):
             200,
         )
 
-    def test_resolve_requires_plant_id(self):
+    def test_resolve_cascade_plants_from_projectid(self):
         topology = pd.DataFrame(
             {
-                "upstream": ["A"],
-                "downstream": ["B"],
+                "upstream": ["GHPT:A"],
+                "downstream": ["GHPT:B"],
                 "travel_time_hours": [1],
             }
         )
 
         powerplants = pd.DataFrame(
             {
-                "name": ["A", "B"],
+                "name": ["Plant A", "Plant B", "Other"],
+                "projectid": [
+                    "{'GHPT': {'A'}, 'GPD': {'X'}}",
+                    {"GHPT": {"B"}},
+                    {"GPD": {"OTHER"}},
+                ],
+            }
+        )
+
+        result = resolve_cascade_plants(
+            topology,
+            powerplants,
+        )
+
+        self.assertEqual(
+            set(result.index),
+            {"GHPT:A", "GHPT:B"},
+        )
+        self.assertEqual(
+            result.loc["GHPT:A", "name"],
+            "Plant A",
+        )
+        self.assertEqual(
+            result.loc["GHPT:B", "name"],
+            "Plant B",
+        )
+
+    def test_explicit_plant_id_and_projectid_can_be_combined(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["PLANT_A"],
+                "downstream": ["GHPT:B"],
+                "travel_time_hours": [1],
+            }
+        )
+
+        powerplants = pd.DataFrame(
+            {
+                "plant_id": ["PLANT_A", ""],
+                "name": ["Plant A", "Plant B"],
+                "projectid": [
+                    {"GHPT": {"A"}},
+                    {"GHPT": {"B"}},
+                ],
+            }
+        )
+
+        result = resolve_cascade_plants(
+            topology,
+            powerplants,
+        )
+
+        self.assertEqual(
+            set(result.index),
+            {"PLANT_A", "GHPT:B"},
+        )
+        self.assertEqual(
+            result.loc["PLANT_A", "name"],
+            "Plant A",
+        )
+        self.assertEqual(
+            result.loc["GHPT:B", "name"],
+            "Plant B",
+        )
+
+    def test_ambiguous_projectid_is_rejected(self):
+        topology = pd.DataFrame(
+            {
+                "upstream": ["GHPT:A"],
+                "downstream": ["GHPT:B"],
+                "travel_time_hours": [1],
+            }
+        )
+
+        powerplants = pd.DataFrame(
+            {
+                "name": ["Plant A1", "Plant A2", "Plant B"],
+                "projectid": [
+                    {"GHPT": {"A"}},
+                    {"GHPT": {"A"}},
+                    {"GHPT": {"B"}},
+                ],
             }
         )
 
         with self.assertRaisesRegex(
             ValueError,
-            "plant_id",
+            "not unique",
         ):
             resolve_cascade_plants(
                 topology,
@@ -564,170 +650,6 @@ class TestValidateCascadeTopology(unittest.TestCase):
                 key,
             )
 
-    def test_derive_local_inflows_chain(self):
-        topology = pd.DataFrame(
-            {
-                "upstream": ["A", "B"],
-                "downstream": ["B", "C"],
-                "travel_time_hours": [1, 1],
-            }
-        )
-
-        cumulative = pd.DataFrame(
-            {
-                "A": [100.0, 0.0],
-                "B": [140.0, 0.0],
-                "C": [170.0, 0.0],
-            }
-        )
-
-        local = derive_local_inflows(
-            cumulative,
-            topology,
-        )
-
-        pd.testing.assert_frame_equal(
-            local,
-            pd.DataFrame(
-                {
-                    "A": [100.0, 0.0],
-                    "B": [40.0, 0.0],
-                    "C": [30.0, 0.0],
-                }
-            ),
-        )
-
-    def test_derive_local_inflows_confluence(self):
-        topology = pd.DataFrame(
-            {
-                "upstream": ["A", "B"],
-                "downstream": ["C", "C"],
-                "travel_time_hours": [1, 1],
-            }
-        )
-
-        cumulative = pd.DataFrame(
-            {
-                "A": [30.0],
-                "B": [20.0],
-                "C": [70.0],
-            }
-        )
-
-        local = derive_local_inflows(
-            cumulative,
-            topology,
-        )
-
-        self.assertAlmostEqual(
-            local.loc[0, "C"],
-            20.0,
-        )
-
-    def test_derive_local_inflows_requires_all_profiles(self):
-        topology = pd.DataFrame(
-            {
-                "upstream": ["A"],
-                "downstream": ["B"],
-                "travel_time_hours": [1],
-            }
-        )
-
-        cumulative = pd.DataFrame(
-            {
-                "A": [100.0],
-            }
-        )
-
-        with self.assertRaisesRegex(
-            ValueError,
-            "Missing cumulative inflow",
-        ):
-            derive_local_inflows(
-                cumulative,
-                topology,
-            )
-
-    def test_derive_local_inflows_raises_on_negative_values(self):
-        topology = pd.DataFrame(
-            {
-                "upstream": ["A"],
-                "downstream": ["B"],
-                "travel_time_hours": [1],
-            }
-        )
-
-        cumulative = pd.DataFrame(
-            {
-                "A": [100.0, 50.0],
-                "B": [90.0, 80.0],
-            }
-        )
-
-        with self.assertRaisesRegex(
-            ValueError,
-            "Negative local inflows detected",
-        ):
-            derive_local_inflows(
-                cumulative,
-                topology,
-            )
-
-    def test_derive_local_inflows_clips_negative_values(self):
-        topology = pd.DataFrame(
-            {
-                "upstream": ["A"],
-                "downstream": ["B"],
-                "travel_time_hours": [1],
-            }
-        )
-
-        cumulative = pd.DataFrame(
-            {
-                "A": [100.0, 50.0],
-                "B": [90.0, 80.0],
-            }
-        )
-
-        with self.assertWarnsRegex(
-            UserWarning,
-            "clipped to zero",
-        ):
-            local = derive_local_inflows(
-                cumulative,
-                topology,
-                negative_policy="clip",
-            )
-
-        self.assertEqual(local.loc[0, "B"], 0.0)
-        self.assertEqual(local.loc[1, "B"], 30.0)
-
-    def test_derive_local_inflows_rejects_invalid_negative_policy(self):
-        topology = pd.DataFrame(
-            {
-                "upstream": ["A"],
-                "downstream": ["B"],
-                "travel_time_hours": [1],
-            }
-        )
-
-        cumulative = pd.DataFrame(
-            {
-                "A": [100.0],
-                "B": [120.0],
-            }
-        )
-
-        with self.assertRaisesRegex(
-            ValueError,
-            "negative_policy",
-        ):
-            derive_local_inflows(
-                cumulative,
-                topology,
-                negative_policy="ignore",
-            )
-
     def test_discharge_to_hydraulic_inflow(self):
         discharge = pd.DataFrame(
             {
@@ -920,6 +842,533 @@ class TestValidateCascadeTopology(unittest.TestCase):
         self.assertEqual(
             nc.storage_units_t.inflow["cascade"].tolist(),
             [10.0, 20.0],
+        )
+
+    def test_materialize_cascade_storage_units(self):
+        n = pypsa.Network()
+        snapshots = pd.date_range(
+            "2023-01-01",
+            periods=3,
+            freq="h",
+        )
+        n.set_snapshots(snapshots)
+
+        n.add("Bus", "elec A")
+        n.add("Bus", "elec B")
+
+        n.add(
+            "StorageUnit",
+            "component A",
+            bus="elec A",
+            carrier="hydro",
+            p_nom=100.0,
+            max_hours=4.0,
+            efficiency_dispatch=0.9,
+            cyclic_state_of_charge=True,
+            inflow=[10.0, 20.0, 30.0],
+        )
+        n.add(
+            "StorageUnit",
+            "component B",
+            bus="elec B",
+            carrier="hydro",
+            p_nom=200.0,
+            max_hours=5.0,
+            efficiency_dispatch=0.8,
+            cyclic_state_of_charge=True,
+            inflow=[5.0, 6.0, 7.0],
+            marginal_cost=3.0,
+            capital_cost=100.0,
+            spill_cost=2.0,
+            build_year=2020,
+            lifetime=50.0,
+        )
+
+        n.storage_units["plant_id"] = ["A", "B"]
+        n.storage_units["dam_height_m"] = [25.0, 100.0]
+
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [6.0],
+            }
+        )
+
+        components = materialize_cascade_storage_units(
+            n,
+            topology,
+        )
+
+        self.assertNotIn("component A", n.storage_units.index)
+        self.assertNotIn("component B", n.storage_units.index)
+
+        self.assertIn("A water", n.buses.index)
+        self.assertIn("B water", n.buses.index)
+        self.assertIn("A reservoir", n.stores.index)
+        self.assertIn("B reservoir", n.stores.index)
+        self.assertIn("A turbine", n.links.index)
+        self.assertIn("B turbine", n.links.index)
+        self.assertIn("A spill", n.links.index)
+        self.assertIn("A inflow", n.generators.index)
+        self.assertIn("B inflow", n.generators.index)
+        self.assertIn("B terminal spill", n.generators.index)
+
+        self.assertEqual(
+            n.links.at["A turbine", "bus1"],
+            "elec A",
+        )
+        self.assertEqual(
+            n.links.at["B turbine", "bus1"],
+            "elec B",
+        )
+        self.assertEqual(
+            n.links.at["A turbine", "bus2"],
+            "B water",
+        )
+        self.assertAlmostEqual(
+            n.links.at["A turbine", "efficiency2"],
+            4.0,
+        )
+        self.assertAlmostEqual(
+            n.links.at["A turbine", "delay2"],
+            6.0,
+        )
+
+        self.assertAlmostEqual(
+            n.links.at["B turbine", "marginal_cost"],
+            3.0 * 0.8,
+        )
+        self.assertAlmostEqual(
+            n.links.at["B turbine", "capital_cost"],
+            100.0 * 0.8,
+        )
+        self.assertEqual(
+            n.links.at["B turbine", "build_year"],
+            2020,
+        )
+        self.assertAlmostEqual(
+            n.links.at["B turbine", "lifetime"],
+            50.0,
+        )
+        self.assertEqual(
+            n.generators.at["B terminal spill", "sign"],
+            -1.0,
+        )
+        self.assertFalse(n.generators.at["B terminal spill", "p_nom_extendable"])
+        self.assertTrue(np.isinf(n.generators.at["B terminal spill", "p_nom"]))
+        self.assertAlmostEqual(
+            n.generators.at["B terminal spill", "marginal_cost"],
+            2.0,
+        )
+
+        np.testing.assert_allclose(
+            (
+                n.generators_t.p_max_pu["A inflow"]
+                * n.generators.at["A inflow", "p_nom"]
+            ).to_numpy(),
+            [10.0, 20.0, 30.0],
+        )
+        np.testing.assert_allclose(
+            (
+                n.generators_t.p_min_pu["B inflow"]
+                * n.generators.at["B inflow", "p_nom"]
+            ).to_numpy(),
+            [5.0, 6.0, 7.0],
+        )
+
+        self.assertEqual(
+            components["A"]["water_bus"],
+            "A water",
+        )
+
+    def test_runoff_to_discharge_hourly(self):
+        runoff = pd.DataFrame(
+            {"A": [3600.0, 7200.0]},
+            index=pd.date_range("2023-01-01", periods=2, freq="h"),
+        )
+
+        discharge = runoff_to_discharge(runoff)
+
+        np.testing.assert_allclose(
+            discharge["A"].to_numpy(),
+            [1.0, 2.0],
+        )
+
+    def test_runoff_to_discharge_rejects_non_hourly_profiles(self):
+        runoff = pd.DataFrame(
+            {"A": [3600.0, 7200.0]},
+            index=pd.date_range("2023-01-01", periods=2, freq="3h"),
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "requires hourly",
+        ):
+            runoff_to_discharge(runoff)
+
+    def test_materialization_preserves_spill_cost(self):
+        n = pypsa.Network()
+        snapshots = pd.date_range("2020-01-01", periods=2, freq="h")
+        n.set_snapshots(snapshots)
+
+        for plant_id, spill_cost, height in [
+            ("A", 7.0, 100.0),
+            ("B", 11.0, 50.0),
+        ]:
+            n.add("Bus", f"{plant_id} elec")
+
+            n.add(
+                "StorageUnit",
+                plant_id,
+                bus=f"{plant_id} elec",
+                carrier="hydro",
+                p_nom=100.0,
+                max_hours=4.0,
+                efficiency_dispatch=0.9,
+                cyclic_state_of_charge=True,
+                inflow=pd.Series([1.0, 1.0], index=snapshots),
+                spill_cost=spill_cost,
+            )
+
+            n.storage_units.loc[plant_id, "plant_id"] = plant_id
+            n.storage_units.loc[plant_id, "dam_height_m"] = height
+
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [1.0],
+            }
+        )
+
+        materialize_cascade_storage_units(n, topology)
+
+        self.assertAlmostEqual(
+            n.links.at["A spill", "marginal_cost"],
+            7.0,
+        )
+        self.assertAlmostEqual(
+            n.generators.at["B terminal spill", "marginal_cost"],
+            11.0,
+        )
+
+    def test_materialization_accepts_implicit_zero_inflow(self):
+        n = pypsa.Network()
+        snapshots = pd.date_range(
+            "2023-01-01",
+            periods=3,
+            freq="h",
+        )
+        n.set_snapshots(snapshots)
+
+        n.add("Bus", "elec A")
+        n.add("Bus", "elec B")
+
+        # No explicit inflow time series: PyPSA represents the effective
+        # StorageUnit inflow using the static default value of zero.
+        n.add(
+            "StorageUnit",
+            "component A",
+            bus="elec A",
+            carrier="hydro",
+            p_nom=100.0,
+            max_hours=1.0,
+            efficiency_dispatch=0.9,
+            cyclic_state_of_charge=True,
+        )
+        n.add(
+            "StorageUnit",
+            "component B",
+            bus="elec B",
+            carrier="hydro",
+            p_nom=100.0,
+            max_hours=1.0,
+            efficiency_dispatch=0.9,
+            cyclic_state_of_charge=True,
+            inflow=pd.Series(
+                [10.0, 20.0, 30.0],
+                index=snapshots,
+            ),
+        )
+
+        n.storage_units["plant_id"] = ["A", "B"]
+        n.storage_units["dam_height_m"] = [100.0, 50.0]
+
+        self.assertNotIn(
+            "component A",
+            n.storage_units_t.inflow.columns,
+        )
+
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [0.0],
+            }
+        )
+
+        materialize_cascade_storage_units(
+            n,
+            topology,
+        )
+
+        self.assertNotIn("component A", n.storage_units.index)
+        self.assertIn("A inflow", n.generators.index)
+
+        self.assertAlmostEqual(
+            n.generators.at["A inflow", "p_nom"],
+            1.0,
+        )
+
+        np.testing.assert_allclose(
+            n.generators_t.p_min_pu["A inflow"].to_numpy(),
+            [0.0, 0.0, 0.0],
+        )
+        np.testing.assert_allclose(
+            n.generators_t.p_max_pu["A inflow"].to_numpy(),
+            [0.0, 0.0, 0.0],
+        )
+
+    def test_materialized_terminal_reservoir_can_spill(self):
+        n = pypsa.Network()
+        snapshots = pd.date_range(
+            "2023-01-01",
+            periods=3,
+            freq="h",
+        )
+        n.set_snapshots(snapshots)
+
+        n.add("Bus", "elec A")
+        n.add("Bus", "elec B")
+
+        n.add(
+            "StorageUnit",
+            "component A",
+            bus="elec A",
+            carrier="hydro",
+            p_nom=100.0,
+            max_hours=1.0,
+            efficiency_dispatch=0.9,
+            cyclic_state_of_charge=True,
+            inflow=[0.0, 0.0, 0.0],
+        )
+        n.add(
+            "StorageUnit",
+            "component B",
+            bus="elec B",
+            carrier="hydro",
+            p_nom=100.0,
+            max_hours=1.0,
+            efficiency_dispatch=0.9,
+            cyclic_state_of_charge=True,
+            inflow=[10.0, 10.0, 10.0],
+            spill_cost=1.0,
+        )
+
+        n.storage_units["plant_id"] = ["A", "B"]
+        n.storage_units["dam_height_m"] = [100.0, 50.0]
+
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [0.0],
+            }
+        )
+
+        materialize_cascade_storage_units(
+            n,
+            topology,
+        )
+
+        status, condition = n.optimize(
+            solver_name="highs",
+            log_to_console=False,
+            include_objective_constant=False,
+        )
+
+        self.assertEqual(status, "ok")
+        self.assertEqual(condition, "optimal")
+
+        np.testing.assert_allclose(
+            n.generators_t.p["B terminal spill"].to_numpy(),
+            [10.0, 10.0, 10.0],
+        )
+        np.testing.assert_allclose(
+            n.links_t.p0["B turbine"].to_numpy(),
+            [0.0, 0.0, 0.0],
+            atol=1e-8,
+        )
+
+
+class TestLocalCascadeBasins(unittest.TestCase):
+    def test_chain_local_catchments(self):
+        plants = pd.DataFrame(
+            {
+                "hid": [1, 2, 3],
+                "upstream": [
+                    [1],
+                    [1, 2],
+                    [1, 2, 3],
+                ],
+            },
+            index=[10, 11, 12],
+        )
+        meta = pd.DataFrame(
+            {"DIST_MAIN": [7.2, 3.6, 0.0]},
+            index=pd.Index([1, 2, 3], name="hid"),
+        )
+        basins = hydrom.Basins(plants, meta, pd.Series(index=meta.index))
+
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A", "B"],
+                "downstream": ["B", "C"],
+                "travel_time_hours": [5.0, 7.0],
+            }
+        )
+
+        local = build_local_cascade_basins(
+            basins,
+            topology,
+            {"A": 10, "B": 11, "C": 12},
+        )
+
+        self.assertEqual(local.plants.at[10, "upstream"], [1])
+        self.assertEqual(local.plants.at[11, "upstream"], [2])
+        self.assertEqual(local.plants.at[12, "upstream"], [3])
+
+    def test_confluence_local_catchment(self):
+        plants = pd.DataFrame(
+            {
+                "hid": [1, 2, 3],
+                "upstream": [
+                    [1],
+                    [2],
+                    [1, 2, 3],
+                ],
+            },
+            index=[10, 11, 12],
+        )
+        meta = pd.DataFrame(
+            {"DIST_MAIN": [3.6, 3.6, 0.0]},
+            index=pd.Index([1, 2, 3], name="hid"),
+        )
+        basins = hydrom.Basins(plants, meta, pd.Series(index=meta.index))
+
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A", "B"],
+                "downstream": ["C", "C"],
+                "travel_time_hours": [4.0, 9.0],
+            }
+        )
+
+        local = build_local_cascade_basins(
+            basins,
+            topology,
+            {"A": 10, "B": 11, "C": 12},
+        )
+
+        self.assertEqual(local.plants.at[12, "upstream"], [3])
+
+    def test_inconsistent_hydrobasins_topology_is_rejected(self):
+        plants = pd.DataFrame(
+            {
+                "hid": [1, 3],
+                "upstream": [
+                    [1],
+                    [2, 3],
+                ],
+            },
+            index=[10, 11],
+        )
+        meta = pd.DataFrame(
+            {"DIST_MAIN": [7.2, 3.6, 0.0]},
+            index=pd.Index([1, 2, 3], name="hid"),
+        )
+        basins = hydrom.Basins(plants, meta, pd.Series(index=meta.index))
+
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                "travel_time_hours": [1.0],
+            }
+        )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "inconsistent with the HydroBASINS drainage topology",
+        ):
+            build_local_cascade_basins(
+                basins,
+                topology,
+                {"A": 10, "B": 11},
+            )
+
+    def test_local_catchments_use_atlite_routing(self):
+        plants = pd.DataFrame(
+            {
+                "hid": [1, 3],
+                "upstream": [
+                    [1],
+                    [1, 2, 3],
+                ],
+            },
+            index=[10, 11],
+        )
+        meta = pd.DataFrame(
+            {
+                "DIST_MAIN": [7.2, 3.6, 0.0],
+            },
+            index=pd.Index([1, 2, 3], name="hid"),
+        )
+        basins = hydrom.Basins(plants, meta, pd.Series(index=meta.index))
+
+        topology = pd.DataFrame(
+            {
+                "upstream": ["A"],
+                "downstream": ["B"],
+                # Deliberately unrelated to atlite routing.
+                "travel_time_hours": [24.0],
+            }
+        )
+
+        local = build_local_cascade_basins(
+            basins,
+            topology,
+            {"A": 10, "B": 11},
+        )
+
+        time = pd.date_range("2023-01-01", periods=3, freq="h")
+        runoff = xr.DataArray(
+            [
+                [100.0, 0.0, 0.0],
+                [40.0, 0.0, 0.0],
+                [30.0, 0.0, 0.0],
+            ],
+            dims=["hid", "time"],
+            coords={
+                "hid": [1, 2, 3],
+                "time": time,
+            },
+        )
+
+        routed = hydrom.shift_and_aggregate_runoff_for_plants(
+            local,
+            runoff,
+            flowspeed=1.0,
+        )
+
+        np.testing.assert_allclose(
+            routed.sel(plant=10).to_numpy(),
+            [100.0, 0.0, 0.0],
+        )
+        np.testing.assert_allclose(
+            routed.sel(plant=11).to_numpy(),
+            [30.0, 40.0, 0.0],
         )
 
 

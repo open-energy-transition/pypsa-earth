@@ -94,7 +94,10 @@ from _helpers import (
 
 idx = pd.IndexSlice
 
-from hydro_cascade import validate_cascade_topology
+from hydro_cascade import (
+    resolve_cascade_plants,
+    validate_cascade_topology,
+)
 
 logger = create_logger(__name__)
 
@@ -919,6 +922,9 @@ def attach_hydro(
 
     cascade_mask = plant_ids.isin(cascade_plant_ids)
 
+    # plant_id acts as the cascade marker in downstream workflow steps.
+    ppl.loc[~cascade_mask, "plant_id"] = ""
+
     invalid_cascade = ppl.loc[cascade_mask & ppl["carrier"].ne("hydro")]
     if not invalid_cascade.empty:
         raise ValueError(
@@ -1212,6 +1218,9 @@ def attach_hydro(
         if "plant_id" in hydro.columns:
             n.storage_units.loc[hydro.index, "plant_id"] = hydro["plant_id"].fillna("")
 
+        if "damheight_m" in hydro.columns:
+            n.storage_units.loc[hydro.index, "dam_height_m"] = hydro["damheight_m"]
+
         logger.info(
             f"Added {len(hydro)} hydro storage units with {hydro['p_nom'].sum() / 1e3:.2f} GW"
         )
@@ -1399,9 +1408,23 @@ if __name__ == "__main__":
     if cascade_topology_path:
         cascade_topology = pd.read_csv(cascade_topology_path)
         validate_cascade_topology(cascade_topology)
-        cascade_plant_ids = set(cascade_topology["upstream"]).union(
-            cascade_topology["downstream"]
+
+        # Keep the original powerplant index so that the resolved stable
+        # cascade IDs can be propagated back to the full powerplant table.
+        resolution_input = ppl.assign(_cascade_source_index=ppl.index)
+
+        cascade_plants = resolve_cascade_plants(
+            cascade_topology,
+            resolution_input,
         )
+
+        if "plant_id" not in ppl.columns:
+            ppl["plant_id"] = ""
+
+        for plant_id, plant in cascade_plants.iterrows():
+            ppl.loc[plant["_cascade_source_index"], "plant_id"] = plant_id
+
+        cascade_plant_ids = set(cascade_plants.index)
 
     attach_hydro(
         n,
