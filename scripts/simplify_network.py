@@ -107,6 +107,11 @@ from scipy.sparse.csgraph import connected_components, dijkstra
 
 sys.settrace
 
+from hydro_cascade import (
+    pop_cascade_storage_units,
+    restore_cascade_storage_units,
+)
+
 logger = create_logger(__name__)
 
 
@@ -359,6 +364,8 @@ def _aggregate_and_move_components(
     generator_strategies = aggregation_strategies["generators"]
     one_port_strategies = aggregation_strategies["one_ports"]
 
+    cascade_static, cascade_dynamic = pop_cascade_storage_units(n)
+
     carriers = set(n.generators.carrier) - set(exclude_carriers)
     generators, generators_pnl = aggregateoneport(
         n,
@@ -385,6 +392,13 @@ def _aggregate_and_move_components(
     for c in n.branch_components:
         df = n.df(c)
         n.remove(c, df.index[df.bus0.isin(buses_to_del) | df.bus1.isin(buses_to_del)])
+
+    restore_cascade_storage_units(
+        n,
+        cascade_static,
+        cascade_dynamic,
+        busmap,
+    )
 
 
 # Filter AC lines to avoid mixing with DC part when processing links
@@ -713,6 +727,7 @@ def aggregate_to_substations(n, aggregation_strategies=dict(), buses_i=None):
     generator_strategies = aggregation_strategies.get("generators", dict())
     one_port_strategies = aggregation_strategies.get("one_ports", dict())
 
+    cascade_static, cascade_dynamic = pop_cascade_storage_units(n)
     clustering = get_clustering_from_busmap(
         n,
         busmap,
@@ -725,6 +740,12 @@ def aggregate_to_substations(n, aggregation_strategies=dict(), buses_i=None):
         generator_strategies=generator_strategies,
         one_port_strategies=one_port_strategies,
         scale_link_capital_costs=False,
+    )
+    restore_cascade_storage_units(
+        clustering.n,
+        cascade_static,
+        cascade_dynamic,
+        busmap,
     )
     return clustering.n, busmap
 
@@ -1062,6 +1083,7 @@ def merge_isolated_networks(n, threshold, aggregation_strategies=dict()):
     generator_strategies = aggregation_strategies.get("generators", dict())
     one_port_strategies = aggregation_strategies.get("one_ports", dict())
 
+    cascade_static, cascade_dynamic = pop_cascade_storage_units(n)
     clustering = get_clustering_from_busmap(
         n,
         busmap,
@@ -1074,6 +1096,12 @@ def merge_isolated_networks(n, threshold, aggregation_strategies=dict()):
         generator_strategies=generator_strategies,
         one_port_strategies=one_port_strategies,
         scale_link_capital_costs=False,
+    )
+    restore_cascade_storage_units(
+        clustering.n,
+        cascade_static,
+        cascade_dynamic,
+        busmap,
     )
 
     load_mean_final = n.loads_t.p_set.mean().mean()
